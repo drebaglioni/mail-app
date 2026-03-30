@@ -236,24 +236,25 @@ Diana`,
   {
     id: "demo-006",
     threadId: "thread-github-ci",
-    subject: "[myorg/myrepo] CI workflow failed on main",
+    subject: "[ankitvgupta/mail-app] CI workflow failed on main",
     from: "GitHub <noreply@github.com>",
     to: "me@example.com",
     date: new Date(now - 4 * hour).toISOString(),
-    body: `The workflow "CI" in repository myorg/myrepo has failed.
+    body: `The workflow "Build & Test" in repository ankitvgupta/mail-app has failed.
 
-Commit: abc123def456
-Message: Update dependencies
-Author: dependabot[bot]
+Commit: 4d96857a3f
+Message: Replace all mail-client references with mail-app (#5)
+Author: ankitvgupta
 
 Failed jobs:
-- test (ubuntu-latest)
+- test-e2e (ubuntu-latest)
+  Error: better-sqlite3 ABI mismatch — rebuilt for system Node but running under Electron
 
-View the workflow run: https://github.com/myorg/myrepo/actions/runs/12345
+View the workflow run: https://github.com/ankitvgupta/mail-app/actions/runs/14738291
 
 ---
 You are receiving this because you are subscribed to this repository.`,
-    snippet: "The workflow CI in repository myorg/myrepo has failed...",
+    snippet: "The workflow Build & Test in repository ankitvgupta/mail-app has failed...",
   },
 
   // Newsletter (skip)
