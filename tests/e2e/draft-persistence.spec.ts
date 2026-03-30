@@ -93,12 +93,14 @@ test.describe("Draft persistence across navigation", () => {
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
 
-    // Capture the current editor content (may include pre-existing draft)
+    // Type some content into the editor so we can verify it persists
     const editor = inlineCompose.locator(".ProseMirror");
     await editor.click();
     await page.waitForTimeout(300);
+    await editor.pressSequentially("Draft persistence test content");
+    await page.waitForTimeout(300);
     const originalText = await editor.textContent();
-    expect(originalText).toBeTruthy(); // Should have some content
+    expect(originalText).toBeTruthy();
 
     // Navigate away — Esc blurs editor, then Esc navigates back
     await navigateBackToInbox(page);
