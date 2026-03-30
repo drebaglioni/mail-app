@@ -21,7 +21,7 @@ async function openFirstEmailInFullView(page: Page): Promise<void> {
   const firstEmail = page.locator("[data-testid='email-list-item']").first();
   const emailButton = (await firstEmail.isVisible().catch(() => false))
     ? firstEmail
-    : page.locator("button").filter({ hasText: "Sarah" }).first();
+    : page.locator("button").filter({ hasText: "Garry" }).first();
 
   await emailButton.click();
   await page.waitForTimeout(500);
@@ -50,7 +50,7 @@ async function reopenFirstEmail(page: Page): Promise<void> {
   const firstEmail = page.locator("[data-testid='email-list-item']").first();
   const emailButton = (await firstEmail.isVisible().catch(() => false))
     ? firstEmail
-    : page.locator("button").filter({ hasText: "Sarah" }).first();
+    : page.locator("button").filter({ hasText: "Garry" }).first();
 
   await emailButton.click();
   await page.waitForTimeout(500);
