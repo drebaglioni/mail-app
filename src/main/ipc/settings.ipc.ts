@@ -781,7 +781,8 @@ export function registerSettingsIpc(): void {
       args?: { limit?: number },
     ): Promise<IpcResponse<ReturnType<typeof getCallHistory>>> => {
       try {
-        return { success: true, data: getCallHistory(args?.limit ?? 50) };
+        const limit = Math.min(Math.max(args?.limit ?? 50, 1), 500);
+        return { success: true, data: getCallHistory(limit) };
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
       }
