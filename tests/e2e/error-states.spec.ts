@@ -38,7 +38,12 @@ test.describe("Error States - App Load", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("app loads without critical console errors", async () => {
@@ -87,7 +92,12 @@ test.describe("Error States - Empty Inbox Handling", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("archiving all visible emails shows empty state gracefully", async () => {
@@ -136,7 +146,12 @@ test.describe("Error States - Long Email Body", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("email body renders without horizontal overflow", async () => {
@@ -183,7 +198,12 @@ test.describe("Error States - Rapid Interactions", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("rapid j/k navigation doesn't crash", async () => {
@@ -278,7 +298,12 @@ test.describe("Error States - UI Resilience", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("clicking empty space in detail area doesn't crash", async () => {

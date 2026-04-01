@@ -28,7 +28,10 @@ test.describe("Exo E2E - Inbox View", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -107,7 +110,10 @@ test.describe("Exo E2E - Email Detail", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -178,7 +184,10 @@ test.describe("Exo E2E - Draft Generation", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -244,7 +253,10 @@ test.describe("Exo E2E - Navigation", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -339,7 +351,10 @@ test.describe("Exo E2E - Draft Critique", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -394,7 +409,10 @@ test.describe("Exo E2E - EA Settings", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -462,7 +480,10 @@ test.describe("Exo E2E - CC Display", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 

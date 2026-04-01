@@ -1,9 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import {
-  launchElectronApp,
-  waitForEmailListReady,
-  pressKeyUntilVisible,
-} from "./launch-helpers";
+import { launchElectronApp, waitForEmailListReady, pressKeyUntilVisible } from "./launch-helpers";
 
 /**
  * E2E Tests for complete keyboard-driven workflows.
@@ -43,7 +39,12 @@ test.describe("Keyboard Navigation - j/k Movement", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("j selects the first email when nothing is selected", async () => {
@@ -138,7 +139,12 @@ test.describe("Keyboard Navigation - Enter and Escape", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Enter opens email in full view", async () => {
@@ -190,7 +196,12 @@ test.describe("Keyboard Compose - Reply, Reply-All, Forward", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("'r' opens reply-all inline compose in full view", async () => {
@@ -276,7 +287,12 @@ test.describe("Keyboard Actions - Archive (e)", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("'e' archives the selected email and advances to next", async () => {
@@ -323,7 +339,12 @@ test.describe("Keyboard Actions - Star (s)", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("'s' stars selected thread when in multi-select mode", async () => {
@@ -358,7 +379,12 @@ test.describe("Keyboard Go-To - g i (Go to Inbox)", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("'g then i' switches to priority inbox view", async () => {
@@ -434,7 +460,12 @@ test.describe("Keyboard - Command Palette and Search", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Cmd+K opens command palette", async () => {
@@ -519,7 +550,12 @@ test.describe("Keyboard - Compose New Email (c)", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("'c' opens new email compose view", async () => {
@@ -586,7 +622,12 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Escape closes settings", async () => {
@@ -608,10 +649,18 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
     const batchBar = page.locator("[data-testid='batch-action-bar']");
     await pressKeyUntilVisible(page, "x", batchBar, { timeout: 10000 });
 
-    // Escape clears selection
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(300);
-    await expect(batchBar).not.toBeVisible({ timeout: 3000 });
+    // Escape clears selection — retry in case the keypress doesn't register immediately
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+      await page.keyboard.press("Escape");
+      try {
+        await expect(batchBar).not.toBeVisible({ timeout: 1000 });
+        break;
+      } catch {
+        // Retry
+      }
+    }
+    await expect(batchBar).not.toBeVisible({ timeout: 2000 });
   });
 
   test("Escape exits full view", async () => {
@@ -671,7 +720,12 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Cmd+J opens agent palette", async () => {

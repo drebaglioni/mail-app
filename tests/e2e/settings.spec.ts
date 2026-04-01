@@ -28,7 +28,12 @@ test.describe("Settings Panel - Open and Close", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("can open settings via gear icon button", async () => {
@@ -100,7 +105,12 @@ test.describe("Settings Panel - Tab Navigation", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("opens with General tab active by default", async () => {
@@ -220,7 +230,12 @@ test.describe("Settings Panel - Theme Switching", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("can switch to dark theme", async () => {
@@ -278,7 +293,12 @@ test.describe("Settings Panel - Undo Send Delay", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("shows all undo send delay options", async () => {
@@ -334,7 +354,12 @@ test.describe("Settings Panel - Persistence", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("undo send delay persists after closing and reopening settings", async () => {

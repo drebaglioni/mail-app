@@ -30,7 +30,10 @@ test.describe("Image Loading in Emails", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 

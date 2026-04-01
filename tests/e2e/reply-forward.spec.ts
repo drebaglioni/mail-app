@@ -85,7 +85,10 @@ test.describe("Reply and Forward Workflows", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -347,7 +350,10 @@ test.describe("Reply After Forward - Bug Regression", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -497,7 +503,10 @@ test.describe("Keyboard Shortcuts for Reply/Forward", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -592,7 +601,10 @@ test.describe("Send via Cmd+Enter", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -635,7 +647,10 @@ test.describe("Cmd+Enter does not insert newline before sending", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 

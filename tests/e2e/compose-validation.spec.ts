@@ -26,7 +26,10 @@ test.describe("Compose validation — send with subject only (no body)", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -194,7 +197,10 @@ test.describe("Compose validation — Cc-only and Bcc-only sends", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 

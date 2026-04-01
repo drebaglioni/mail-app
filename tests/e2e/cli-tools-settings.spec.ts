@@ -48,7 +48,12 @@ test.describe("Settings - CLI Tools", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("shows CLI Tools section with heading and description", async () => {

@@ -54,7 +54,10 @@ test.describe("Batch Actions - Multi-Select", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -149,7 +152,10 @@ test.describe("Batch Actions - Keyboard Select (x)", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -215,7 +221,10 @@ test.describe("Batch Actions - Select All (Cmd+A)", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -263,7 +272,10 @@ test.describe("Batch Actions - Archive Multiple", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -350,7 +362,10 @@ test.describe("Batch Actions - Trash Multiple", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -426,7 +441,10 @@ test.describe("Batch Actions - Mark Unread", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -473,7 +491,10 @@ test.describe("Batch Actions - Shift+Click Range Select", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -521,7 +542,10 @@ test.describe("Batch Actions - Checkbox Click", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 
@@ -569,7 +593,10 @@ test.describe("Batch Actions - Select All Button", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
     }
   });
 

@@ -35,7 +35,12 @@ test.describe("Multi-Select - Cmd+Click", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Cmd+click selects multiple emails and shows batch action bar", async () => {
@@ -103,7 +108,12 @@ test.describe("Multi-Select - Shift+Click Range", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Shift+click selects a range of emails", async () => {
@@ -144,7 +154,12 @@ test.describe("Multi-Select - Keyboard (x)", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("pressing 'x' toggles current thread into multi-select", async () => {
@@ -203,7 +218,12 @@ test.describe("Multi-Select - Shift+J/K Extend Selection", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Shift+J extends selection downward", async () => {
@@ -250,7 +270,12 @@ test.describe("Multi-Select - Batch Actions", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("batch action bar shows all action buttons", async () => {
@@ -370,7 +395,12 @@ test.describe("Multi-Select - Select All and Clear", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("Cmd+A selects all threads", async () => {
@@ -433,7 +463,12 @@ test.describe("Multi-Select - Checkbox Interaction", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) await electronApp.close();
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close(),
+        new Promise((resolve) => setTimeout(resolve, 10000)),
+      ]);
+    }
   });
 
   test("checkboxes appear after entering multi-select mode", async () => {
