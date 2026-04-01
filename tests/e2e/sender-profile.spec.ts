@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp } from "./launch-helpers";
+import { launchElectronApp, pressKeyUntilVisible } from "./launch-helpers";
 
 /**
  * E2E Tests for the sender profile panel.
@@ -227,11 +227,8 @@ test.describe("Sender Profile - Full View", () => {
     await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
 
     // Navigate to first email and enter full view
-    await page.keyboard.press("j");
-    // Wait for selection before pressing Enter
-    await expect(page.locator("div[data-thread-id][data-selected='true']")).toBeVisible({
-      timeout: 5000,
-    });
+    const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
+    await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 15000 });
     await page.keyboard.press("Enter");
 
     // Should be in full view

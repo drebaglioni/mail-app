@@ -1,5 +1,9 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp } from "./launch-helpers";
+import {
+  launchElectronApp,
+  waitForEmailListReady,
+  pressKeyUntilVisible,
+} from "./launch-helpers";
 
 /**
  * E2E Tests for complete keyboard-driven workflows.
@@ -19,39 +23,6 @@ async function getSelectedThreadId(page: Page): Promise<string | null> {
     return selected.getAttribute("data-thread-id");
   }
   return null;
-}
-
-/** Wait for email list to be fully rendered and React effects to settle.
- * On CI (slow CPU + xvfb), there's a gap between thread rows appearing in the DOM
- * and the keyboard handler's useEffect registering / store subscriptions updating.
- * The settle delay lets React flush pending effects before keyboard events fire. */
-async function waitForEmailListReady(page: Page): Promise<void> {
-  await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
-  await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout: 10000 });
-  // Let React effects settle (keyboard handler registration, store subscriptions)
-  await page.waitForTimeout(1000);
-}
-
-/** Press a key and retry until the expected locator becomes visible.
- * Works around CI timing where keyboard events fire before React state commits. */
-async function pressKeyUntilVisible(
-  page: Page,
-  key: string,
-  locator: ReturnType<Page["locator"]>,
-  { timeout = 10000, retryInterval = 500 } = {},
-): Promise<void> {
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    await page.keyboard.press(key);
-    try {
-      await expect(locator).toBeVisible({ timeout: retryInterval });
-      return;
-    } catch {
-      // Key didn't take effect yet — retry
-    }
-  }
-  // Final attempt — let it throw the real assertion error
-  await expect(locator).toBeVisible({ timeout: 2000 });
 }
 
 test.describe("Keyboard Navigation - j/k Movement", () => {
@@ -631,13 +602,11 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
 
   test("Escape clears multi-selection", async () => {
     // Select a thread with 'x'
-    await page.keyboard.press("j");
-    await page.waitForTimeout(300);
-    await page.keyboard.press("x");
-    await page.waitForTimeout(300);
+    const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
+    await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 15000 });
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");
-    await expect(batchBar).toBeVisible({ timeout: 3000 });
+    await pressKeyUntilVisible(page, "x", batchBar, { timeout: 10000 });
 
     // Escape clears selection
     await page.keyboard.press("Escape");
