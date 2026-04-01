@@ -10,6 +10,7 @@
  * Only log IDs (email_id, account_id, thread_id, caller).
  */
 import pino, { type Logger, multistream } from "pino";
+import { type SonicBoom } from "sonic-boom";
 import { join } from "path";
 import { mkdirSync, readdirSync, unlinkSync, statSync } from "fs";
 import { tmpdir } from "os";
@@ -64,6 +65,10 @@ function cleanOldLogs(logDir: string): void {
 }
 
 let _logger: Logger | null = null;
+// Keep references to SonicBoom destinations so we can end() them on shutdown.
+// pino's Logger and MultiStreamRes types don't expose end(), but
+// SonicBoom (returned by pino.destination()) does.
+let _destinations: SonicBoom[] = [];
 
 function initLogger(): Logger {
   const logDir = getLogDir();
@@ -79,12 +84,16 @@ function initLogger(): Logger {
   const logFile = join(logDir, `${today}.log`);
   const dev = isDev();
 
+  // pino.destination() returns SonicBoom at runtime but is typed as DestinationStream
+  const fileDest = pino.destination({ dest: logFile, sync: false, mkdir: true }) as SonicBoom;
+  _destinations = [fileDest];
+
   const streams: pino.StreamEntry[] = [
-    // Async writes — closeLogs() calls logger.end() in before-quit which
-    // deregisters pino's exit hook, preventing the SonicBoom "not ready yet" crash.
+    // Async writes — closeLogs() ends the SonicBoom destinations in before-quit,
+    // deregistering pino's exit hook to prevent "sonic boom is not ready yet" crash.
     {
       level: "debug" as const,
-      stream: pino.destination({ dest: logFile, sync: false, mkdir: true }),
+      stream: fileDest,
     },
   ];
 
@@ -99,9 +108,11 @@ function initLogger(): Logger {
       });
     } catch {
       // pino-pretty not available, fall back to raw JSON to stdout
+      const stdoutDest = pino.destination({ dest: 1, sync: true }) as SonicBoom;
+      _destinations.push(stdoutDest);
       streams.push({
         level: "debug" as const,
-        stream: pino.destination({ dest: 1, sync: true }), // fd 1 = stdout
+        stream: stdoutDest, // fd 1 = stdout
       });
     }
   }
@@ -169,11 +180,16 @@ export function closeLogs(): void {
     } catch {
       /* best effort */
     }
-    // Calling end() deregisters pino's on-exit-leak-free handler,
-    // preventing the "sonic boom is not ready yet" crash.
-    // pino.Logger inherits from EventEmitter which has end(), but the
-    // pino type definitions don't expose it — cast through the stream interface.
-    (_logger as unknown as { end(): void }).end();
+    // End each SonicBoom destination — this deregisters pino's
+    // on-exit-leak-free handler, preventing the "sonic boom is not ready yet" crash.
+    for (const dest of _destinations) {
+      try {
+        dest.end();
+      } catch {
+        /* best effort */
+      }
+    }
+    _destinations = [];
     _logger = null;
   }
 }
