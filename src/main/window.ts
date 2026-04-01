@@ -47,6 +47,10 @@ export function createWindow(): BrowserWindow {
       // Allow loading external images in emails
       webSecurity: true,
       allowRunningInsecureContent: false,
+      // Prevent Chromium from throttling timers in hidden windows during tests.
+      // Without this, setTimeout-based logic (e.g. undo-send toast auto-dismiss)
+      // gets frozen indefinitely when the window is never shown.
+      ...(isTestMode && { backgroundThrottling: false }),
     },
   });
 
