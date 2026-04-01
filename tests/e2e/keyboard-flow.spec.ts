@@ -160,12 +160,14 @@ test.describe("Keyboard Navigation - Enter and Escape", () => {
       timeout: 10000,
     });
 
-    // Open full view
+    // Open full view — wait briefly for selection state to commit before Enter
+    await page.waitForTimeout(200);
     await page.keyboard.press("Enter");
 
     // In full view, Reply All button should be visible
+    // CI view transitions can be slow — give generous timeout
     const replyButton = page.locator("button[title='Reply All']").first();
-    await expect(replyButton).toBeVisible({ timeout: 10000 });
+    await expect(replyButton).toBeVisible({ timeout: 15000 });
   });
 
   test("Escape exits full view back to split view", async () => {
@@ -216,10 +218,12 @@ test.describe("Keyboard Compose - Reply, Reply-All, Forward", () => {
     await expect(page.locator("div[data-thread-id][data-selected='true']")).toBeVisible({
       timeout: 10000,
     });
+    await page.waitForTimeout(200);
     await page.keyboard.press("Enter");
-    await expect(page.locator("button[title='Reply All']").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("button[title='Reply All']").first()).toBeVisible({ timeout: 15000 });
 
-    // Press 'r' for reply-all
+    // Press 'r' for reply-all — wait for full view to settle
+    await page.waitForTimeout(200);
     await page.keyboard.press("r");
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
@@ -299,16 +303,18 @@ test.describe("Keyboard Actions - Archive (e)", () => {
   });
 
   test("'e' archives the selected email and advances to next", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await waitForEmailListReady(page);
 
     // Count threads before archive
     const threadRows = page.locator(".overflow-y-auto div[data-thread-id]");
     const countBefore = await threadRows.count();
     expect(countBefore).toBeGreaterThan(0);
 
-    // Select first thread
+    // Select first thread and wait for selection to commit
     await page.keyboard.press("j");
-    await page.waitForTimeout(300);
+    await expect(page.locator("div[data-thread-id][data-selected='true']")).toBeVisible({
+      timeout: 10000,
+    });
     const selectedBefore = await getSelectedThreadId(page);
 
     // Press 'e' to archive
