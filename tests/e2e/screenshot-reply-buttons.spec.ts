@@ -17,9 +17,7 @@ test.describe("Thread Reply Buttons Screenshot", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) {
-      await electronApp.close();
-    }
+    if (electronApp) await electronApp.close();
   });
 
   test("capture reply buttons in multi-message thread", async () => {

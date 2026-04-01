@@ -43,7 +43,25 @@ test.describe("Exo Integration Tests", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      await electronApp.close();
+      // Race close() against a 15s timeout; SIGKILL if close() doesn't finish
+      const pid = electronApp.process().pid;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          electronApp.close(),
+          new Promise<void>((_resolve, reject) => {
+            timer = setTimeout(() => reject(new Error("close timed out")), 15000);
+          }),
+        ]);
+      } catch {
+        try {
+          if (pid) process.kill(pid, "SIGKILL");
+        } catch {
+          /* already exited */
+        }
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
     }
   });
 

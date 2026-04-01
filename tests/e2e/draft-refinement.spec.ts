@@ -30,9 +30,7 @@ test.describe("Draft Generation and Refinement", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) {
-      await electronApp.close();
-    }
+    if (electronApp) await electronApp.close();
   });
 
   test("can select an email that needs reply", async () => {
@@ -172,9 +170,7 @@ test.describe("Draft Generation - Multiple Emails", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) {
-      await electronApp.close();
-    }
+    if (electronApp) await electronApp.close();
   });
 
   test("switching emails clears previous draft state", async () => {
@@ -224,9 +220,7 @@ test.describe("Draft Generation - From Full View", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) {
-      await electronApp.close();
-    }
+    if (electronApp) await electronApp.close();
   });
 
   test("can generate and view draft from full email view", async () => {

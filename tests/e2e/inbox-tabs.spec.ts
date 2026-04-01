@@ -87,9 +87,7 @@ test.describe("Inbox Tabs - Default and Ordering", () => {
   });
 
   test.afterAll(async () => {
-    if (electronApp) {
-      await electronApp.close();
-    }
+    if (electronApp) await electronApp.close();
   });
 
   test("Priority tab is the default active tab on launch", async () => {
