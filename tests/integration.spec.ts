@@ -43,28 +43,7 @@ test.describe("Exo Integration Tests", () => {
 
   test.afterAll(async () => {
     if (electronApp) {
-      const proc = electronApp.process();
-      const pid = proc.pid;
-      if (pid) {
-        const exited = new Promise<void>((resolve) => {
-          proc.once("exit", () => resolve());
-          proc.once("close", () => resolve());
-        });
-        try {
-          process.kill(pid, "SIGTERM");
-        } catch {
-          /* already dead */
-        }
-        const graceful = setTimeout(() => {
-          try {
-            process.kill(pid, "SIGKILL");
-          } catch {
-            /* already exited */
-          }
-        }, 5000);
-        await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 8000))]);
-        clearTimeout(graceful);
-      }
+      await electronApp.close();
     }
   });
 

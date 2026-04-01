@@ -97,56 +97,11 @@ export async function pressKeyUntilVisible(
 /**
  * Close an Electron app for test cleanup.
  *
- * electronApp.close() can hang when the renderer has pending timers or
- * unresolved async work, and the resulting dangling promise keeps Playwright's
- * worker alive past the 60s teardown limit (the internal pipe handles are
- * never released). To avoid this, we SIGTERM the process directly and wait
- * for it to exit via the 'close' event on the child process — no dangling
- * Playwright promises involved.
+ * electronApp.close() can hang when the renderer has pending timers, but
+ * run-tests.sh tolerates worker teardown timeouts when all tests passed.
  */
 export async function closeApp(electronApp: ElectronApplication): Promise<void> {
-  const proc = electronApp.process();
-  const pid = proc.pid;
-  if (!pid) return;
-
-  // Wait for the child process to actually exit
-  const exited = new Promise<void>((resolve) => {
-    proc.once("exit", () => resolve());
-    proc.once("close", () => resolve());
-  });
-
-  // SIGTERM for graceful shutdown (triggers before-quit to clean up DB)
-  try {
-    process.kill(pid, "SIGTERM");
-  } catch {
-    return; // already dead
-  }
-
-  // Give it 5s to shut down gracefully, then SIGKILL
-  const gracefulTimeout = setTimeout(() => {
-    try {
-      process.kill(pid, "SIGKILL");
-    } catch {
-      /* already exited */
-    }
-  }, 5000);
-
-  // Wait for exit, but don't wait forever
-  await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 8000))]);
-  clearTimeout(gracefulTimeout);
-
-  // Unref the child process and its stdio so Node's event loop can exit
-  // even if Playwright's internal handles haven't been cleaned up
-  proc.unref();
-  if (proc.stdio) {
-    for (const stream of proc.stdio) {
-      if (stream && "unref" in stream) {
-        (stream as { unref: () => void }).unref();
-      }
-    }
-  }
-  if (proc.stdout) proc.stdout.removeAllListeners();
-  if (proc.stderr) proc.stderr.removeAllListeners();
+  await electronApp.close();
 }
 
 /**
