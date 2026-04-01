@@ -107,7 +107,7 @@ test.describe("Error States - Empty Inbox Handling", () => {
     }
 
     // Select all and archive
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.waitForTimeout(300);
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");
@@ -233,13 +233,13 @@ test.describe("Error States - Rapid Interactions", () => {
       await page.waitForTimeout(150);
 
       // Open command palette
-      await page.keyboard.press("Meta+k");
+      await page.keyboard.press("ControlOrMeta+k");
       await page.waitForTimeout(200);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(150);
 
       // Open settings
-      await page.keyboard.press("Meta+,");
+      await page.keyboard.press("ControlOrMeta+,");
       await page.waitForTimeout(200);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(150);
@@ -313,7 +313,7 @@ test.describe("Error States - UI Resilience", () => {
 
   test("navigating while settings are open doesn't crash", async () => {
     // Open settings
-    await page.keyboard.press("Meta+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
 
     // Try pressing j/k (should be ignored in settings)

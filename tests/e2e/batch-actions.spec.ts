@@ -226,7 +226,7 @@ test.describe("Batch Actions - Select All (Cmd+A)", () => {
     expect(totalThreads).toBeGreaterThan(0);
 
     // Cmd+A to select all
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.waitForTimeout(300);
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");

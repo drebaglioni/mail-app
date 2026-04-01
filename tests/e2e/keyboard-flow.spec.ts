@@ -455,7 +455,7 @@ test.describe("Keyboard - Command Palette and Search", () => {
   test("Cmd+K opens command palette", async () => {
     await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
 
-    await page.keyboard.press("Meta+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await page.waitForTimeout(500);
 
     // Command palette should be visible with a search/input field
@@ -487,7 +487,7 @@ test.describe("Keyboard - Command Palette and Search", () => {
 
   test("Escape closes command palette", async () => {
     // Open command palette
-    await page.keyboard.press("Meta+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await page.waitForTimeout(500);
 
     // Verify it's open
@@ -611,7 +611,7 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
   test("Escape closes settings", async () => {
     await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
 
-    await page.keyboard.press("Meta+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
 
     await page.keyboard.press("Escape");
@@ -661,25 +661,31 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
   test("sequential modals open/close cleanly without leaking state", async () => {
     // Open and close search
     await page.keyboard.press("/");
-    await page.waitForTimeout(300);
+    const searchInput = page.locator("input[placeholder*='Search']");
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(200);
+    await expect(searchInput).toBeHidden({ timeout: 5000 });
 
     // Open and close command palette
-    await page.keyboard.press("Meta+k");
-    await page.waitForTimeout(300);
+    await page.keyboard.press("ControlOrMeta+k");
+    const palette = page
+      .locator("[data-testid='command-palette']")
+      .or(page.locator("[role='dialog']").first());
+    await expect(palette).toBeVisible({ timeout: 5000 });
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(200);
+    await expect(palette).toBeHidden({ timeout: 5000 });
 
     // Open and close settings
-    await page.keyboard.press("Meta+,");
-    await page.waitForTimeout(300);
+    await page.keyboard.press("ControlOrMeta+,");
+    const settings = page.locator("text=Settings").first();
+    await expect(settings).toBeVisible({ timeout: 5000 });
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(500);
 
     // 'j' navigation should still work (not trapped in a modal)
-    await page.keyboard.press("j");
-    await page.waitForTimeout(300);
+    await waitForEmailListReady(page);
+    const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
+    await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 10000 });
 
     const selected = await getSelectedThreadId(page);
     expect(selected).not.toBeNull();
@@ -706,7 +712,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
   test("Cmd+J opens agent palette", async () => {
     await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
 
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     const agentInput = page.locator("input[placeholder*='Ask agent']").first();
@@ -731,7 +737,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     }
 
     // Open agent palette — should show email-specific placeholder
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     const agentInput = page.locator("input[placeholder='Ask agent about this email...']").first();
@@ -749,7 +755,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await expect(replyButton).toBeVisible({ timeout: 5000 });
 
     // Open agent palette
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
     await expect(page.locator("input[placeholder*='Ask agent']").first()).toBeVisible({
       timeout: 3000,
@@ -783,7 +789,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await page.waitForTimeout(200);
 
     // Cmd+J should open agent palette even though an input is focused
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     const agentInput = page.locator("input[placeholder*='Ask agent']").first();
@@ -819,7 +825,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await page.waitForTimeout(200);
 
     // Cmd+J opens agent palette on top of compose
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     const agentInput = page.locator("input[placeholder*='Ask agent']").first();
@@ -883,7 +889,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await page.waitForTimeout(200);
 
     // Cmd+J opens agent palette
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     const agentInput = page.locator("input[placeholder*='Ask agent']").first();
@@ -912,13 +918,13 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
 
   test("agent palette and other modals don't leak state between each other", async () => {
     // Open agent palette, close it
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(300);
     await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
 
     // Open command palette — should work, not stuck
-    await page.keyboard.press("Meta+k");
+    await page.keyboard.press("ControlOrMeta+k");
     await page.waitForTimeout(300);
     const cmdInput = page
       .locator(
@@ -932,7 +938,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await page.waitForTimeout(200);
 
     // Agent palette should also still work
-    await page.keyboard.press("Meta+j");
+    await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(300);
     await expect(page.locator("input[placeholder*='Ask agent']").first()).toBeVisible({
       timeout: 3000,

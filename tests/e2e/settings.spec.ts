@@ -73,7 +73,7 @@ test.describe("Settings Panel - Open and Close", () => {
     await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
 
     // Press Cmd+, to open settings
-    await page.keyboard.press("Meta+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await page.waitForTimeout(500);
 
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
@@ -388,7 +388,7 @@ test.describe("Settings Panel - Persistence", () => {
     await page.waitForTimeout(300);
 
     // Reopen settings
-    await page.keyboard.press("Meta+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
 
     // Dark button should still be active
@@ -416,7 +416,7 @@ test.describe("Settings Panel - Persistence", () => {
     // Close and reopen settings
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
-    await page.keyboard.press("Meta+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
 
     // Compact should still be active

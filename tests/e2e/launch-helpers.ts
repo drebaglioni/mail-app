@@ -95,22 +95,45 @@ export async function pressKeyUntilVisible(
 }
 
 /**
- * Gracefully close an Electron app with a timeout fallback.
- * Races electronApp.close() against a 10s timer, then SIGKILL the process
- * to prevent Playwright's worker teardown timeout (60s) from triggering.
+ * Close an Electron app for test cleanup.
+ *
+ * electronApp.close() can hang when the renderer has pending timers or
+ * unresolved async work, and the resulting dangling promise keeps Playwright's
+ * worker alive past the 60s teardown limit (the internal pipe handles are
+ * never released). To avoid this, we SIGTERM the process directly and wait
+ * for it to exit via the 'close' event on the child process — no dangling
+ * Playwright promises involved.
  */
 export async function closeApp(electronApp: ElectronApplication): Promise<void> {
-  const pid = electronApp.process().pid;
-  await Promise.race([
-    electronApp.close(),
-    new Promise<void>((resolve) => setTimeout(resolve, 10000)),
-  ]);
-  // Ensure the process is fully dead — close() may have timed out
+  const proc = electronApp.process();
+  const pid = proc.pid;
+  if (!pid) return;
+
+  // Wait for the child process to actually exit
+  const exited = new Promise<void>((resolve) => {
+    proc.once("exit", () => resolve());
+    proc.once("close", () => resolve());
+  });
+
+  // SIGTERM for graceful shutdown (triggers before-quit to clean up DB)
   try {
-    if (pid) process.kill(pid, "SIGKILL");
+    process.kill(pid, "SIGTERM");
   } catch {
-    /* already exited */
+    return; // already dead
   }
+
+  // Give it 5s to shut down gracefully, then SIGKILL
+  const gracefulTimeout = setTimeout(() => {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      /* already exited */
+    }
+  }, 5000);
+
+  // Wait for exit, but don't wait forever
+  await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 8000))]);
+  clearTimeout(gracefulTimeout);
 }
 
 /**

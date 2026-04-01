@@ -1,5 +1,10 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp, closeApp } from "./launch-helpers";
+import {
+  launchElectronApp,
+  closeApp,
+  waitForEmailListReady,
+  pressKeyUntilVisible,
+} from "./launch-helpers";
 
 /**
  * E2E Tests for batch selection and actions.
@@ -345,16 +350,16 @@ test.describe("Multi-Select - Batch Actions", () => {
     }
 
     // Select two threads via keyboard
-    await page.keyboard.press("j");
-    await page.waitForTimeout(200);
-    await page.keyboard.press("x");
-    await page.waitForTimeout(200);
-    await page.keyboard.press("j");
-    await page.waitForTimeout(200);
-    await page.keyboard.press("x");
-    await page.waitForTimeout(200);
-
+    await waitForEmailListReady(page);
+    const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
+    await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 10000 });
     const batchBar = page.locator("[data-testid='batch-action-bar']");
+    await pressKeyUntilVisible(page, "x", batchBar, { timeout: 10000 });
+    await page.keyboard.press("j");
+    await page.waitForTimeout(500);
+    await page.keyboard.press("x");
+    await page.waitForTimeout(500);
+
     await expect(batchBar).toContainText("2 selected");
 
     // Press 'e' to batch archive
@@ -393,7 +398,7 @@ test.describe("Multi-Select - Select All and Clear", () => {
     expect(totalThreads).toBeGreaterThan(0);
 
     // Cmd+A to select all
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.waitForTimeout(300);
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");

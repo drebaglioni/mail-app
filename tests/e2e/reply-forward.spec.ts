@@ -614,7 +614,7 @@ test.describe("Send via Cmd+Enter", () => {
     await editor.pressSequentially("Sent via keyboard shortcut.", { delay: 10 });
 
     // Send via Cmd+Enter
-    await page.keyboard.press("Meta+Enter");
+    await page.keyboard.press("ControlOrMeta+Enter");
     await page.waitForTimeout(1000);
 
     // Compose should close after send
@@ -660,7 +660,7 @@ test.describe("Cmd+Enter does not insert newline before sending", () => {
     }
 
     // Press Cmd+Enter — should NOT insert a newline
-    await page.keyboard.press("Meta+Enter");
+    await page.keyboard.press("ControlOrMeta+Enter");
     await page.waitForTimeout(300);
 
     // Editor should still show "Hello World" on a single line, no newline inserted

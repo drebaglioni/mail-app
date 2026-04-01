@@ -123,7 +123,7 @@ test.describe("Settings - CLI Tools", () => {
     await page.waitForTimeout(300);
 
     // Reopen settings
-    await page.keyboard.press("Meta+,");
+    await page.keyboard.press("ControlOrMeta+,");
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
 
     // Navigate back to Agents tab
