@@ -187,7 +187,7 @@ test.describe("Draft persistence across navigation", () => {
     await page.waitForTimeout(500);
     const clearEditor = inlineCompose.locator(".ProseMirror");
     await clearEditor.click();
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.press("Backspace");
     await page.waitForTimeout(200);
     await inlineCompose.locator("[data-testid='inline-compose-close']").click();
@@ -263,7 +263,7 @@ test.describe("Draft persistence across navigation", () => {
     await page.waitForTimeout(500);
     const clearEditor = inlineCompose.locator(".ProseMirror");
     await clearEditor.click();
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.press("Backspace");
     await page.waitForTimeout(200);
     await inlineCompose.locator("[data-testid='inline-compose-close']").click();
@@ -309,7 +309,7 @@ test.describe("Draft persistence across navigation", () => {
     await page.waitForTimeout(500);
     const clearEditor = inlineCompose.locator(".ProseMirror");
     await clearEditor.click();
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.press("Backspace");
     await page.waitForTimeout(200);
     await inlineCompose.locator("[data-testid='inline-compose-close']").click();
@@ -350,7 +350,7 @@ test.describe("Draft persistence across navigation", () => {
     await page.waitForTimeout(500);
     const clearEditor = inlineCompose.locator(".ProseMirror");
     await clearEditor.click();
-    await page.keyboard.press("Meta+a");
+    await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.press("Backspace");
     await page.waitForTimeout(200);
     await inlineCompose.locator("[data-testid='inline-compose-close']").click();
