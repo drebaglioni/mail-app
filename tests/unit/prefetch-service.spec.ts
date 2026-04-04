@@ -654,15 +654,17 @@ test.describe("agent draft priority values", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("inbox email cache", () => {
-  // Re-implement the cache logic from PrefetchService
+  // Re-implement the cache logic from PrefetchService (mirrors production code)
   class InboxEmailCache {
     private cachedInboxEmails: Array<{ id: string; accountId: string }> | null = null;
+    private startupCacheOpen = true;
 
     addCachedInboxEmails(emails: Array<{ id: string; accountId: string }>): void {
+      if (!this.startupCacheOpen) return;
       if (!this.cachedInboxEmails) {
         this.cachedInboxEmails = [];
       }
-      this.cachedInboxEmails.push(...emails);
+      this.cachedInboxEmails = this.cachedInboxEmails.concat(emails);
     }
 
     consumeOrFallback(fallback: () => Array<{ id: string; accountId: string }>): {
@@ -672,6 +674,7 @@ test.describe("inbox email cache", () => {
       const usedCache = this.cachedInboxEmails !== null;
       const emails = this.cachedInboxEmails ?? fallback();
       this.cachedInboxEmails = null;
+      this.startupCacheOpen = false;
       return { emails, usedCache };
     }
 
@@ -746,5 +749,21 @@ test.describe("inbox email cache", () => {
     ]);
     expect(usedCache).toBe(false);
     expect(emails[0].id).toBe("db-email");
+  });
+
+  test("addCachedInboxEmails is no-op after startup window closes", () => {
+    const cache = new InboxEmailCache();
+    cache.addCachedInboxEmails([{ id: "e1", accountId: "acc1" }]);
+
+    // Consume cache (closes startup window)
+    cache.consumeOrFallback(() => []);
+
+    // Post-startup call should be ignored
+    cache.addCachedInboxEmails([{ id: "e2", accountId: "acc2" }]);
+    expect(cache.hasCachedEmails).toBe(false);
+
+    // Next consume should use fallback
+    const { usedCache } = cache.consumeOrFallback(() => [{ id: "db", accountId: "acc1" }]);
+    expect(usedCache).toBe(false);
   });
 });

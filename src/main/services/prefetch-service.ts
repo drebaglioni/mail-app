@@ -121,8 +121,10 @@ class PrefetchService {
   private processedDraftThreads = new Set<string>(); // threadIds with queued/processed agent drafts
 
   // Startup cache: populated by sync:get-emails to avoid duplicate getInboxEmails() call
-  // at startup. Consumed once by processAllPending(), then cleared.
+  // at startup. Consumed once by processAllPending(), then closed to prevent non-startup
+  // sync:get-emails calls (account switch, manual refresh) from re-populating with partial data.
   private cachedInboxEmails: DashboardEmail[] | null = null;
+  private startupCacheOpen = true;
 
   // Progress tracking
   private processedCounts = {
@@ -176,6 +178,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
    * at startup. Called per-account; results are accumulated across accounts.
    */
   addCachedInboxEmails(emails: DashboardEmail[]): void {
+    if (!this.startupCacheOpen) return;
     if (!this.cachedInboxEmails) {
       this.cachedInboxEmails = [];
     }
@@ -262,7 +265,8 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
     const tGetEmails = performance.now();
     const usedCache = this.cachedInboxEmails !== null;
     const inboxEmails = this.cachedInboxEmails ?? getInboxEmails();
-    this.cachedInboxEmails = null; // consume once
+    this.cachedInboxEmails = null;
+    this.startupCacheOpen = false; // close window so non-startup sync:get-emails won't re-populate
     log.info(
       `[PERF] processAllPending getInboxEmails took ${(performance.now() - tGetEmails).toFixed(1)}ms, returned ${inboxEmails.length} emails (cache=${usedCache})`,
     );
