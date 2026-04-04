@@ -350,6 +350,8 @@ export class ExtensionHost {
    */
   async enrichEmail(
     email: DashboardEmail,
+    /** Thread emails for provider context. May be empty when allowNewLookups
+     *  is false (cache-hit path) since providers are not called. */
     threadEmails: DashboardEmail[],
     options: { allowNewLookups?: boolean } = {},
   ): Promise<ExtensionEnrichmentResult[]> {

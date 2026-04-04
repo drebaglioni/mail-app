@@ -688,14 +688,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
   private async processAnalysis(emailId: string): Promise<void> {
     if (this.processedAnalysis.has(emailId)) return;
 
-    const tGet = performance.now();
     const email = getEmail(emailId);
-    const getTime = performance.now() - tGet;
-    if (getTime > 5) {
-      log.info(
-        `[PERF:processAnalysis] getEmail(${emailId.slice(0, 12)}) took ${getTime.toFixed(1)}ms`,
-      );
-    }
     if (!email) {
       this.processedAnalysis.add(emailId);
       return;
@@ -1057,14 +1050,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       return;
     }
 
-    const tGetEmail = performance.now();
     const email = getEmail(emailId);
-    const getEmailTime = performance.now() - tGetEmail;
-    if (getEmailTime > 5) {
-      log.info(
-        `[PERF:processAgentDraft] getEmail(${emailId.slice(0, 12)}) took ${getEmailTime.toFixed(1)}ms`,
-      );
-    }
     if (!email || email.draft) {
       this.processedDrafts.add(emailId);
       this.markAgentDraftDone(emailId, "completed");
