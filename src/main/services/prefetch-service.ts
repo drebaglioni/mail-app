@@ -3,6 +3,7 @@ import { ArchiveReadyAnalyzer } from "./archive-ready-analyzer";
 import {
   getEmail,
   getEmailsByThread,
+  getThreadDrafts,
   getFirstEmailIdForThread,
   isThreadFullyAnalyzed,
   getInboxEmails,
@@ -368,6 +369,9 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       if (isTestMode || isDemoMode) log.info("[Prefetch] Test/demo mode — skipping agent drafts");
     }
     const allowedPriorities = autoDraft?.priorities ?? ["high", "medium", "low"];
+    const threadsWithPersistedDrafts = new Set(
+      inboxEmails.filter((e) => e.draft).map((e) => e.threadId),
+    );
     const candidateEmails = skipAgentDrafts
       ? []
       : inboxEmails.filter(
@@ -382,7 +386,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
             !this.agentDraftBacklog.some((t) => t.emailId === e.id),
         );
     // Also skip threads that already have a draft on any email (completed or in-progress)
-    const threadsWithDrafts = new Set(inboxEmails.filter((e) => e.draft).map((e) => e.threadId));
+    const threadsWithDrafts = new Set(threadsWithPersistedDrafts);
     // Include threads with in-progress agent drafts
     for (const emailId of this.agentDraftItems.keys()) {
       const e = getEmail(emailId);
@@ -405,15 +409,27 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
         if (e?.threadId) threadsWithDrafts.add(e.threadId);
       }
     }
+
+    let skippedExistingDraftThreadCount = 0;
     const newestPerThread = new Map<string, (typeof candidateEmails)[0]>();
     for (const email of candidateEmails) {
-      if (threadsWithDrafts.has(email.threadId)) continue;
+      if (threadsWithDrafts.has(email.threadId)) {
+        skippedExistingDraftThreadCount++;
+        continue;
+      }
       const existing = newestPerThread.get(email.threadId);
       if (!existing || new Date(email.date).getTime() > new Date(existing.date).getTime()) {
         newestPerThread.set(email.threadId, email);
       }
     }
     const needsDraft = Array.from(newestPerThread.values());
+
+    if (candidateEmails.length > 0 || skippedExistingDraftThreadCount > 0) {
+      log.info(
+        `[Prefetch] Auto-draft scan: ${candidateEmails.length} candidates, ${skippedExistingDraftThreadCount} skipped (existing draft in thread), ${needsDraft.length} queued`,
+      );
+    }
+
     if (needsDraft.length > 0) {
       for (const email of needsDraft) {
         const priority =
@@ -829,8 +845,10 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
           !isDemo &&
           result.priority !== "skip" &&
           autoDraftPriorities.includes(result.priority || "low") &&
+          !email.draft &&
           !this.processedDrafts.has(emailId) &&
-          !this.isThreadAlreadyQueuedForDraft(email.threadId)
+          !this.isThreadAlreadyQueuedForDraft(email.threadId) &&
+          !this.hasPersistedDraftInThread(email.threadId, email.accountId)
         ) {
           const draftPriority =
             result.priority === "high" ? 5 : result.priority === "medium" ? 15 : 25;
@@ -1401,6 +1419,14 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       }
     }
     return false;
+  }
+
+  /**
+   * Check for an existing persisted draft anywhere in the thread.
+   * Auto-drafting is thread-scoped, so a thread with any draft should not be queued again.
+   */
+  private hasPersistedDraftInThread(threadId: string, accountId?: string): boolean {
+    return getThreadDrafts(threadId, accountId || "default").length > 0;
   }
 
   /**

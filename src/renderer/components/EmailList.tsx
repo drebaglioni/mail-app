@@ -26,6 +26,29 @@ const densityLabels: Record<InboxDensity, string> = {
   compact: "Compact",
 };
 
+function getAgentDraftIndicatorText(agentDrafts: {
+  running: number;
+  queued: number;
+  completed: number;
+  failed: number;
+}): { label: string; tooltip: string } {
+  const { running, queued, completed, failed } = agentDrafts;
+  let label = "";
+
+  if (running > 0 && queued > 0) {
+    label = `Drafting ${running} running, ${queued} queued`;
+  } else if (running > 0) {
+    label = `Drafting ${running} running`;
+  } else {
+    label = `Drafting ${queued} queued`;
+  }
+
+  return {
+    label,
+    tooltip: `${running} running, ${queued} queued, ${completed} completed, ${failed} failed this session`,
+  };
+}
+
 export function EmailList() {
   const {
     selectedEmailId: _selectedEmailId,
@@ -267,6 +290,18 @@ export function EmailList() {
   const isAnalyzingTask = isPrefetching && prefetchProgress.currentTask?.type === "analysis";
   const agentDrafts = prefetchProgress.agentDrafts;
   const hasActiveAgentDrafts = agentDrafts && (agentDrafts.running > 0 || agentDrafts.queued > 0);
+  const agentDraftIndicator = useMemo(
+    () =>
+      agentDrafts
+        ? getAgentDraftIndicatorText({
+            running: agentDrafts.running,
+            queued: agentDrafts.queued,
+            completed: agentDrafts.completed,
+            failed: agentDrafts.failed,
+          })
+        : null,
+    [agentDrafts],
+  );
 
   // Ref for the list container to enable scrolling
   const listRef = useRef<HTMLDivElement>(null);
@@ -520,7 +555,7 @@ export function EmailList() {
           {hasActiveAgentDrafts && (
             <span
               className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
-              title={`${agentDrafts.running} drafting, ${agentDrafts.queued} queued`}
+              title={agentDraftIndicator?.tooltip}
             >
               <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle
@@ -537,7 +572,7 @@ export function EmailList() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              Drafting {agentDrafts.running}/{agentDrafts.running + agentDrafts.queued}
+              {agentDraftIndicator?.label}
             </span>
           )}
           {/* Density toggle */}
