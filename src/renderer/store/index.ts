@@ -1916,6 +1916,7 @@ export function useSplitFilteredThreads() {
   const accounts = useAppStore((state) => state.accounts);
   const currentSplitId = useAppStore((state) => state.currentSplitId);
   const archiveReadyThreadIds = useAppStore((state) => state.archiveReadyThreadIds);
+  const snoozedThreads = useAppStore((state) => state.snoozedThreads);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const unsnoozedReturnTimes = useAppStore((state) => state.unsnoozedReturnTimes);
   const sentEmails = useAppStore((state) => state.sentEmails);
@@ -1941,8 +1942,22 @@ export function useSplitFilteredThreads() {
 
     // Handle snoozed virtual split — show snoozed threads as the main list
     if (currentSplitId === "__snoozed__") {
+      // Sort by earliest unsnooze first. For equal unsnooze times, show
+      // most recently active threads first.
+      const sortedSnoozed = [...baseResult.snoozed].sort((a, b) => {
+        const aUntil = snoozedThreads.get(a.threadId)?.snoozeUntil;
+        const bUntil = snoozedThreads.get(b.threadId)?.snoozeUntil;
+        if (aUntil !== undefined && bUntil !== undefined) {
+          if (aUntil !== bUntil) return aUntil - bUntil;
+          return b.latestReceivedDate - a.latestReceivedDate;
+        }
+        if (aUntil !== undefined) return -1;
+        if (bUntil !== undefined) return 1;
+        return b.latestReceivedDate - a.latestReceivedDate;
+      });
+
       return {
-        threads: baseResult.snoozed,
+        threads: sortedSnoozed,
         needsReply: [],
         done: [],
         skipped: [],
@@ -2114,6 +2129,7 @@ export function useSplitFilteredThreads() {
     accounts,
     currentSplitId,
     archiveReadyThreadIds,
+    snoozedThreads,
     recentlyUnsnoozedThreadIds,
     unsnoozedReturnTimes,
     sentEmails,
