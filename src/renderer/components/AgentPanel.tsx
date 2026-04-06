@@ -754,10 +754,16 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
         // The real context is built by buildAgentDraftContext on the backend — this
         // is only for the store's tracking entry.
         const email = useAppStore.getState().emails.find((e) => e.id === emailId);
+        const availableIds = availableProviders.map((p) => p.id);
+        const defaultProviderId = availableIds.includes("codex-agent")
+          ? "codex-agent"
+          : availableIds.includes("claude")
+            ? "claude"
+            : availableProviders[0]?.id || "codex-agent";
         startAgentTask(
           taskId,
           emailId,
-          ["claude"],
+          [defaultProviderId],
           task?.prompt || "",
           task?.context || {
             accountId: email?.accountId || "",
@@ -773,7 +779,7 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
     } finally {
       setRegenerating(false);
     }
-  }, [emailId, regenerating, updateEmail, startAgentTask, task]);
+  }, [emailId, regenerating, updateEmail, startAgentTask, task, availableProviders]);
 
   const handleFollowUp = useCallback(async () => {
     const currentTask = useAppStore.getState().agentTasks[emailId];

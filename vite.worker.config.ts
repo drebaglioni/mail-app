@@ -10,12 +10,12 @@ import { defineConfig } from 'vite'
  *
  * Build order:
  *   1. electron-vite builds main/preload/renderer into out/
- *   2. This config builds agent-worker.js into out/main/ (emptyOutDir: false)
+ *   2. This config builds agent-worker.js into out/worker and clears stale chunks
  */
 export default defineConfig({
   build: {
     outDir: 'out/worker',
-    emptyOutDir: false,
+    emptyOutDir: true,
     lib: {
       entry: resolve(__dirname, 'src/main/agents/agent-worker.ts'),
       formats: ['cjs'],

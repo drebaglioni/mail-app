@@ -1619,15 +1619,16 @@ export class GmailClient {
     const unreadMessageIds: string[] = [];
     let latestHistoryId = startHistoryId;
 
-    // Fetch history for a single label, accumulating into the shared arrays above
-    const fetchLabel = async (labelId: string) => {
+    // Fetch all mailbox history pages and accumulate changes.
+    // This intentionally does not filter by label, so we capture forward changes
+    // across the full mailbox (not only INBOX/SENT activity).
+    const fetchAllHistory = async () => {
       let pageToken: string | undefined;
       do {
         const response = await gmail.users.history.list({
           userId: "me",
           startHistoryId,
           historyTypes: ["messageAdded", "messageDeleted", "labelAdded", "labelRemoved"],
-          labelId,
           pageToken,
         });
 
@@ -1636,9 +1637,10 @@ export class GmailClient {
         for (const item of history) {
           if (item.messagesAdded) {
             for (const msg of item.messagesAdded) {
-              if (msg.message?.id && msg.message?.labelIds?.includes(labelId)) {
-                newMessageIds.push(msg.message.id);
-              }
+              if (!msg.message?.id) continue;
+              // Skip transient Gmail draft entities.
+              if (msg.message.labelIds?.includes("DRAFT")) continue;
+              newMessageIds.push(msg.message.id);
             }
           }
 
@@ -1653,11 +1655,11 @@ export class GmailClient {
           if (item.labelsRemoved) {
             for (const labelChange of item.labelsRemoved) {
               if (!labelChange.message?.id) continue;
-              // Archived (INBOX label removed)
+              // Archived (INBOX label removed) should remove from inbox views.
               if (labelChange.labelIds?.includes("INBOX")) {
                 deletedMessageIds.push(labelChange.message.id);
               }
-              // Marked as read (UNREAD label removed)
+              // Marked as read (UNREAD label removed).
               if (labelChange.labelIds?.includes("UNREAD")) {
                 readMessageIds.push(labelChange.message.id);
               }
@@ -1670,18 +1672,17 @@ export class GmailClient {
               if (labelChange.labelIds?.includes("UNREAD")) {
                 unreadMessageIds.push(labelChange.message.id);
               }
-              // Detect draft-to-sent conversions: when a user sends our synced
-              // Gmail draft, the History API reports it as labelsAdded (SENT)
-              // rather than messagesAdded. Treat it as a new message so
-              // incrementalSync can run draft cleanup on the thread.
-              if (labelChange.labelIds?.includes("SENT")) {
+              // Include re-inboxed mail and draft-to-sent conversions.
+              if (
+                labelChange.labelIds?.includes("INBOX") ||
+                labelChange.labelIds?.includes("SENT")
+              ) {
                 newMessageIds.push(labelChange.message.id);
               }
             }
           }
         }
 
-        // Use the highest historyId across both calls
         const responseHistoryId = response.data.historyId || startHistoryId;
         if (responseHistoryId > latestHistoryId) {
           latestHistoryId = responseHistoryId;
@@ -1691,8 +1692,7 @@ export class GmailClient {
     };
 
     try {
-      // Fetch INBOX and SENT history in parallel
-      await Promise.all([fetchLabel("INBOX"), fetchLabel("SENT")]);
+      await fetchAllHistory();
 
       this.lastHistoryId = latestHistoryId;
 

@@ -2,7 +2,7 @@ import { ipcMain } from "electron";
 import { execFile, execFileSync } from "child_process";
 import { agentCoordinator } from "../agents/agent-coordinator";
 import { authenticateProvider } from "../agents/private-providers-main";
-import { getModelIdForFeature } from "./settings.ipc";
+import { getConfig, getModelIdForFeature } from "./settings.ipc";
 import { getAgentTrace } from "../db";
 import type { AgentContext } from "../agents/types";
 import type { ScopedAgentEvent } from "../agents/types";
@@ -45,8 +45,10 @@ export function registerAgentIpc(): void {
       },
     ): Promise<IpcResponse<{ taskId: string }>> => {
       try {
-        // Interactive agent tasks use the agentChat model (defaults to opus)
-        const modelOverride = getModelIdForFeature("agentChat");
+        // Only pass Claude tier model overrides when Anthropic is the active provider.
+        // Codex runs should use the Codex model configured under Agent settings.
+        const modelOverride =
+          getConfig().aiProvider === "anthropic" ? getModelIdForFeature("agentChat") : undefined;
         await agentCoordinator.runAgent(taskId, providerIds, prompt, context, modelOverride);
         return { success: true, data: { taskId } };
       } catch (error) {

@@ -662,6 +662,7 @@ export default function App() {
     setSentEmails,
     addSentEmails,
     setSplits,
+    setSplitAssignments,
     syncProgress,
   } = useAppStore();
 
@@ -775,6 +776,30 @@ export default function App() {
         console.error("Failed to load splits on mount:", err);
       });
   }, [setSplits]);
+
+  // Hydrate account-scoped split assignments on account switch
+  useEffect(() => {
+    if (!currentAccountId) {
+      setSplitAssignments([]);
+      return;
+    }
+    const targetAccountId = currentAccountId;
+    window.api.splits
+      .getAssignments(targetAccountId)
+      .then((result: { success: boolean; data?: Array<{ threadId: string; splitId: string }> }) => {
+        if (useAppStore.getState().currentAccountId !== targetAccountId) return;
+        if (result.success && result.data) {
+          setSplitAssignments(result.data);
+        } else {
+          setSplitAssignments([]);
+        }
+      })
+      .catch((err: unknown) => {
+        if (useAppStore.getState().currentAccountId !== targetAccountId) return;
+        console.error("Failed to load split assignments:", err);
+        setSplitAssignments([]);
+      });
+  }, [currentAccountId, setSplitAssignments]);
 
   // Initialize sync and accounts
   const initializeSync = useCallback(async () => {
@@ -1087,7 +1112,8 @@ export default function App() {
             // Save sidebar tab — startAgentTask unconditionally sets it to "agent",
             // but background auto-drafts shouldn't steal focus from the user
             const prevTab = store.sidebarTab;
-            store.startAgentTask(taskId, emailId, ["claude"], "", {
+            const defaultProviderId = event.providerId || "codex-agent";
+            store.startAgentTask(taskId, emailId, [defaultProviderId], "", {
               accountId: email.accountId || "",
               currentEmailId: emailId,
               currentThreadId: email.threadId,
@@ -1298,8 +1324,8 @@ export default function App() {
         }>,
       ) => {
         if (result.success) {
-          // Credentials are always bundled at build time — only check API key and tokens
-          setNeedsSetup(!result.data.hasAnthropicKey || !result.data.hasTokens);
+          // Setup is required only for Gmail auth readiness.
+          setNeedsSetup(!result.data.hasTokens);
         } else {
           setNeedsSetup(true);
         }

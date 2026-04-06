@@ -350,7 +350,12 @@ export function registerExtensionsIpc(): void {
         const appConfig = getConfig();
         const baseConfig = {
           model: getModelIdForFeature("agentDrafter"),
+          aiProvider: appConfig.aiProvider ?? "codex",
           anthropicApiKey: appConfig.anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined,
+          codex: {
+            model: appConfig.codex?.model || "o3",
+            cliPath: appConfig.codex?.cliPath,
+          },
         };
         const enrichedConfig = await populatePrivateProviderConfig(baseConfig);
         agentCoordinator.updateConfig(enrichedConfig);

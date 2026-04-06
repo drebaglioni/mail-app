@@ -18,6 +18,7 @@ import {
   type ModelConfig,
   type ModelTier,
   type CliToolConfig,
+  type AiProvider,
 } from "../../shared/types";
 import { useAppStore, type Account, type SettingsTab } from "../store";
 import { reconfigurePostHog, trackEvent } from "../services/posthog";
@@ -111,6 +112,18 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
   const [eaError, setEaError] = useState<string | null>(null);
 
   // Agent authentication state
+  const [aiProvider, setAiProvider] = useState<AiProvider>("codex");
+  const [codexModel, setCodexModel] = useState("o3");
+  const [enableAnthropicFallback, setEnableAnthropicFallback] = useState(true);
+  const [codexCliAvailable, setCodexCliAvailable] = useState(false);
+  const [codexAuthStatus, setCodexAuthStatus] = useState<
+    "checking" | "authenticated" | "not_authenticated"
+  >("checking");
+  const [codexStatusText, setCodexStatusText] = useState<string | undefined>();
+  const [isTestingCodex, setIsTestingCodex] = useState(false);
+  const [codexTestError, setCodexTestError] = useState<string | null>(null);
+  const [isSavingAiConfig, setIsSavingAiConfig] = useState(false);
+  const [aiConfigSaved, setAiConfigSaved] = useState(false);
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(false);
@@ -223,6 +236,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
       setModelConfig({ ...DEFAULT_MODEL_CONFIG, ...generalConfig.modelConfig });
       setGithubToken(generalConfig.githubToken ?? "");
       setAllowPrereleaseUpdates(generalConfig.allowPrereleaseUpdates ?? false);
+      setAiProvider(generalConfig.aiProvider ?? "codex");
+      setCodexModel(generalConfig.codex?.model ?? "o3");
+      setEnableAnthropicFallback(generalConfig.enableAnthropicFallback ?? true);
       setAnthropicApiKey(generalConfig.anthropicApiKey ?? "");
       const browser = generalConfig.agentBrowser;
       if (browser) {
@@ -279,9 +295,34 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
     return cleanup;
   }, []);
 
-  // Check Claude CLI availability and auth status when Agents tab is shown
+  // Check Codex + Claude auth state when Agents tab is shown
   useEffect(() => {
     if (activeTab !== "agents") return;
+
+    setCodexAuthStatus("checking");
+    (
+      window.api.settings.codexAuthStatus() as Promise<{
+        success: boolean;
+        data?: { cliAvailable: boolean; authenticated: boolean; statusText?: string };
+      }>
+    )
+      .then((result) => {
+        if (result.success && result.data) {
+          setCodexCliAvailable(result.data.cliAvailable);
+          setCodexAuthStatus(result.data.authenticated ? "authenticated" : "not_authenticated");
+          setCodexStatusText(result.data.statusText);
+        } else {
+          setCodexCliAvailable(false);
+          setCodexAuthStatus("not_authenticated");
+          setCodexStatusText(undefined);
+        }
+      })
+      .catch(() => {
+        setCodexCliAvailable(false);
+        setCodexAuthStatus("not_authenticated");
+        setCodexStatusText(undefined);
+      });
+
     setClaudeAuthStatus("checking");
     (
       window.api.agent.claudeAuthStatus() as Promise<{
@@ -374,6 +415,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
       await window.api.settings.set({
         enableSenderLookup,
         modelConfig,
+        aiProvider,
+        codex: {
+          model: codexModel || undefined,
+        },
+        enableAnthropicFallback,
         githubToken: githubToken || undefined,
         allowPrereleaseUpdates,
       });
@@ -551,6 +597,39 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
       setTimeout(() => setApiKeySaved(false), 3000);
     } finally {
       setIsSavingApiKey(false);
+    }
+  };
+
+  const handleTestCodexConnection = async () => {
+    setIsTestingCodex(true);
+    setCodexTestError(null);
+    try {
+      const result = (await window.api.settings.testCodexConnection()) as {
+        success: boolean;
+        error?: string;
+      };
+      if (!result.success) {
+        setCodexTestError(result.error || "Codex connection test failed");
+      }
+    } finally {
+      setIsTestingCodex(false);
+    }
+  };
+
+  const handleSaveAiConfig = async () => {
+    setIsSavingAiConfig(true);
+    setAiConfigSaved(false);
+    try {
+      await window.api.settings.set({
+        aiProvider,
+        codex: { model: codexModel || undefined },
+        enableAnthropicFallback,
+      });
+      queryClient.invalidateQueries({ queryKey: ["general-config"] });
+      setAiConfigSaved(true);
+      setTimeout(() => setAiConfigSaved(false), 3000);
+    } finally {
+      setIsSavingAiConfig(false);
     }
   };
 
@@ -1063,8 +1142,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <div className="mb-3">
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">AI Models</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Choose which Claude model to use for each feature. Haiku is fastest and
-                    cheapest, Opus is most capable.
+                    {aiProvider === "codex"
+                      ? "These model tiers apply to Anthropic-powered features and fallback. Codex uses the model in Agent Settings -> Codex (OAuth)."
+                      : "Choose which Claude model to use for each feature. Haiku is fastest and cheapest, Opus is most capable."}
                   </p>
                 </div>
                 <div className="space-y-3">
@@ -2400,6 +2480,95 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 Authentication
               </h4>
 
+              <div className="mb-6">
+                <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Default AI Provider
+                </h5>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Codex is recommended. Anthropic remains available as a fallback path.
+                </p>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <button
+                    onClick={() => setAiProvider("codex")}
+                    className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                      aiProvider === "codex"
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    Codex
+                  </button>
+                  <button
+                    onClick={() => setAiProvider("anthropic")}
+                    className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                      aiProvider === "anthropic"
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                    }`}
+                  >
+                    Anthropic
+                  </button>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={enableAnthropicFallback}
+                    onChange={(e) => setEnableAnthropicFallback(e.target.checked)}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  Enable Anthropic fallback when Codex fails
+                </label>
+              </div>
+
+              <div className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Codex (OAuth)
+                </h5>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Uses your Codex login from <code>codex login</code>.
+                </p>
+
+                <div className="flex items-center gap-3 mb-3">
+                  {codexAuthStatus === "checking" && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Checking...</span>
+                  )}
+                  {codexAuthStatus === "authenticated" && (
+                    <span className="text-sm text-green-700 dark:text-green-400">Logged in</span>
+                  )}
+                  {codexAuthStatus === "not_authenticated" && (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Not logged in</span>
+                  )}
+                  {!codexCliAvailable && (
+                    <span className="text-xs text-amber-700 dark:text-amber-400">
+                      Codex CLI not found
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={codexModel}
+                    onChange={(e) => setCodexModel(e.target.value)}
+                    placeholder="o3"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                  <button
+                    onClick={handleTestCodexConnection}
+                    disabled={isTestingCodex}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                  >
+                    {isTestingCodex ? "Testing..." : "Test"}
+                  </button>
+                </div>
+                {codexStatusText && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{codexStatusText}</p>
+                )}
+                {codexTestError && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{codexTestError}</p>
+                )}
+              </div>
+
               {/* Anthropic API Key */}
               <div className="mb-6">
                 <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -2428,6 +2597,20 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     {isSavingApiKey ? "Saving..." : apiKeySaved ? "Saved" : "Save"}
                   </button>
                 </div>
+              </div>
+
+              <div className="mb-6">
+                <button
+                  onClick={handleSaveAiConfig}
+                  disabled={isSavingAiConfig}
+                  className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors ${
+                    aiConfigSaved
+                      ? "bg-green-600 dark:bg-green-500"
+                      : "bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600"
+                  }`}
+                >
+                  {isSavingAiConfig ? "Saving..." : aiConfigSaved ? "Saved" : "Save AI Settings"}
+                </button>
               </div>
 
               {/* Claude Account (OAuth) — only shown when claude CLI is available */}

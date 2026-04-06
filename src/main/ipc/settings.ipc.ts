@@ -19,6 +19,7 @@ import {
 import { resetAnalyzer } from "./analysis.ipc";
 import { resetArchiveReadyAnalyzer } from "./archive-ready.ipc";
 import { resetClient, getUsageStats, getCallHistory } from "../services/anthropic-service";
+import { getCodexAuthStatus, testCodexConnection } from "../services/codex-service";
 import { prefetchService } from "../services/prefetch-service";
 import { agentCoordinator } from "../agents/agent-coordinator";
 import {
@@ -52,6 +53,11 @@ function getStore(): Store<{ config: Config }> {
           model: "claude-sonnet-4-20250514",
           modelConfig: DEFAULT_MODEL_CONFIG,
           dryRun: false,
+          aiProvider: "codex" as const,
+          enableAnthropicFallback: true,
+          codex: {
+            model: "o3",
+          },
           analysisPrompt: DEFAULT_ANALYSIS_PROMPT,
           draftPrompt: DEFAULT_DRAFT_PROMPT,
           enableSenderLookup: true,
@@ -77,11 +83,12 @@ function getStore(): Store<{ config: Config }> {
 
 export function getConfig(): Config {
   const config = getStore().get("config");
+  let needsSave = false;
 
   // Migrate removed density values to "compact"
   if (config.inboxDensity && !["default", "compact"].includes(config.inboxDensity)) {
     config.inboxDensity = "compact";
-    getStore().set("config", config);
+    needsSave = true;
   }
 
   // One-time migration: include "low" in autoDraft priorities for existing users
@@ -91,7 +98,7 @@ export function getConfig(): Config {
       config.autoDraft.priorities.push("low");
     }
     config.configVersion = 1;
-    getStore().set("config", config);
+    needsSave = true;
   }
 
   // One-time migration: if user had a custom legacy `model` but no `modelConfig`,
@@ -110,6 +117,31 @@ export function getConfig(): Config {
       migrated[key] = legacyTier;
     }
     config.modelConfig = migrated;
+    needsSave = true;
+  }
+
+  // Codex-first defaults for existing users.
+  if (!config.aiProvider) {
+    config.aiProvider = "codex";
+    needsSave = true;
+  }
+  if (config.enableAnthropicFallback === undefined) {
+    config.enableAnthropicFallback = true;
+    needsSave = true;
+  }
+  if (!config.codex) {
+    config.codex = { model: "o3" };
+    needsSave = true;
+  } else if (!config.codex.model) {
+    config.codex.model = "o3";
+    needsSave = true;
+  } else if (/^claude-/i.test(config.codex.model)) {
+    // Codex cannot use Claude model IDs. Normalize legacy/misconfigured values.
+    config.codex.model = "o3";
+    needsSave = true;
+  }
+
+  if (needsSave) {
     getStore().set("config", config);
   }
 
@@ -218,6 +250,16 @@ export function registerSettingsIpc(): void {
         });
       }
 
+      if ("aiProvider" in config || "codex" in config) {
+        agentCoordinator.updateConfig({
+          aiProvider: newConfig.aiProvider ?? "codex",
+          codex: {
+            model: newConfig.codex?.model || "o3",
+            cliPath: newConfig.codex?.cliPath,
+          },
+        });
+      }
+
       // Propagate agent browser config changes
       if ("agentBrowser" in config) {
         const browser = newConfig.agentBrowser;
@@ -272,7 +314,12 @@ export function registerSettingsIpc(): void {
 
       // Reset cached analyzer/service instances when model config or API key changes,
       // since they hold Anthropic client instances that capture the key at construction.
-      if ("modelConfig" in config || "anthropicApiKey" in config) {
+      if (
+        "modelConfig" in config ||
+        "anthropicApiKey" in config ||
+        "aiProvider" in config ||
+        "codex" in config
+      ) {
         resetClient();
         resetAnalyzer();
         resetArchiveReadyAnalyzer();
@@ -656,6 +703,40 @@ export function registerSettingsIpc(): void {
       }
     },
   );
+
+  ipcMain.handle(
+    "settings:codex-auth-status",
+    async (): Promise<
+      IpcResponse<{ cliAvailable: boolean; authenticated: boolean; statusText?: string }>
+    > => {
+      try {
+        const cfg = getConfig();
+        const status = await getCodexAuthStatus(cfg.codex?.cliPath || "codex");
+        return { success: true, data: status };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+  );
+
+  ipcMain.handle("settings:test-codex-connection", async (): Promise<IpcResponse<void>> => {
+    try {
+      const cfg = getConfig();
+      await testCodexConnection({
+        cliPath: cfg.codex?.cliPath || "codex",
+        model: cfg.codex?.model || "o3",
+      });
+      return { success: true, data: undefined };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  });
 
   // Test OpenClaw connection by running `openclaw health`
   ipcMain.handle("settings:test-openclaw-connection", async (): Promise<IpcResponse<void>> => {

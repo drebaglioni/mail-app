@@ -93,6 +93,16 @@ declare global {
           reason?: string,
         ) => Promise<IpcResponse<{ analysisUpdated: boolean }>>;
       };
+      splits: {
+        suggestThread: (
+          accountId: string,
+          threadId: string,
+        ) => Promise<
+          IpcResponse<{ suggestions: Array<{ splitId: string; score: number; reason: string }> }>
+        >;
+        assignThread: (accountId: string, threadId: string, splitId: string) => Promise<unknown>;
+        clearThreadAssignment: (accountId: string, threadId: string) => Promise<unknown>;
+      };
     };
   }
 }
@@ -391,6 +401,12 @@ interface TrackingInfo {
   trackingNumber: string;
   url: string;
 }
+
+type ThreadSplitSuggestion = {
+  splitId: string;
+  score: number;
+  reason: string;
+};
 
 function detectTrackingNumbers(bodies: string[]): TrackingInfo[] {
   const combined = bodies.map((b) => b.replace(/<[^>]*>/g, " ")).join(" ");
@@ -2184,11 +2200,13 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
     setViewMode,
     accounts,
     currentAccountId,
+    splits,
     composeState,
     closeCompose,
     openCompose,
     removeLocalDraft,
     addLocalDraft,
+    setCurrentSplitId,
   } = useAppStore();
 
   const addRecentlyRepliedThread = useAppStore((s) => s.addRecentlyRepliedThread);
@@ -2201,6 +2219,9 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
   const setInlineReplyOpen = useAppStore((s) => s.setInlineReplyOpen);
   const focusedThreadEmailId = useAppStore((s) => s.focusedThreadEmailId);
   const setFocusedThreadEmailId = useAppStore((s) => s.setFocusedThreadEmailId);
+  const splitAssignments = useAppStore((s) => s.splitAssignments);
+  const assignThreadToSplit = useAppStore((s) => s.assignThreadToSplit);
+  const clearThreadSplitAssignment = useAppStore((s) => s.clearThreadSplitAssignment);
 
   const { threads: currentThreads } = useSplitFilteredThreads();
 
@@ -2292,6 +2313,83 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
   }, [selectedEmailId, storeEmail, addEmails]);
 
   const selectedEmail = storeEmail ?? fetchedEmail;
+  const [isSuggestingSplit, setIsSuggestingSplit] = useState(false);
+  const [splitSuggestionError, setSplitSuggestionError] = useState<string | null>(null);
+  const [splitSuggestions, setSplitSuggestions] = useState<ThreadSplitSuggestion[]>([]);
+
+  const accountSplits = useMemo(
+    () => splits.filter((split) => split.accountId === currentAccountId),
+    [splits, currentAccountId],
+  );
+  const splitNameById = useMemo(
+    () => new Map(accountSplits.map((split) => [split.id, split.name])),
+    [accountSplits],
+  );
+  const assignedSplitId = selectedEmail
+    ? (splitAssignments.get(selectedEmail.threadId) ?? null)
+    : null;
+
+  useEffect(() => {
+    setIsSuggestingSplit(false);
+    setSplitSuggestionError(null);
+    setSplitSuggestions([]);
+  }, [selectedEmail?.threadId, currentAccountId]);
+
+  const handleSuggestSplit = useCallback(async () => {
+    if (!currentAccountId || !selectedEmail) return;
+    setIsSuggestingSplit(true);
+    setSplitSuggestionError(null);
+    try {
+      const result = await window.api.splits.suggestThread(currentAccountId, selectedEmail.threadId);
+      if (!result.success) {
+        setSplitSuggestionError(result.error || "Failed to suggest a split");
+        setSplitSuggestions([]);
+        return;
+      }
+      setSplitSuggestions(result.data?.suggestions ?? []);
+      if ((result.data?.suggestions?.length ?? 0) === 0) {
+        setSplitSuggestionError("No confident split suggestions for this thread yet.");
+      }
+    } catch (error) {
+      setSplitSuggestionError(error instanceof Error ? error.message : "Failed to suggest a split");
+      setSplitSuggestions([]);
+    } finally {
+      setIsSuggestingSplit(false);
+    }
+  }, [currentAccountId, selectedEmail]);
+
+  const handleApplySplitAssignment = useCallback(
+    async (splitId: string) => {
+      if (!currentAccountId || !selectedEmail) return;
+      const result = (await window.api.splits.assignThread(
+        currentAccountId,
+        selectedEmail.threadId,
+        splitId,
+      )) as IpcResponse<void>;
+      if (!result.success) {
+        setSplitSuggestionError(result.error || "Failed to assign split");
+        return;
+      }
+      assignThreadToSplit(selectedEmail.threadId, splitId);
+      setCurrentSplitId(splitId);
+      setSplitSuggestionError(null);
+    },
+    [assignThreadToSplit, currentAccountId, selectedEmail, setCurrentSplitId],
+  );
+
+  const handleClearSplitAssignment = useCallback(async () => {
+    if (!currentAccountId || !selectedEmail) return;
+    const result = (await window.api.splits.clearThreadAssignment(
+      currentAccountId,
+      selectedEmail.threadId,
+    )) as IpcResponse<void>;
+    if (!result.success) {
+      setSplitSuggestionError(result.error || "Failed to clear split assignment");
+      return;
+    }
+    clearThreadSplitAssignment(selectedEmail.threadId);
+    setSplitSuggestionError(null);
+  }, [clearThreadSplitAssignment, currentAccountId, selectedEmail]);
 
   // Get current user email for "Me" detection
   const currentAccount = accounts.find((a) => a.id === currentAccountId);
@@ -3532,6 +3630,70 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
               });
             }}
           />
+        )}
+
+        {currentAccountId && selectedEmail && accountSplits.length > 0 && (
+          <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Split assignment
+              </span>
+              {assignedSplitId && (
+                <span className="text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                  Assigned: {splitNameById.get(assignedSplitId) ?? assignedSplitId}
+                </span>
+              )}
+              <button
+                onClick={() => void handleSuggestSplit()}
+                disabled={isSuggestingSplit}
+                className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              >
+                {isSuggestingSplit ? "Suggesting..." : "Suggest Split"}
+              </button>
+              {assignedSplitId && (
+                <button
+                  onClick={() => void handleClearSplitAssignment()}
+                  className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Clear assignment
+                </button>
+              )}
+            </div>
+
+            {splitSuggestionError && (
+              <div className="text-xs text-amber-700 dark:text-amber-300">{splitSuggestionError}</div>
+            )}
+
+            {splitSuggestions.length > 0 && (
+              <div className="space-y-1.5">
+                {splitSuggestions.map((suggestion) => {
+                  const splitName = splitNameById.get(suggestion.splitId) ?? suggestion.splitId;
+                  const scorePct = Math.round(suggestion.score * 100);
+                  return (
+                    <div
+                      key={suggestion.splitId}
+                      className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-700/40 rounded-md px-2.5 py-1.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-800 dark:text-gray-100 truncate">
+                          {splitName} ({scorePct}%)
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-300 truncate">
+                          {suggestion.reason}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => void handleApplySplitAssignment(suggestion.splitId)}
+                        className="inline-flex items-center px-2 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

@@ -10,7 +10,7 @@
  * Key invariant: draft memories never enter the prompt. Only promoted memories do.
  */
 import { randomUUID } from "crypto";
-import { createMessage, getClient, recordStreamingCall } from "./anthropic-service";
+import { createMessage } from "./llm-router";
 import {
   getThreadDraftBody,
   getDraftMemories,
@@ -162,15 +162,10 @@ async function analyzeDraftEdit(params: {
 }): Promise<DraftEditObservation[] | null> {
   const { originalDraft, sentBody, senderEmail, senderDomain, subject } = params;
 
-  const client = getClient();
-  const streamStartTime = Date.now();
-  const stream = client.messages.stream({
+  const response = await createMessage(
+    {
     model: "claude-opus-4-20250514",
     max_tokens: 16000,
-    thinking: {
-      type: "enabled",
-      budget_tokens: 10000,
-    },
     messages: [
       {
         role: "user",
@@ -263,25 +258,12 @@ Each item: {"scope":"...","scopeValue":"...","content":"...","emailContext":"bri
 Respond with ONLY the JSON array, no other text.`,
       },
     ],
-  });
-  const response = await stream.finalMessage();
-
-  // Record streaming call cost
-  const streamUsage = response.usage as unknown as Record<string, number>;
-  recordStreamingCall(
-    "claude-opus-4-20250514",
-    "draft-edit-learner-analyze",
-    streamUsage,
-    Date.now() - streamStartTime,
+    },
+    {
+      caller: "draft-edit-learner-analyze",
+      timeoutMs: 180_000,
+    },
   );
-
-  // Log thinking if present
-  const thinkingBlock = response.content.find((b) => b.type === "thinking");
-  if (thinkingBlock?.type === "thinking") {
-    log.info(
-      `[DraftEditLearner] === THINKING ===\n${thinkingBlock.thinking}\n[DraftEditLearner] === END THINKING ===`,
-    );
-  }
 
   const textBlock = response.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "";
