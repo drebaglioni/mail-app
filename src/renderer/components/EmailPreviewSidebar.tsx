@@ -262,12 +262,15 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
           // Read fresh email data from the store for the synthetic task
           const email = useAppStore.getState().emails.find((e) => e.id === emailIdSnapshot);
           if (!email) return;
+          const providerFromTrace =
+            result.data.events.find((evt) => typeof evt.providerId === "string")?.providerId ||
+            "codex-agent";
 
           // Replay entire trace in a single store update (avoids O(n²) from N appendAgentEvent calls)
           replayAgentTrace(
             taskId,
             email.id,
-            ["claude"],
+            [providerFromTrace],
             "",
             {
               accountId: email.accountId || "",

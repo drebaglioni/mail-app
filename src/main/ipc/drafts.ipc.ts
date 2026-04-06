@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { createMessage } from "../services/anthropic-service";
+import { createMessage } from "../services/llm-router";
 import {
   getEmail,
   deleteDraft,
@@ -27,6 +27,11 @@ const log = createLogger("drafts-ipc");
 const isTestMode = process.env.EXO_TEST_MODE === "true";
 const isDemoMode = process.env.EXO_DEMO_MODE === "true";
 const useFakeData = isTestMode || isDemoMode;
+
+function getDefaultAgentProviderId(): string {
+  const cfg = getConfig();
+  return cfg.aiProvider === "anthropic" ? "claude" : "codex-agent";
+}
 
 export function registerDraftsIpc(): void {
   // Save an edited draft
@@ -225,7 +230,20 @@ FORMATTING: Write plain text paragraphs separated by blank lines. Do NOT use HTM
         prefetchService.trackManualAgentDraft(emailId, taskId);
 
         // Launch agent — events auto-stream to renderer via agent:event IPC
-        await agentCoordinator.runAgent(taskId, ["claude"], prompt, context);
+        const providerId = getDefaultAgentProviderId();
+        try {
+          await agentCoordinator.runAgent(taskId, [providerId], prompt, context);
+        } catch (err) {
+          if (providerId !== "claude") {
+            log.warn(
+              { err: err },
+              `[Drafts] Default provider ${providerId} failed, retrying with Claude`,
+            );
+            await agentCoordinator.runAgent(taskId, ["claude"], prompt, context);
+          } else {
+            throw err;
+          }
+        }
 
         // Link draft to agent task when it completes (async, don't block response)
         agentCoordinator

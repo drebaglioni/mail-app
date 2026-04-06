@@ -45,6 +45,11 @@ async function getNotifyArchiveReadyFn(): Promise<
   return notifyArchiveReady;
 }
 
+function getDefaultAgentProviderId(): string {
+  const cfg = getConfig();
+  return cfg.aiProvider === "anthropic" ? "claude" : "codex-agent";
+}
+
 type _PrefetchPriority = "high" | "medium" | "low";
 type PrefetchStatus = "idle" | "running" | "error";
 
@@ -1115,7 +1120,20 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       this.activeAgentTaskIds.set(emailId, taskId);
 
       // Launch the agent and await its actual completion (not just startup)
-      await agentCoordinator.runAgent(taskId, ["claude"], prompt, context);
+      const providerId = getDefaultAgentProviderId();
+      try {
+        await agentCoordinator.runAgent(taskId, [providerId], prompt, context);
+      } catch (err) {
+        if (providerId !== "claude") {
+          log.warn(
+            { err: err },
+            `[Prefetch] Provider ${providerId} failed for ${emailId}, retrying with Claude`,
+          );
+          await agentCoordinator.runAgent(taskId, ["claude"], prompt, context);
+        } else {
+          throw err;
+        }
+      }
       await agentCoordinator.waitForCompletion(taskId);
 
       // Link the draft record to the agent task so the trace can be loaded later

@@ -2,6 +2,7 @@ import { ipcMain } from "electron";
 import { GmailClient } from "../services/gmail-client";
 import { saveEmail, getEmailIds, getInboxEmails, getEmail, saveAccount, getAccounts } from "../db";
 import { getConfig } from "./settings.ipc";
+import { getCodexAuthStatus } from "../services/codex-service";
 import type { IpcResponse, DashboardEmail } from "../../shared/types";
 import { DEMO_INBOX_EMAILS, DEMO_EXPECTED_ANALYSIS } from "../demo/fake-inbox";
 import { createLogger } from "../services/logger";
@@ -51,7 +52,13 @@ export function registerGmailIpc(): void {
   ipcMain.handle(
     "gmail:check-auth",
     async (): Promise<
-      IpcResponse<{ hasCredentials: boolean; hasTokens: boolean; hasAnthropicKey: boolean }>
+      IpcResponse<{
+        hasCredentials: boolean;
+        hasTokens: boolean;
+        hasAnthropicKey: boolean;
+        hasCodexAuth: boolean;
+        hasAiAuth: boolean;
+      }>
     > => {
       // In demo/test mode, always return authenticated
       if (useFakeData) {
@@ -61,19 +68,27 @@ export function registerGmailIpc(): void {
             hasCredentials: true,
             hasTokens: true,
             hasAnthropicKey: true,
+            hasCodexAuth: true,
+            hasAiAuth: true,
           },
         };
       }
 
       try {
         const client = new GmailClient();
+        const cfg = getConfig();
         const hasAnthropicKey = !!(process.env.ANTHROPIC_API_KEY || getConfig().anthropicApiKey);
+        const codexAuth = await getCodexAuthStatus(cfg.codex?.cliPath || "codex");
+        const hasCodexAuth = codexAuth.cliAvailable && codexAuth.authenticated;
+        const hasAiAuth = hasCodexAuth || hasAnthropicKey;
         return {
           success: true,
           data: {
             hasCredentials: client.hasCredentials(),
             hasTokens: client.hasTokens(),
             hasAnthropicKey,
+            hasCodexAuth,
+            hasAiAuth,
           },
         };
       } catch (error) {

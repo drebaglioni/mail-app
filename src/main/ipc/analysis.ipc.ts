@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from "electron";
 import { EmailAnalyzer } from "../services/email-analyzer";
-import { getEmail, saveAnalysis, getInboxEmails, getAccounts } from "../db";
+import { getEmail, saveAnalysis, getInboxEmails, getAccounts, dismissArchiveReady } from "../db";
 import { getConfig, getModelIdForFeature } from "./settings.ipc";
 import type { IpcResponse, DashboardEmail, Email } from "../../shared/types";
 import { DEMO_INBOX_EMAILS, DEMO_EXPECTED_ANALYSIS } from "../demo/fake-inbox";
@@ -253,6 +253,22 @@ export function registerAnalysisIpc(): void {
 
         // Learn from the override in the background (don't block the UI)
         const accountId = email.accountId ?? "default";
+
+        // If a thread is re-classified as needs-reply, it is not archive-ready anymore.
+        // Clear archived-ready state immediately and notify renderer for instant UI removal.
+        if (newNeedsReply) {
+          dismissArchiveReady(email.threadId, accountId);
+          const win = BrowserWindow.getAllWindows()[0];
+          if (win) {
+            win.webContents.send("archive-ready:result", {
+              threadId: email.threadId,
+              accountId,
+              isReady: false,
+              reason: "",
+            });
+          }
+        }
+
         const senderMatch = email.from.match(/<([^>]+)>/) ?? email.from.match(/([^\s<]+@[^\s>]+)/);
         const senderEmail = senderMatch ? senderMatch[1].toLowerCase() : email.from.toLowerCase();
         const senderDomain = senderEmail.includes("@") ? senderEmail.split("@")[1] : "";

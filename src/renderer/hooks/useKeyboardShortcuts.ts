@@ -763,6 +763,14 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           }
           break;
 
+        // Tab / Shift+Tab: cycle through inbox split tabs
+        case "Tab":
+          // Let OS/app-level Alt+Tab style combos pass through
+          if (e.altKey) break;
+          e.preventDefault();
+          cycleSplit(e.shiftKey ? "prev" : "next");
+          break;
+
         // ` / ~ : cycle through inbox split tabs (Gmail only)
         case "`":
           if (isGmail) {
@@ -1105,6 +1113,7 @@ export function getKeyboardShortcuts(bindings: "superhuman" | "gmail") {
       { key: "g i", description: "Go to inbox" },
       { key: "g g", description: "Go to top" },
       { key: "G", description: "Go to bottom" },
+      { key: "Tab / Shift+Tab", description: "Next / previous section" },
       ...(isGmail
         ? [
             { key: "g d", description: "Go to drafts" },

@@ -3,7 +3,12 @@ import { useAppStore, useThreadedEmails, type EmailThread } from "../store";
 import type { InboxSplit } from "../../shared/types";
 import { emailMatchesSplit } from "../utils/split-conditions";
 
-function threadMatchesSplit(thread: EmailThread, split: InboxSplit): boolean {
+function threadMatchesSplit(
+  thread: EmailThread,
+  split: InboxSplit,
+  assignedSplitId?: string,
+): boolean {
+  if (assignedSplitId === split.id) return true;
   return emailMatchesSplit(thread.latestEmail, split);
 }
 
@@ -47,6 +52,7 @@ export function SplitTabs() {
   const setCurrentSplitId = useAppStore((state) => state.setCurrentSplitId);
   const archiveReadyThreadIds = useAppStore((state) => state.archiveReadyThreadIds);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
+  const splitAssignments = useAppStore((state) => state.splitAssignments);
   const localDrafts = useAppStore((state) => state.localDrafts);
   const { threads, needsReply, done, snoozedCount } = useThreadedEmails();
 
@@ -61,12 +67,19 @@ export function SplitTabs() {
     const exclusiveSplits = splits.filter((s) => s.exclusive);
     return (t: EmailThread) =>
       recentlyUnsnoozedThreadIds.has(t.threadId) ||
-      !exclusiveSplits.some((s) => threadMatchesSplit(t, s));
-  }, [splits, recentlyUnsnoozedThreadIds]);
+      !exclusiveSplits.some((s) => threadMatchesSplit(t, s, splitAssignments.get(t.threadId)));
+  }, [splits, recentlyUnsnoozedThreadIds, splitAssignments]);
+  const isArchiveReadyEligible = useMemo(
+    () => (t: EmailThread) => !t.analysis?.needsReply,
+    [],
+  );
 
   const archiveReadyCount = useMemo(
-    () => threads.filter((t) => archiveReadyThreadIds.has(t.threadId) && isNonExclusive(t)).length,
-    [threads, archiveReadyThreadIds, isNonExclusive],
+    () =>
+      threads.filter(
+        (t) => archiveReadyThreadIds.has(t.threadId) && isNonExclusive(t) && isArchiveReadyEligible(t),
+      ).length,
+    [threads, archiveReadyThreadIds, isNonExclusive, isArchiveReadyEligible],
   );
 
   const draftsCount = useMemo(
@@ -92,12 +105,14 @@ export function SplitTabs() {
     map.set("__other__", otherCount);
 
     for (const split of splits) {
-      const matchingThreads = threads.filter((t) => threadMatchesSplit(t, split));
+      const matchingThreads = threads.filter((t) =>
+        threadMatchesSplit(t, split, splitAssignments.get(t.threadId)),
+      );
       map.set(split.id, matchingThreads.length);
     }
 
     return map;
-  }, [threads, needsReply, done, splits, isNonExclusive]);
+  }, [threads, needsReply, done, splits, isNonExclusive, splitAssignments]);
 
   // Sort splits by order
   const sortedSplits = useMemo(() => [...splits].sort((a, b) => a.order - b.order), [splits]);

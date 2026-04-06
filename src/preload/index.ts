@@ -210,6 +210,8 @@ const api = {
       ipcRenderer.invoke("settings:set", config),
     validateApiKey: (apiKey: string): Promise<unknown> =>
       ipcRenderer.invoke("settings:validate-api-key", { apiKey }),
+    codexAuthStatus: (): Promise<unknown> => ipcRenderer.invoke("settings:codex-auth-status"),
+    testCodexConnection: (): Promise<unknown> => ipcRenderer.invoke("settings:test-codex-connection"),
     getPrompts: (): Promise<unknown> => ipcRenderer.invoke("settings:get-prompts"),
     setPrompts: (prompts: {
       analysisPrompt?: string;
@@ -535,6 +537,14 @@ const api = {
     update: (id: string, updates: unknown): Promise<unknown> =>
       ipcRenderer.invoke("splits:update", { id, updates }),
     delete: (id: string): Promise<unknown> => ipcRenderer.invoke("splits:delete", { id }),
+    getAssignments: (accountId: string): Promise<unknown> =>
+      ipcRenderer.invoke("splits:get-assignments", { accountId }),
+    assignThread: (accountId: string, threadId: string, splitId: string): Promise<unknown> =>
+      ipcRenderer.invoke("splits:assign-thread", { accountId, threadId, splitId }),
+    clearThreadAssignment: (accountId: string, threadId: string): Promise<unknown> =>
+      ipcRenderer.invoke("splits:clear-thread-assignment", { accountId, threadId }),
+    suggestThread: (accountId: string, threadId: string): Promise<unknown> =>
+      ipcRenderer.invoke("splits:suggest-thread", { accountId, threadId }),
     discoverSuperhuman: (): Promise<unknown> => ipcRenderer.invoke("splits:discover-superhuman"),
     importFromSuperhuman: (superhumanEmail: string, targetAccountId: string): Promise<unknown> =>
       ipcRenderer.invoke("splits:import-superhuman", { superhumanEmail, targetAccountId }),

@@ -243,6 +243,7 @@ interface AppState {
   // Inbox splits state
   splits: InboxSplit[];
   currentSplitId: string | null;
+  splitAssignments: Map<string, string>; // threadId -> splitId for current account
 
   // Theme state
   themePreference: ThemePreference;
@@ -416,6 +417,9 @@ interface AppState {
   // Inbox splits actions
   setSplits: (splits: InboxSplit[]) => void;
   setCurrentSplitId: (id: string | null) => void;
+  setSplitAssignments: (assignments: Array<{ threadId: string; splitId: string }>) => void;
+  assignThreadToSplit: (threadId: string, splitId: string) => void;
+  clearThreadSplitAssignment: (threadId: string) => void;
 
   // Theme actions
   setThemePreference: (preference: ThemePreference) => void;
@@ -594,6 +598,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Inbox splits state
   splits: [],
   currentSplitId: "__priority__",
+  splitAssignments: new Map(),
 
   // Theme state
   themePreference: "system",
@@ -850,6 +855,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedEmailId: null,
       globalAgentTaskKey: null,
       currentSplitId: nextSplitId,
+      splitAssignments: new Map(),
     });
   },
   setSyncStatus: (accountId, status) =>
@@ -1036,6 +1042,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Inbox splits actions
   setSplits: (splits) => set({ splits }),
   setCurrentSplitId: (id) => set({ currentSplitId: id }),
+  setSplitAssignments: (assignments) =>
+    set({
+      splitAssignments: new Map(assignments.map((item) => [item.threadId, item.splitId])),
+    }),
+  assignThreadToSplit: (threadId, splitId) =>
+    set((state) => {
+      const next = new Map(state.splitAssignments);
+      next.set(threadId, splitId);
+      return { splitAssignments: next };
+    }),
+  clearThreadSplitAssignment: (threadId) =>
+    set((state) => {
+      if (!state.splitAssignments.has(threadId)) return state;
+      const next = new Map(state.splitAssignments);
+      next.delete(threadId);
+      return { splitAssignments: next };
+    }),
 
   // Theme actions
   setThemePreference: (preference) => set({ themePreference: preference }),
@@ -1875,7 +1898,12 @@ export function useThreadedEmails() {
   }, [emails, currentAccountId, currentUserEmail, snoozedThreadIds, recentlyRepliedThreadIds]);
 }
 
-function threadMatchesSplit(thread: EmailThread, split: InboxSplit): boolean {
+function threadMatchesSplit(
+  thread: EmailThread,
+  split: InboxSplit,
+  assignedSplitId?: string,
+): boolean {
+  if (assignedSplitId === split.id) return true;
   return emailMatchesSplit(thread.latestEmail, split);
 }
 
@@ -1891,10 +1919,14 @@ export function useSplitFilteredThreads() {
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const unsnoozedReturnTimes = useAppStore((state) => state.unsnoozedReturnTimes);
   const sentEmails = useAppStore((state) => state.sentEmails);
+  const splitAssignments = useAppStore((state) => state.splitAssignments);
 
   return useMemo(() => {
     // Filter splits for current account
     const splits = allSplits.filter((s) => s.accountId === currentAccountId);
+    const getAssignedSplitId = (thread: EmailThread): string | undefined =>
+      splitAssignments.get(thread.threadId);
+    const isArchiveReadyEligible = (thread: EmailThread): boolean => !thread.analysis?.needsReply;
 
     // Helper to filter out threads matching exclusive splits (unless recently unsnoozed)
     const exclusiveSplits = splits.filter((s) => s.exclusive);
@@ -1903,7 +1935,7 @@ export function useSplitFilteredThreads() {
       return threads.filter(
         (t) =>
           recentlyUnsnoozedThreadIds.has(t.threadId) ||
-          !exclusiveSplits.some((s) => threadMatchesSplit(t, s)),
+          !exclusiveSplits.some((s) => threadMatchesSplit(t, s, getAssignedSplitId(t))),
       );
     };
 
@@ -1949,7 +1981,9 @@ export function useSplitFilteredThreads() {
     // that belong to exclusive splits so they only appear in their own tab.
     if (currentSplitId === "__archive-ready__") {
       const filterByArchiveReady = (threads: EmailThread[]) =>
-        excludeExclusive(threads).filter((t) => archiveReadyThreadIds.has(t.threadId));
+        excludeExclusive(threads).filter(
+          (t) => archiveReadyThreadIds.has(t.threadId) && isArchiveReadyEligible(t),
+        );
 
       const threads = filterByArchiveReady(baseResult.threads);
       const needsReply = filterByArchiveReady(baseResult.needsReply);
@@ -2055,7 +2089,7 @@ export function useSplitFilteredThreads() {
 
     // Apply split filter to each category
     const filterBySplit = (threads: EmailThread[]) =>
-      threads.filter((t) => threadMatchesSplit(t, currentSplit));
+      threads.filter((t) => threadMatchesSplit(t, currentSplit, getAssignedSplitId(t)));
 
     const threads = filterBySplit(baseResult.threads);
     const needsReply = filterBySplit(baseResult.needsReply);
@@ -2083,6 +2117,7 @@ export function useSplitFilteredThreads() {
     recentlyUnsnoozedThreadIds,
     unsnoozedReturnTimes,
     sentEmails,
+    splitAssignments,
   ]);
 }
 

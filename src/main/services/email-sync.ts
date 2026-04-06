@@ -513,15 +513,19 @@ class EmailSyncService {
         this.onSyncStatusChange?.(accountId, "error");
         this.onAuthErrorCallback?.(accountId, account.email);
       } else if (errMsg === "HISTORY_EXPIRED") {
-        // History ID expired, do full sync
-        log.info(`[Sync] History expired, doing full sync for ${account.email}`);
+        // Forward-only behavior: when history expires, re-baseline to current
+        // profile historyId instead of pulling historical mailbox data.
+        log.info(`[Sync] History expired, re-baselining to current history for ${account.email}`);
         try {
-          await this.fullSync(accountId);
+          const profile = await client.getProfile();
+          setHistoryId(accountId, profile.historyId);
+          client.setLastHistoryId(profile.historyId);
           account.status = "idle";
+          account.lastError = undefined;
           this.onSyncStatusChange?.(accountId, "idle");
-        } catch (fullSyncError: unknown) {
-          if (isAuthError(fullSyncError)) {
-            log.error(`[Sync] Auth error during full sync for ${account.email}`);
+        } catch (rebaselineError: unknown) {
+          if (isAuthError(rebaselineError)) {
+            log.error(`[Sync] Auth error while re-baselining ${account.email}`);
             this.stopSync(accountId);
             account.status = "error";
             account.lastError = "Authentication expired";
@@ -530,7 +534,9 @@ class EmailSyncService {
           } else {
             account.status = "error";
             account.lastError =
-              fullSyncError instanceof Error ? fullSyncError.message : String(fullSyncError);
+              rebaselineError instanceof Error
+                ? rebaselineError.message
+                : String(rebaselineError);
             this.onSyncStatusChange?.(accountId, "error");
           }
         }

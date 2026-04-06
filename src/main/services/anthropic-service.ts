@@ -168,6 +168,12 @@ function calculateCostCents(
   cacheReadTokens: number,
   cacheCreateTokens: number,
 ): number {
+  // Non-Anthropic provider calls currently do not have stable cost metadata.
+  // We still record token usage for visibility, but cost is set to zero.
+  if (model.startsWith("codex:")) {
+    return 0;
+  }
+
   const pricing = PRICING[model] || DEFAULT_PRICING;
   // input_tokens from the API already excludes cache tokens — they're separate fields
   const inputCost = (inputTokens * pricing.input) / 1_000_000;

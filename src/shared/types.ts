@@ -358,6 +358,18 @@ export function resolveModelId(tier: ModelTier): string {
   return MODEL_TIER_IDS[tier];
 }
 
+export const AiProviderSchema = z.enum(["codex", "anthropic"]);
+export type AiProvider = z.infer<typeof AiProviderSchema>;
+
+export const CodexConfigSchema = z.object({
+  // Single model used across all Codex-backed features.
+  model: z.string().default("o3"),
+  // Optional custom codex binary path. Defaults to `codex` on PATH.
+  cliPath: z.string().optional(),
+});
+
+export type CodexConfig = z.infer<typeof CodexConfigSchema>;
+
 // Config schema
 export const ConfigSchema = z.object({
   maxEmails: z.number().default(50),
@@ -366,6 +378,9 @@ export const ConfigSchema = z.object({
   model: z.string().default("claude-sonnet-4-20250514"),
   modelConfig: ModelConfigSchema.optional(),
   dryRun: z.boolean().default(false),
+  aiProvider: AiProviderSchema.default("codex"),
+  enableAnthropicFallback: z.boolean().default(true),
+  codex: CodexConfigSchema.optional(),
   anthropicApiKey: z.string().optional(),
   analysisPrompt: z.string().default(DEFAULT_ANALYSIS_PROMPT),
   draftPrompt: z.string().default(DEFAULT_DRAFT_PROMPT),
@@ -701,6 +716,8 @@ export type IpcChannels = {
   // Settings operations
   "settings:get": void;
   "settings:set": Partial<Config>;
+  "settings:codex-auth-status": void;
+  "settings:test-codex-connection": void;
   "settings:get-prompts": void;
   "settings:set-prompts": { analysisPrompt?: string; draftPrompt?: string; stylePrompt?: string };
   "settings:get-ea": void;

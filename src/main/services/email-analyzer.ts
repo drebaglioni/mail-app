@@ -1,4 +1,4 @@
-import { createMessage } from "./anthropic-service";
+import { createMessage } from "./llm-router";
 import {
   AnalysisResultSchema,
   ANALYSIS_JSON_FORMAT,

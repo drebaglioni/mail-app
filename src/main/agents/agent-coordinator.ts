@@ -223,7 +223,12 @@ export class AgentCoordinator {
     const browser = appConfig.agentBrowser;
     const baseConfig: AgentFrameworkConfig = {
       model: getModelIdForFeature("agentDrafter"),
+      aiProvider: appConfig.aiProvider ?? "codex",
       anthropicApiKey: apiKey,
+      codex: {
+        model: appConfig.codex?.model || "o3",
+        cliPath: appConfig.codex?.cliPath,
+      },
       browserConfig: browser
         ? {
             enabled: browser.enabled,
@@ -261,8 +266,13 @@ export class AgentCoordinator {
             providerPath,
             config: {
               model: getModelIdForFeature("agentDrafter"),
+              aiProvider: getConfig().aiProvider ?? "codex",
               anthropicApiKey:
                 getConfig().anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined,
+              codex: {
+                model: getConfig().codex?.model || "o3",
+                cliPath: getConfig().codex?.cliPath,
+              },
             },
           });
         }
@@ -500,7 +510,12 @@ export class AgentCoordinator {
     const appConfig = getConfig();
     const config: AgentFrameworkConfig = {
       model: getModelIdForFeature("agentDrafter"),
+      aiProvider: appConfig.aiProvider ?? "codex",
       anthropicApiKey: appConfig.anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined,
+      codex: {
+        model: appConfig.codex?.model || "o3",
+        cliPath: appConfig.codex?.cliPath,
+      },
     };
     this.sendToWorker({ type: "config_update", config });
 

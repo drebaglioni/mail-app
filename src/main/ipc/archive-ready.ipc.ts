@@ -83,6 +83,14 @@ export function registerArchiveReadyIpc(): void {
           // Sort by date, latest last
           threadEmails.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           const latest = threadEmails[threadEmails.length - 1];
+          const latestReceived =
+            [...threadEmails].reverse().find((email) => !email.labelIds?.includes("SENT")) ?? latest;
+
+          // Self-heal stale records: a thread marked needs-reply should never remain archive-ready.
+          if (latestReceived.analysis?.needsReply) {
+            dismissArchiveReady(row.threadId, accountId);
+            continue;
+          }
 
           result.push({
             threadId: row.threadId,
