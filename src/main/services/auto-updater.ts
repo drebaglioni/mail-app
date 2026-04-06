@@ -21,6 +21,12 @@ class AutoUpdateService extends EventEmitter {
   private checkInterval: ReturnType<typeof setInterval> | null = null;
   private startupTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private updatesEnabled(): boolean {
+    if (!app.isPackaged) return false;
+    // Local/source builds use placeholder version and should not nag for upstream releases.
+    return app.getVersion() !== "0.0.0";
+  }
+
   constructor() {
     super();
 
@@ -114,8 +120,9 @@ class AutoUpdateService extends EventEmitter {
    * Delays first check by 30s to avoid competing with sync/prefetch on startup.
    */
   start(): void {
-    if (!app.isPackaged) {
-      log.info("Skipping -- app is not packaged");
+    if (!this.updatesEnabled()) {
+      log.info({ packaged: app.isPackaged, version: app.getVersion() }, "Skipping update checks");
+      this.setStatus({ state: "idle" });
       return;
     }
 
@@ -152,8 +159,9 @@ class AutoUpdateService extends EventEmitter {
   }
 
   async checkForUpdates(): Promise<void> {
-    if (!app.isPackaged) {
-      throw new Error("Updates are not available in development mode");
+    if (!this.updatesEnabled()) {
+      this.setStatus({ state: "idle" });
+      return;
     }
 
     // Skip if already checking, downloading, or downloaded — re-emit
@@ -168,6 +176,10 @@ class AutoUpdateService extends EventEmitter {
   }
 
   async downloadUpdate(): Promise<void> {
+    if (!this.updatesEnabled()) {
+      this.setStatus({ state: "idle" });
+      return;
+    }
     if (this._status.state === "downloading" || this._status.state === "downloaded") {
       return;
     }
@@ -188,6 +200,9 @@ class AutoUpdateService extends EventEmitter {
   }
 
   quitAndInstall(): void {
+    if (!this.updatesEnabled()) {
+      return;
+    }
     // Flush WAL and close DB before quitting — quitAndInstall can
     // force-kill the process, bypassing the before-quit handler.
     closeDatabase();
