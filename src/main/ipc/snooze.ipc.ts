@@ -3,6 +3,7 @@ import { snoozeService } from "../services/snooze-service";
 import { getDueSnoozedEmails, unsnoozeEmail } from "../db";
 import type { IpcResponse, SnoozedEmail } from "../../shared/types";
 import { createLogger } from "../services/logger";
+import { prefetchService } from "../services/prefetch-service";
 
 const log = createLogger("snooze-ipc");
 
@@ -12,6 +13,8 @@ export function registerSnoozeIpc(): void {
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.send("snooze:unsnoozed", { emails: unsnoozedEmails });
     }
+    // Auto-draft replies for threads returning from snooze
+    prefetchService.queueDraftForUnsnoozedEmails(unsnoozedEmails);
   });
 
   // Start the snooze timer service
@@ -74,6 +77,11 @@ export function registerSnoozeIpc(): void {
           });
         }
 
+        // Auto-draft a reply for the manually unsnoozed thread
+        if (snoozeInfo) {
+          prefetchService.queueDraftForUnsnoozedEmails([snoozeInfo]);
+        }
+
         return { success: true, data: undefined };
       } catch (error) {
         log.error({ err: error }, "[Snooze IPC] Failed to unsnooze");
@@ -109,6 +117,8 @@ export function registerSnoozeIpc(): void {
           log.info(
             `[Snooze IPC] Processed ${expired.length} expired snooze(s) for account ${accountId}`,
           );
+          // Auto-draft replies for threads that expired while app was closed
+          prefetchService.queueDraftForUnsnoozedEmails(expired);
         }
 
         const snoozed = snoozeService.getSnoozedEmails(accountId);

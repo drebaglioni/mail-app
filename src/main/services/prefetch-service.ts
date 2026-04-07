@@ -18,7 +18,7 @@ import { getExtensionHost } from "../extensions";
 import { agentCoordinator } from "../agents/agent-coordinator";
 import type { AgentContext } from "../agents/types";
 import { DEFAULT_AGENT_DRAFTER_PROMPT } from "../../shared/types";
-import type { Email, DashboardEmail } from "../../shared/types";
+import type { Email, DashboardEmail, SnoozedEmail } from "../../shared/types";
 import { createLogger } from "./logger";
 
 const log = createLogger("prefetch");
@@ -1427,6 +1427,70 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
    */
   private hasPersistedDraftInThread(threadId: string, accountId?: string): boolean {
     return getThreadDrafts(threadId, accountId || "default").length > 0;
+  }
+
+  /**
+   * Queue agent drafts for emails that just came out of snooze.
+   * Finds the newest email per thread and queues a draft if eligible
+   * (same checks as processAllPending: autoDraft enabled, needsReply,
+   * allowed priority, no existing draft, not already queued).
+   */
+  queueDraftForUnsnoozedEmails(snoozedEmails: SnoozedEmail[]): void {
+    if (snoozedEmails.length === 0) return;
+
+    const config = getConfig();
+    const autoDraft = config.autoDraft;
+    if (autoDraft?.enabled === false) return;
+    const isTest = process.env.EXO_TEST_MODE === "true";
+    const isDemo = process.env.EXO_DEMO_MODE === "true";
+    if (isTest || isDemo) return;
+
+    const allowedPriorities = autoDraft?.priorities ?? ["high", "medium", "low"];
+    let queuedCount = 0;
+
+    for (const snoozed of snoozedEmails) {
+      const { threadId, accountId } = snoozed;
+
+      if (this.isThreadAlreadyQueuedForDraft(threadId)) continue;
+      if (this.hasPersistedDraftInThread(threadId, accountId)) continue;
+
+      // Find newest email in thread that needs a reply
+      const threadEmails = getEmailsByThread(threadId, accountId);
+      const candidate = threadEmails
+        .filter(
+          (e) =>
+            e.analysis?.needsReply &&
+            e.analysis?.priority !== "skip" &&
+            allowedPriorities.includes(e.analysis?.priority || "low") &&
+            !e.draft &&
+            !this.processedDrafts.has(e.id),
+        )
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+      if (!candidate) continue;
+
+      const priority =
+        candidate.analysis?.priority === "high"
+          ? 5
+          : candidate.analysis?.priority === "medium"
+            ? 15
+            : 25;
+
+      this.queue.push({
+        emailId: candidate.id,
+        type: "agent-draft",
+        priority,
+      });
+      this.processedDraftThreads.add(threadId);
+      queuedCount++;
+    }
+
+    if (queuedCount > 0) {
+      log.info(
+        `[Prefetch] Queued ${queuedCount} agent draft(s) for unsnoozed threads`,
+      );
+      this.processQueue();
+    }
   }
 
   /**
