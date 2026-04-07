@@ -394,6 +394,7 @@ export const ConfigSchema = z.object({
   inboxDensity: z.enum(["default", "compact"]).default("compact"),
   undoSendDelay: z.number().min(0).max(30).default(5), // seconds; 0 = disabled
   signatures: z.array(SignatureSchema).optional(),
+  showExoBranding: z.boolean().default(true),
   stylePrompt: z.string().optional(),
   githubToken: z.string().optional(),
   allowPrereleaseUpdates: z.boolean().optional(),
@@ -406,6 +407,7 @@ export const ConfigSchema = z.object({
     .optional(),
   mcpServers: z.record(z.string(), McpServerConfigSchema).optional(),
   cliTools: z.array(CliToolConfigSchema).optional(),
+  extraPathDirs: z.array(z.string()).optional(),
   posthog: z
     .object({
       enabled: z.boolean().default(false),
@@ -502,6 +504,14 @@ export type ComposeAttachment = {
   size?: number;
 };
 
+// Gmail send-as alias (cached from Gmail settings)
+export type SendAsAlias = {
+  email: string;
+  displayName?: string;
+  isDefault: boolean;
+  replyToAddress?: string;
+};
+
 // Options for composing a message (used internally)
 export type ComposeMessageOptions = {
   from?: string;
@@ -544,6 +554,7 @@ export const LocalDraftSchema = z.object({
   subject: z.string(),
   bodyHtml: z.string(),
   bodyText: z.string().optional(),
+  fromAddress: z.string().optional(),
   isReply: z.boolean().default(false),
   isForward: z.boolean().default(false),
   createdAt: z.number(),
@@ -659,6 +670,19 @@ export type ContactSuggestion = {
 };
 
 // ==============================================
+// Snippets (reusable text blocks for composing)
+export const SnippetSchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  name: z.string().min(1),
+  body: z.string(), // HTML content
+  shortcut: z.string().optional(), // trigger text (e.g. "thanks")
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+export type Snippet = z.infer<typeof SnippetSchema>;
+
 // Inbox Splits (filtered inbox sections)
 // ==============================================
 
