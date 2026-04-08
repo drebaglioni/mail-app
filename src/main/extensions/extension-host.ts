@@ -982,6 +982,17 @@ export class ExtensionHost {
     this.extensions.delete(extensionId);
     this.bundledModules.delete(extensionId);
 
+    // Clear Node.js require cache so reinstalling loads the new module from disk
+    // require.cache is global and shared across all createRequire instances
+    if (ext.path) {
+      const extPathPrefix = ext.path.endsWith("/") ? ext.path : ext.path + "/";
+      for (const cached of Object.keys(require.cache)) {
+        if (cached.startsWith(extPathPrefix)) {
+          delete require.cache[cached];
+        }
+      }
+    }
+
     // Remove files
     if (ext.path && existsSync(ext.path)) {
       rmSync(ext.path, { recursive: true, force: true });
