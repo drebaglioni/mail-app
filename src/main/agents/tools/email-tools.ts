@@ -14,7 +14,7 @@ const readEmail: ToolDefinition<{ emailId: string }> = {
     emailId: z.string().describe("The email ID to read"),
   }),
   async execute(input, ctx) {
-    const email = await ctx.db("getEmail", input.emailId);
+    const email = (await ctx.db("getEmail", input.emailId)) as DashboardEmail | null;
     if (!email) {
       throw new Error(`Email not found: ${input.emailId}`);
     }
@@ -104,7 +104,11 @@ const readThread: ToolDefinition<{ threadId: string; accountId?: string }> = {
     accountId: z.string().optional().describe("Account ID to filter by (optional)"),
   }),
   async execute(input, ctx) {
-    const emails = await ctx.db("getEmailsByThread", input.threadId, input.accountId);
+    const emails = (await ctx.db(
+      "getEmailsByThread",
+      input.threadId,
+      input.accountId,
+    )) as DashboardEmail[];
     // Return with plain text bodies — agents don't need HTML markup and it wastes tokens
     return emails.map((e) => ({ ...e, body: e.body ? htmlToPlainText(e.body) : e.body }));
   },

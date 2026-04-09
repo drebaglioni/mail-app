@@ -554,7 +554,7 @@ export function htmlToPlainText(html: string): string {
       .replace(/<br\s*\/?>/gi, "\n") // <br> → newline
       .replace(/<\/(?:p|div|h[1-6]|li|tr|blockquote)>/gi, "\n") // block-close → newline
       .replace(/<(?:hr)\s*\/?>/gi, "\n---\n") // <hr> → separator
-      .replace(/<[^>]+>/g, "") // strip remaining tags
+      .replace(/<[^>]+>/g, ""), // strip remaining tags
   )
     .replace(/[ \t]+/g, " ") // collapse horizontal whitespace only
     .replace(/\n /g, "\n") // trim leading space after newlines
