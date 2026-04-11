@@ -130,7 +130,9 @@ export function SplitTabs() {
   // Sort splits by order (for custom split chips in Automated tab)
   const sortedSplits = useMemo(() => [...splits].sort((a, b) => a.order - b.order), [splits]);
 
-  const isAutomatedView = currentSplitId === "__automated__";
+  const customSplitIds = useMemo(() => new Set(splits.map((s) => s.id)), [splits]);
+  const isAutomatedView =
+    currentSplitId === "__automated__" || customSplitIds.has(currentSplitId ?? "");
 
   return (
     <div className="flex flex-col border-b border-gray-200 dark:border-gray-700">
