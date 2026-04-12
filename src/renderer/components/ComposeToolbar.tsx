@@ -25,7 +25,7 @@ export function ComposeToolbar({
   availableSignatures,
 }: ComposeToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 pt-2 border-t exo-border-subtle/30">
+    <div className="flex items-center gap-1.5 pt-2">
       <button
         onClick={onSend}
         disabled={isSending || isScheduling || !canSend}
@@ -52,12 +52,11 @@ export function ComposeToolbar({
           />
         </svg>
       </button>
-      <span className="text-xs exo-text-muted">Cmd+Enter to send</span>
       {availableSignatures.length > 0 && (
         <select
           value={activeSignatureId ?? ""}
           onChange={(e) => onSignatureChange(e.target.value || null)}
-          className="ml-auto text-sm border exo-border-strong rounded px-2 py-1.5 bg-[var(--exo-bg-elevated)] exo-text-secondary"
+          className="ml-auto text-sm exo-text-secondary bg-transparent cursor-pointer"
         >
           <option value="">No signature</option>
           {availableSignatures.map((sig) => (

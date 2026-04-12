@@ -2,6 +2,7 @@ import { memo, useMemo, useEffect, useRef } from "react";
 import { useAppStore } from "../store";
 import { useExtensionPanels, ExtensionPanelSlot } from "../extensions";
 import { AgentTabContent } from "./AgentPanel";
+import { AnalysisPrioritySection } from "./AnalysisPrioritySection";
 import type { ScopedAgentEvent } from "../../shared/agent-types";
 
 // SVG icon components for sidebar tabs
@@ -97,6 +98,7 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
   const globalAgentTaskKey = useAppStore((s) => s.globalAgentTaskKey);
   // Draft task key for agent tab — drafts use `draft:${id}` as their task key
   const draftTaskKey = selectedDraftId ? `draft:${selectedDraftId}` : null;
+  const updateEmail = useAppStore((s) => s.updateEmail);
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
   // Whether the selected email has a persisted agent trace (even if not yet loaded into memory)
@@ -319,7 +321,9 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
       <div className="w-80 exo-surface-soft border-l exo-border-subtle flex items-center justify-center">
         <div className="text-center px-6">
           <p className="exo-text-muted text-sm">Select an email to see details</p>
-          <p className="text-[var(--exo-text-secondary)] text-xs mt-1">Use j/k to navigate, Cmd+J for agent</p>
+          <p className="text-[var(--exo-text-secondary)] text-xs mt-1">
+            Use j/k to navigate, Cmd+J for agent
+          </p>
         </div>
       </div>
     );
@@ -370,6 +374,22 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
         </div>
       )}
 
+      {/* Analysis priority — always visible above tab content */}
+      {latestReceivedEmail?.analysis && (
+        <AnalysisPrioritySection
+          email={latestReceivedEmail}
+          onAnalysisUpdated={(newNeedsReply, newPriority) => {
+            updateEmail(latestReceivedEmail.id, {
+              analysis: {
+                ...latestReceivedEmail.analysis!,
+                needsReply: newNeedsReply,
+                priority: (newPriority as "high" | "medium" | "low" | "skip" | null) ?? undefined,
+              },
+            });
+          }}
+        />
+      )}
+
       {/* Agent tab content — kept mounted with FROZEN emailId when hidden.
          When j/k changes selectedEmailId, displayAgentKey stays the same so React
          sees identical props → skips reconciliation of 1000+ EventTimeline nodes.
@@ -413,10 +433,7 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
                 >
                   {senderName}
                 </p>
-                <p
-                  data-testid="sidebar-sender-email"
-                  className="text-xs exo-text-muted truncate"
-                >
+                <p data-testid="sidebar-sender-email" className="text-xs exo-text-muted truncate">
                   {senderEmail}
                 </p>
               </div>

@@ -383,6 +383,11 @@ body {
 
 /* Dark mode email body overrides — accent links already use vars, blockquote/pre use tokens */
 
+/* TipTap editor (compose) — match the app's system font stack */
+.tiptap {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
 /* TipTap editor (compose) list/formatting styles — Tailwind Preflight resets these */
 .tiptap ul, .tiptap ol {
   padding-left: 1.5em;

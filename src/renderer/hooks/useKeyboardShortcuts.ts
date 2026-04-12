@@ -238,6 +238,13 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
         return;
       }
 
+      // Cmd+Shift+E — toggle AI refine input (works in compose mode)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "e") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("toggle-ai-refine"));
+        return;
+      }
+
       // In compose mode, only handle Cmd+Enter for send — except when the
       // editor isn't focused (e.g. auto-opened draft without focus), where
       // Enter should focus the editor and "b" should switch sidebar tabs.
@@ -1144,6 +1151,7 @@ export function getKeyboardShortcuts(bindings: "superhuman" | "gmail") {
       { key: "Cmd+F", description: "Find in page" },
       { key: "Cmd+K", description: "Command palette" },
       { key: "Cmd+J", description: "Agent action palette" },
+      { key: "Cmd+Shift+E", description: "Refine draft with AI" },
     ],
     other: [
       { key: "b", description: "Switch sidebar tab" },
