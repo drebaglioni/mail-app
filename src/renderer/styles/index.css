@@ -55,10 +55,10 @@
   --exo-border-subtle: #1a2236;
   --exo-border-strong: #283548;
 
-  --exo-accent: #ff5a1f;
-  --exo-accent-strong: #ff7a45;
-  --exo-accent-soft: #2a1508;
-  --exo-focus-ring: #ff7a45;
+  --exo-accent: #ff4f00;
+  --exo-accent-strong: #ff6a2a;
+  --exo-accent-soft: #261200;
+  --exo-focus-ring: #ff6a2a;
 
   --exo-priority-low-bg: #123124;
   --exo-priority-low-text: #7dffb3;
@@ -169,6 +169,8 @@ body {
   background-color: var(--exo-accent);
   border-color: var(--exo-accent-strong);
   color: #fff;
+  position: relative;
+  overflow: hidden;
 }
 
 .exo-list-shell {
@@ -196,6 +198,21 @@ body {
   background-color: var(--exo-accent);
   border-bottom-color: var(--exo-accent-strong);
   color: #fff;
+  position: relative;
+}
+
+/* Faint noise grain on accent surfaces in dark mode */
+.dark .exo-list-row-selected::after,
+.dark .exo-segment-btn[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
 }
 
 .exo-list-row-checked {
@@ -212,8 +229,8 @@ body {
 
 .dark .exo-pixel-grid {
   background-image:
-    linear-gradient(rgba(255, 90, 31, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 90, 31, 0.09) 1px, transparent 1px);
+    linear-gradient(rgba(255, 79, 0, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 79, 0, 0.09) 1px, transparent 1px);
 }
 
 /* Subtle horizontal scanline texture for dark mode panels */
@@ -222,24 +239,24 @@ body {
     0deg,
     transparent,
     transparent 2px,
-    rgba(255, 90, 31, 0.02) 2px,
-    rgba(255, 90, 31, 0.02) 4px
+    rgba(255, 79, 0, 0.02) 2px,
+    rgba(255, 79, 0, 0.02) 4px
   );
 }
 
 /* Neon glow on selected row in dark mode */
 .dark .exo-list-row-selected {
-  box-shadow: 0 0 12px rgba(255, 90, 31, 0.3), inset 0 0 12px rgba(255, 90, 31, 0.1);
+  box-shadow: 0 0 12px rgba(255, 79, 0, 0.3), inset 0 0 12px rgba(255, 79, 0, 0.1);
 }
 
 /* Neon glow on active segment button in dark mode */
 .dark .exo-segment-btn[data-active="true"] {
-  box-shadow: 0 0 10px rgba(255, 90, 31, 0.35);
+  box-shadow: 0 0 10px rgba(255, 79, 0, 0.35);
 }
 
 /* Enhanced focus ring with glow in dark mode */
 .dark .exo-focus-ring:focus-visible {
-  box-shadow: 0 0 0 2px var(--exo-focus-ring), 0 0 12px rgba(255, 122, 69, 0.3);
+  box-shadow: 0 0 0 2px var(--exo-focus-ring), 0 0 12px rgba(255, 106, 42, 0.3);
 }
 
 /* Neon glow on priority badges in dark mode */
@@ -258,7 +275,7 @@ body {
 
 /* Accent glow on elevated cards in dark mode */
 .dark .exo-settings-card {
-  box-shadow: 0 0 1px rgba(255, 90, 31, 0.2), 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 1px rgba(255, 79, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* Monospace heading for settings sections — cyberpunk tech feel */
