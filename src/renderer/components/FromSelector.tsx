@@ -48,20 +48,20 @@ export function FromSelector({ aliases, selected, onChange }: FromSelectorProps)
   return (
     <div
       ref={ref}
-      className="relative flex items-center gap-2 py-1.5 border-b border-gray-200 dark:border-gray-700/50"
+      className="relative flex items-center gap-2 py-1.5 border-b border-[var(--exo-border-subtle)]"
     >
-      <label className="w-10 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">From</label>
+      <label className="w-10 text-sm exo-text-muted flex-shrink-0">From</label>
       <div className="flex-1 flex flex-wrap items-center">
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="min-w-0 text-left text-sm text-gray-900 dark:text-gray-100 truncate cursor-pointer pl-1.5"
+          className="min-w-0 text-left text-sm exo-text-primary truncate cursor-pointer pl-1.5"
         >
           {currentAlias.email}
         </button>
       </div>
       {open && (
-        <div className="absolute left-10 top-full mt-1 z-50 min-w-[280px] max-w-[400px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1">
+        <div className="absolute left-10 top-full mt-1 z-50 min-w-[280px] max-w-[400px] exo-elevated border exo-border-subtle rounded-lg shadow-lg py-1">
           {aliases.map((alias) => (
             <button
               key={alias.email}
@@ -72,8 +72,8 @@ export function FromSelector({ aliases, selected, onChange }: FromSelectorProps)
               }}
               className={`w-full text-left px-3 py-1.5 text-sm truncate transition-colors ${
                 alias.email.toLowerCase() === currentAlias.email.toLowerCase()
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                  : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)]"
+                  : "exo-text-primary hover:bg-[var(--exo-bg-surface-hover)]"
               }`}
             >
               {alias.displayName ? `${alias.displayName} <${alias.email}>` : alias.email}

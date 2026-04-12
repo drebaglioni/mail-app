@@ -146,7 +146,7 @@ export function FindBar() {
 
   return (
     <div
-      className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+      className="flex items-center gap-2 px-3 py-1.5 exo-elevated border-b exo-border-subtle"
       data-testid="find-bar"
     >
       <input
@@ -156,17 +156,17 @@ export function FindBar() {
         value={query}
         onChange={(e) => handleInputChange(e.target.value)}
         placeholder="Find in page..."
-        className="flex-1 min-w-0 px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="flex-1 min-w-0 px-2 py-1 text-sm bg-[var(--exo-bg-surface-soft)] border exo-border-strong rounded exo-text-primary placeholder-[var(--exo-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--exo-focus-ring)]"
         data-testid="find-bar-input"
       />
       <span
         ref={matchCountRef}
-        className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap"
+        className="text-xs exo-text-muted whitespace-nowrap"
         data-testid="find-bar-count"
       />
       <button
         onClick={goPrev}
-        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400"
+        className="p-1 hover:bg-[var(--exo-bg-surface-hover)] rounded exo-text-muted"
         title="Previous match (Shift+Enter)"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,7 +175,7 @@ export function FindBar() {
       </button>
       <button
         onClick={goNext}
-        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400"
+        className="p-1 hover:bg-[var(--exo-bg-surface-hover)] rounded exo-text-muted"
         title="Next match (Enter)"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@ export function FindBar() {
       </button>
       <button
         onClick={close}
-        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400"
+        className="p-1 hover:bg-[var(--exo-bg-surface-hover)] rounded exo-text-muted"
         title="Close (Escape)"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

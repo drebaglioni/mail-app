@@ -156,12 +156,12 @@ export function SnippetsEditor() {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500 dark:text-gray-400">Loading snippets...</div>;
+    return <div className="text-sm exo-text-muted">Loading snippets...</div>;
   }
 
   if (!currentAccountId) {
     return (
-      <div className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="text-sm exo-text-muted">
         Select an account to manage snippets.
       </div>
     );
@@ -171,8 +171,8 @@ export function SnippetsEditor() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium text-gray-900 dark:text-gray-100">Snippets</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h3 className="font-medium exo-text-primary">Snippets</h3>
+          <p className="text-sm exo-text-muted">
             Reusable text blocks for <span className="font-medium">{currentAccount?.email}</span>.
             Insert them while composing emails.
           </p>
@@ -182,13 +182,13 @@ export function SnippetsEditor() {
             <button
               onClick={handleDiscoverSuperhuman}
               disabled={shDiscovering}
-              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm border exo-border-strong exo-text-secondary rounded hover:bg-[var(--exo-bg-surface-hover)] disabled:opacity-50"
             >
               {shDiscovering ? "Checking..." : "Import from Superhuman"}
             </button>
             <button
               onClick={() => setIsCreating(true)}
-              className="px-3 py-1.5 text-sm bg-blue-500 dark:bg-blue-400 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-500"
+              className="px-3 py-1.5 text-sm bg-[var(--exo-accent)] text-white rounded hover:bg-[var(--exo-accent)]"
             >
               + New Snippet
             </button>
@@ -198,14 +198,14 @@ export function SnippetsEditor() {
 
       {/* Superhuman import inline dialog */}
       {shAccounts && shAccounts.length > 0 && !shResult && (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 space-y-2">
+        <div className="border exo-border-subtle rounded-lg p-4 exo-surface-soft space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium exo-text-secondary">
               Select Superhuman account to import snippets from:
             </span>
             <button
               onClick={() => setShAccounts(null)}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              className="text-sm exo-text-muted hover:text-[var(--exo-text-primary)]"
             >
               Cancel
             </button>
@@ -215,10 +215,10 @@ export function SnippetsEditor() {
               key={acct.email}
               onClick={() => handleImportSuperhuman(acct.email)}
               disabled={shImporting || acct.snippetCount === 0}
-              className="w-full text-left px-3 py-2 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left px-3 py-2 text-sm rounded border exo-border-subtle bg-[var(--exo-bg-elevated)] hover:bg-[var(--exo-bg-surface-soft)] exo-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="font-medium">{acct.email}</span>
-              <span className="ml-2 text-gray-500 dark:text-gray-400">
+              <span className="ml-2 exo-text-muted">
                 ({acct.snippetCount} snippet{acct.snippetCount !== 1 ? "s" : ""})
               </span>
             </button>
@@ -294,34 +294,34 @@ export function SnippetsEditor() {
       {!isCreating && !editingSnippet && (
         <div className="space-y-2">
           {snippets.length === 0 ? (
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="text-sm exo-text-muted text-center py-8 exo-settings-card">
               No snippets yet. Create one or import from Superhuman.
             </div>
           ) : (
             snippets.map((snippet) => (
               <div
                 key={snippet.id}
-                className="flex items-start justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="flex items-start justify-between p-3 exo-settings-card"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                    <span className="font-medium text-sm exo-text-primary">
                       {snippet.name}
                     </span>
                     {snippet.shortcut && (
-                      <span className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-mono">
+                      <span className="px-1.5 py-0.5 text-xs bg-[var(--exo-bg-surface-soft)] exo-text-secondary rounded font-mono">
                         ;{snippet.shortcut}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                  <p className="text-xs exo-text-muted mt-1 truncate">
                     {stripHtml(snippet.body)}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 ml-2 shrink-0">
                   <button
                     onClick={() => setEditingSnippet(snippet)}
-                    className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                    className="px-2 py-1 text-xs exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)] rounded"
                   >
                     Edit
                   </button>
@@ -393,10 +393,10 @@ function SnippetForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 space-y-3"
+      className="border exo-border-subtle rounded-lg p-4 exo-elevated space-y-3"
     >
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-sm font-medium exo-text-secondary mb-1">
           Name
         </label>
         <input
@@ -404,12 +404,12 @@ function SnippetForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Meeting follow-up"
-          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 text-sm border exo-border-strong rounded bg-[var(--exo-bg-elevated)] exo-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--exo-focus-ring)]"
           autoFocus
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-sm font-medium exo-text-secondary mb-1">
           Content
         </label>
         <textarea
@@ -417,9 +417,9 @@ function SnippetForm({
           onChange={(e) => setBody(e.target.value)}
           placeholder="Type your snippet content here..."
           rows={6}
-          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+          className="w-full px-3 py-2 text-sm border exo-border-strong rounded bg-[var(--exo-bg-elevated)] exo-text-primary focus:outline-none focus:ring-2 focus:ring-[var(--exo-focus-ring)] resize-y"
         />
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-xs exo-text-muted mt-1">
           Use {"{"}
           <code className="text-xs">first_name</code>
           {"}"} for the recipient&apos;s first name, {"{"}
@@ -433,14 +433,14 @@ function SnippetForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+          className="px-3 py-1.5 text-sm border exo-border-strong exo-text-secondary rounded hover:bg-[var(--exo-bg-surface-hover)]"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSaving || !name.trim() || !body.trim()}
-          className="px-3 py-1.5 text-sm bg-blue-500 dark:bg-blue-400 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-50"
+          className="px-3 py-1.5 text-sm bg-[var(--exo-accent)] text-white rounded hover:bg-[var(--exo-accent)] disabled:opacity-50"
         >
           {snippet ? "Save Changes" : "Create Snippet"}
         </button>

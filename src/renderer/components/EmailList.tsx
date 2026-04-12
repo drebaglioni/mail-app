@@ -14,6 +14,7 @@ import {
 import { draftBodyToHtml } from "../../shared/draft-utils";
 import { draftMatchesSplit } from "../utils/split-conditions";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { PixelWave } from "./PixelWave";
 
 /** Check if bodyHtml already contains rich formatting tags (from TipTap or draftBodyToHtml).
  *  If so, use it directly instead of re-converting from bodyText. */
@@ -78,6 +79,7 @@ export function EmailList() {
     setSelectedDraftId,
     removeRecentlyUnsnoozedThread,
     markThreadAsRead,
+    toggleKeptThread,
   } = useAppStore();
   const openCompose = useAppStore((s) => s.openCompose);
   const allLocalDrafts = useAppStore((s) => s.localDrafts);
@@ -86,23 +88,14 @@ export function EmailList() {
   const splits = useAppStore((s) => s.splits);
   const { threads } = useSplitFilteredThreads();
 
-  const isArchiveReadyView = currentSplitId === "__archive-ready__";
-  const isDraftsView = currentSplitId === "__drafts__";
+  const isAutomatedView = currentSplitId === "__automated__";
   const isSnoozedView = currentSplitId === "__snoozed__";
-  const _isPriorityView = currentSplitId === "__priority__";
   const isSentView = currentSplitId === "__sent__";
 
   // Filter local drafts for the current account
   const localDrafts = useMemo(
     () => allLocalDrafts.filter((d) => !currentAccountId || d.accountId === currentAccountId),
     [allLocalDrafts, currentAccountId],
-  );
-
-  // Threads with AI-generated drafts (for the Drafts tab).
-  // Filter to drafts with body content — excludes placeholder shells still being generated.
-  const threadsWithDrafts = useMemo(
-    () => (isDraftsView ? threads.filter((t) => t.draft && t.draft.body) : []),
-    [threads, isDraftsView],
   );
 
   const handleDraftClick = useCallback(
@@ -265,11 +258,15 @@ export function EmailList() {
   const handleArchiveAll = useCallback(() => {
     if (!currentAccountId || threads.length === 0) return;
 
-    const archiveReadyThreadIds = threads.map((t) => t.threadId);
+    // Only archive threads that are NOT kept by the user
+    const archivableThreads = threads.filter((t) => !t.archiveKept);
+    if (archivableThreads.length === 0) return;
+
+    const archiveReadyThreadIds = archivableThreads.map((t) => t.threadId);
     const allEmailIds: string[] = [];
     const allEmails: DashboardEmail[] = [];
     const { emails: currentEmails } = useAppStore.getState();
-    for (const thread of threads) {
+    for (const thread of archivableThreads) {
       const threadEmails = currentEmails.filter((e) => e.threadId === thread.threadId);
       for (const email of threadEmails) {
         allEmailIds.push(email.id);
@@ -278,7 +275,6 @@ export function EmailList() {
     }
 
     removeEmails(allEmailIds);
-    setCurrentSplitId("__priority__");
 
     addUndoAction({
       id: `archive-all-${Date.now()}`,
@@ -321,8 +317,7 @@ export function EmailList() {
   // without appearing in the useCallback deps. This prevents handleThreadClick
   // from getting a new reference when threads change, which matters because
   // the EmailRow memo comparator intentionally skips onClick.
-  // In drafts view, only AI-draft threads are visible — use that subset for range selection.
-  const visibleThreads = isDraftsView ? threadsWithDrafts : threads;
+  const visibleThreads = threads;
   const threadsRef = useRef(visibleThreads);
   useEffect(() => {
     threadsRef.current = visibleThreads;
@@ -410,21 +405,20 @@ export function EmailList() {
   );
 
   const items = useMemo((): ListItem[] => {
-    if (isDraftsView) return []; // Drafts view is non-virtualized
     const result: ListItem[] = [];
-    // Drafts at top (except in archive-ready and sent views)
-    if (localDrafts.length > 0 && !isArchiveReadyView && !isSentView) {
+    // Drafts at top (except in automated and sent views)
+    if (localDrafts.length > 0 && !isAutomatedView && !isSentView) {
       let draftsToShow: LocalDraft[];
       if (isSnoozedView) {
         draftsToShow = localDrafts.filter((d) => d.threadId && snoozedThreads.has(d.threadId));
       } else if (currentSplit) {
         // Custom split: only show drafts whose recipients/subject match the split
         draftsToShow = localDrafts.filter((d) => draftMatchesSplit(d, currentSplit));
-      } else if (currentSplitId === "__other__") {
-        // "Other" is a catch-all for low-priority — don't surface drafts here
+      } else if (currentSplitId === "__automated__") {
+        // Automated tab has no draft workflow
         draftsToShow = [];
       } else {
-        // "All", "Priority" — show all drafts
+        // "People" or other views — show all drafts
         draftsToShow = localDrafts;
       }
       for (const draft of draftsToShow) {
@@ -438,8 +432,7 @@ export function EmailList() {
   }, [
     threads,
     localDrafts,
-    isDraftsView,
-    isArchiveReadyView,
+    isAutomatedView,
     isSentView,
     isSnoozedView,
     snoozedThreads,
@@ -482,14 +475,6 @@ export function EmailList() {
     virtualizer.scrollToIndex(idx, { align: "auto" });
   }, [selectedThreadId]);
 
-  // Drafts view is non-virtualized, so the virtualizer scroll-to above is a no-op.
-  // Use native scrollIntoView for j/k navigation of AI-draft threads.
-  useEffect(() => {
-    if (!isDraftsView || !selectedThreadId) return;
-    const el = listRef.current?.querySelector(`[data-thread-id="${selectedThreadId}"]`);
-    el?.scrollIntoView({ block: "nearest" });
-  }, [selectedThreadId, isDraftsView]);
-
   const cycleDensity = () => {
     const currentIndex = densityOrder.indexOf(inboxDensity);
     const nextIndex = (currentIndex + 1) % densityOrder.length;
@@ -511,34 +496,33 @@ export function EmailList() {
   }, [selectedThreadIds, threads, setSelectedThreadId, setSelectedEmailId]);
 
   const handleSelectAll = useCallback(() => {
-    const visibleThreads = isDraftsView ? threadsWithDrafts : threads;
-    selectAllThreads(visibleThreads.map((t) => t.threadId));
-  }, [threads, threadsWithDrafts, isDraftsView, selectAllThreads]);
+    selectAllThreads(threads.map((t) => t.threadId));
+  }, [threads, selectAllThreads]);
 
   // Email list takes available width (flex-1)
   return (
-    <div className="flex-1 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+    <div className="flex-1 exo-list-shell flex flex-col overflow-hidden">
       {/* Header - top-level mailbox tabs + actions */}
-      <div className="h-10 px-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+      <div className="h-10 px-4 flex items-center justify-between exo-list-header">
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
-              if (isSentView) setCurrentSplitId("__priority__");
+              if (isSentView) setCurrentSplitId("__people__");
             }}
-            className={`px-2 py-1 text-sm font-medium rounded transition-colors focus:outline-none ${
+            className={`px-2.5 py-1 text-sm font-medium rounded-md transition-colors focus:outline-none ${
               !isSentView
-                ? "text-gray-900 dark:text-gray-100"
-                : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)]"
+                : "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
             }`}
           >
             Inbox
           </button>
           <button
             onClick={() => setCurrentSplitId("__sent__")}
-            className={`px-2 py-1 text-sm font-medium rounded transition-colors inline-flex items-center gap-1 focus:outline-none ${
+            className={`px-2.5 py-1 text-sm font-medium rounded-md transition-colors inline-flex items-center gap-1 focus:outline-none ${
               isSentView
-                ? "text-gray-900 dark:text-gray-100"
-                : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)]"
+                : "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
             }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,7 +537,7 @@ export function EmailList() {
           </button>
         </div>
         <div className="flex items-center gap-2">
-          {isArchiveReadyView && threads.length > 0 && (
+          {isAutomatedView && threads.length > 0 && (
             <button
               onClick={handleArchiveAll}
               className="px-2.5 py-1 text-xs font-medium text-white bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600 rounded transition-colors flex items-center gap-1"
@@ -570,7 +554,7 @@ export function EmailList() {
             </button>
           )}
           {isAnalyzingTask && (
-            <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+            <span className="flex items-center gap-1 text-xs text-[var(--exo-accent)] exo-micro-label">
               <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
@@ -591,7 +575,7 @@ export function EmailList() {
           )}
           {hasActiveAgentDrafts && (
             <span
-              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 exo-micro-label"
               title={agentDraftIndicator?.tooltip}
             >
               <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -616,7 +600,7 @@ export function EmailList() {
           <button
             onClick={cycleDensity}
             title={`Density: ${densityLabels[inboxDensity]}`}
-            className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="p-1 rounded-md text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
           >
             <svg
               className="w-4 h-4"
@@ -650,16 +634,16 @@ export function EmailList() {
 
       {/* Initial sync progress bar */}
       {isInitialSyncing && (
-        <div className="px-4 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+        <div className="px-4 py-1.5 border-b exo-border-subtle exo-surface-soft">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs exo-text-secondary exo-micro-label">
               Loading inbox: {currentProgress.fetched.toLocaleString()} /{" "}
               {currentProgress.total.toLocaleString()}
             </span>
           </div>
-          <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="w-full h-1 bg-[var(--exo-border-subtle)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-300"
+              className="h-full bg-[var(--exo-accent)] rounded-full transition-all duration-300"
               style={{
                 width: `${Math.round((currentProgress.fetched / currentProgress.total) * 100)}%`,
               }}
@@ -671,7 +655,7 @@ export function EmailList() {
       {/* Batch action bar - shown when threads are multi-selected */}
       <BatchActionBar
         selectedCount={selectedThreadIds.size}
-        totalCount={isDraftsView ? threadsWithDrafts.length : threads.length}
+        totalCount={threads.length}
         onArchive={batchArchive}
         onTrash={batchTrash}
         onMarkUnread={batchMarkUnread}
@@ -682,52 +666,8 @@ export function EmailList() {
       />
 
       {/* Thread list - flat, chronological */}
-      <div ref={listRef} className="flex-1 overflow-y-auto">
-        {/* Drafts view: local drafts (compose sessions) + threads with AI-generated drafts */}
-        {isDraftsView ? (
-          <>
-            {localDrafts.length === 0 && threadsWithDrafts.length === 0 && !isLoading && (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
-                <svg
-                  className="w-12 h-12 mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                <p className="text-sm">No drafts</p>
-              </div>
-            )}
-            {localDrafts.map((draft) => (
-              <DraftRow
-                key={draft.id}
-                draft={draft}
-                isSelected={selectedDraftId === draft.id}
-                density={inboxDensity}
-                onClick={() => handleDraftClick(draft)}
-              />
-            ))}
-            {threadsWithDrafts.map((thread) => (
-              <div key={thread.threadId} data-thread-id={thread.threadId}>
-                <EmailRow
-                  thread={thread}
-                  isSelected={selectedThreadId === thread.threadId}
-                  isChecked={selectedThreadIds.has(thread.threadId)}
-                  isMultiSelectActive={selectedThreadIds.size > 0}
-                  density={inboxDensity}
-                  onClick={(e) => handleThreadClick(thread, e)}
-                  onCheckboxChange={() => toggleThreadSelected(thread.threadId)}
-                />
-              </div>
-            ))}
-          </>
-        ) : items.length > 0 ? (
+      <div ref={listRef} className="flex-1 overflow-y-auto exo-pixel-grid relative">
+        {items.length > 0 ? (
           <div
             style={{
               height: virtualizer.getTotalSize(),
@@ -782,6 +722,9 @@ export function EmailList() {
                     density={inboxDensity}
                     onClick={(e) => handleThreadClick(thread, e)}
                     onCheckboxChange={() => handleCheckboxToggle(thread.threadId)}
+                    onKeepToggle={
+                      isAutomatedView ? () => toggleKeptThread(thread.threadId) : undefined
+                    }
                     snoozeInfo={isSnoozedView ? snoozedThreads.get(thread.threadId) : undefined}
                     returnTime={unsnoozedReturnTimes.get(thread.threadId)}
                   />
@@ -790,34 +733,11 @@ export function EmailList() {
             })}
           </div>
         ) : (
-          /* Empty state (only in inbox views) */
+          /* Empty state with animated dot-matrix wave */
           !isLoading && (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
-              <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isSnoozedView ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                ) : isSentView ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                  />
-                )}
-              </svg>
-              <p className="text-sm">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--exo-bg-surface)]">
+              <PixelWave />
+              <p className="text-sm exo-text-muted exo-micro-label relative z-10">
                 {isSnoozedView ? "No snoozed emails" : isSentView ? "No sent emails" : "Inbox zero"}
               </p>
             </div>

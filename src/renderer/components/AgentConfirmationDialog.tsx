@@ -26,7 +26,7 @@ export function AgentConfirmationDialog({
 
   if (responded) {
     return (
-      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm text-gray-500 dark:text-gray-400">
+      <div className="px-3 py-2 exo-surface-soft rounded-lg text-sm exo-text-muted">
         Response submitted for {toolName}
       </div>
     );
@@ -59,7 +59,7 @@ export function AgentConfirmationDialog({
       {isHighRisk ? (
         // Full preview for high-risk actions
         <div className="px-3 pb-2">
-          <pre className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 rounded p-2 overflow-x-auto max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700">
+          <pre className="text-xs exo-text-secondary exo-elevated rounded p-2 overflow-x-auto max-h-48 overflow-y-auto border exo-border-subtle">
             {inputStr}
           </pre>
         </div>
@@ -73,7 +73,7 @@ export function AgentConfirmationDialog({
             {expanded ? "Hide input" : "Show input"}
           </button>
           {expanded && (
-            <pre className="mt-1 text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 rounded p-2 overflow-x-auto max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <pre className="mt-1 text-xs exo-text-secondary exo-elevated rounded p-2 overflow-x-auto max-h-32 overflow-y-auto border exo-border-subtle">
               {inputStr}
             </pre>
           )}

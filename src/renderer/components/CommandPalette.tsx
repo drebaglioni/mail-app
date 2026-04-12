@@ -50,7 +50,7 @@ const ICONS = {
 function ActionIcon({ path }: { path?: string }) {
   if (!path) {
     return (
-      <div className="w-5 h-5 flex items-center justify-center text-gray-400 dark:text-gray-500">
+      <div className="w-5 h-5 flex items-center justify-center exo-text-muted">
         <svg
           className="w-4 h-4"
           fill="none"
@@ -65,7 +65,7 @@ function ActionIcon({ path }: { path?: string }) {
   }
   return (
     <svg
-      className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0"
+      className="w-5 h-5 exo-text-muted flex-shrink-0"
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -783,11 +783,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       {/* Palette panel */}
-      <div className="relative w-full max-w-xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl dark:shadow-black/40 overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div className="relative w-full max-w-xl exo-elevated rounded-xl shadow-2xl dark:shadow-black/40 overflow-hidden border exo-border-subtle">
         {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3 px-4 py-3 border-b exo-border-subtle">
           <svg
-            className="w-5 h-5 text-gray-400 flex-shrink-0"
+            className="w-5 h-5 text-[var(--exo-text-muted)] flex-shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -802,9 +802,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a command..."
-            className="flex-1 text-base outline-none placeholder-gray-400 dark:text-gray-100 dark:placeholder-gray-500 bg-transparent"
+            className="flex-1 text-base outline-none placeholder-[var(--exo-text-muted)] bg-transparent"
           />
-          <kbd className="px-2 py-0.5 text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 rounded">
+          <kbd className="px-2 py-0.5 text-xs text-[var(--exo-text-muted)] bg-[var(--exo-bg-surface-soft)] rounded">
             esc
           </kbd>
         </div>
@@ -812,13 +812,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         {/* Results */}
         <div ref={listRef} className="max-h-80 overflow-y-auto py-1">
           {groupedActions.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            <div className="px-4 py-8 text-center text-sm exo-text-muted">
               No matching commands
             </div>
           ) : (
             groupedActions.map(({ category, actions: catActions }) => (
               <div key={category}>
-                <div className="px-4 py-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                <div className="px-4 py-1.5 text-xs font-medium exo-text-muted uppercase tracking-wider">
                   {category}
                 </div>
                 {catActions.map((action) => {
@@ -832,14 +832,14 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={`w-full px-4 py-2 flex items-center gap-3 text-left text-sm transition-colors ${
                         isSelected
-                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)]"
+                          : "exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                       }`}
                     >
                       <ActionIcon path={action.icon} />
                       <span className="flex-1">{action.label}</span>
                       {action.shortcut && (
-                        <kbd className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded font-mono text-gray-500 dark:text-gray-400">
+                        <kbd className="px-1.5 py-0.5 text-xs bg-[var(--exo-bg-surface-soft)] border exo-border-subtle rounded font-mono exo-text-muted">
                           {action.shortcut}
                         </kbd>
                       )}
@@ -852,16 +852,16 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-4 px-4 py-2 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <div className="flex items-center gap-4 px-4 py-2 text-xs text-[var(--exo-text-muted)] border-t exo-border-subtle exo-surface-soft">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">&uarr;&darr;</kbd>{" "}
+            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">&uarr;&darr;</kbd>{" "}
             navigate
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Enter</kbd> execute
+            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">Enter</kbd> execute
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Esc</kbd> close
+            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">Esc</kbd> close
           </span>
         </div>
       </div>

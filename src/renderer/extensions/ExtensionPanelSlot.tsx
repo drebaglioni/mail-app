@@ -97,10 +97,10 @@ export function ExtensionPanelSlot({
 
   return (
     <div
-      className={`flex flex-col overflow-hidden ${!isFirst ? "border-t border-gray-200 dark:border-gray-700" : ""}`}
+      className={`flex flex-col overflow-hidden ${!isFirst ? "border-t exo-border-subtle" : ""}`}
     >
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50">
-        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+      <div className="px-4 py-3 border-b exo-border-subtle exo-surface-soft">
+        <h3 className="text-xs font-semibold exo-text-muted uppercase tracking-wide exo-micro-label">
           {title}
         </h3>
       </div>
@@ -122,14 +122,14 @@ export function ExtensionPanelSlot({
 export function ExtensionPanelLoading(): React.ReactElement {
   return (
     <div className="flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50">
-        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-16" />
+      <div className="px-4 py-3 border-b exo-border-subtle exo-surface-soft">
+        <div className="h-3 bg-[var(--exo-border-subtle)] rounded animate-pulse w-16" />
       </div>
       <div className="flex-1 p-4">
         <div className="space-y-3">
-          <div className="h-12 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse w-3/4" />
-          <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse w-1/2" />
+          <div className="h-12 bg-[var(--exo-bg-surface-soft)] rounded animate-pulse" />
+          <div className="h-4 bg-[var(--exo-bg-surface-soft)] rounded animate-pulse w-3/4" />
+          <div className="h-4 bg-[var(--exo-bg-surface-soft)] rounded animate-pulse w-1/2" />
         </div>
       </div>
     </div>
