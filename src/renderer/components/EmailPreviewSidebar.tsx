@@ -321,7 +321,9 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
       <div className="w-80 exo-surface-soft border-l exo-border-subtle flex items-center justify-center">
         <div className="text-center px-6">
           <p className="exo-text-muted text-sm">Select an email to see details</p>
-          <p className="text-[var(--exo-text-secondary)] text-xs mt-1">Use j/k to navigate, Cmd+J for agent</p>
+          <p className="text-[var(--exo-text-secondary)] text-xs mt-1">
+            Use j/k to navigate, Cmd+J for agent
+          </p>
         </div>
       </div>
     );
@@ -372,6 +374,22 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
         </div>
       )}
 
+      {/* Analysis priority — always visible above tab content */}
+      {latestReceivedEmail?.analysis && (
+        <AnalysisPrioritySection
+          email={latestReceivedEmail}
+          onAnalysisUpdated={(newNeedsReply, newPriority) => {
+            updateEmail(latestReceivedEmail.id, {
+              analysis: {
+                ...latestReceivedEmail.analysis!,
+                needsReply: newNeedsReply,
+                priority: (newPriority as "high" | "medium" | "low" | "skip" | null) ?? undefined,
+              },
+            });
+          }}
+        />
+      )}
+
       {/* Agent tab content — kept mounted with FROZEN emailId when hidden.
          When j/k changes selectedEmailId, displayAgentKey stays the same so React
          sees identical props → skips reconciliation of 1000+ EventTimeline nodes.
@@ -415,31 +433,12 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
                 >
                   {senderName}
                 </p>
-                <p
-                  data-testid="sidebar-sender-email"
-                  className="text-xs exo-text-muted truncate"
-                >
+                <p data-testid="sidebar-sender-email" className="text-xs exo-text-muted truncate">
                   {senderEmail}
                 </p>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Analysis priority — shown in email tab */}
-        {sidebarTab === "email" && latestReceivedEmail?.analysis && (
-          <AnalysisPrioritySection
-            email={latestReceivedEmail}
-            onAnalysisUpdated={(newNeedsReply, newPriority) => {
-              updateEmail(latestReceivedEmail.id, {
-                analysis: {
-                  ...latestReceivedEmail.analysis!,
-                  needsReply: newNeedsReply,
-                  priority: (newPriority as "high" | "medium" | "low" | "skip" | null) ?? undefined,
-                },
-              });
-            }}
-          />
         )}
 
         {/* Extension panels for active tab */}

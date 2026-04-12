@@ -714,7 +714,7 @@ function formatMessageHeader(
 function ThreadMessage({
   email,
   isExpanded,
-  isFocused,
+  isFocused: _isFocused,
   onToggle,
   onReply,
   onReplyAll,
@@ -837,32 +837,21 @@ function ThreadMessage({
   }
 
   // Expanded view - full email content
-  // White card for rich HTML emails in dark mode, dark card otherwise
   return (
-    <div
-      className={`group/msg ${
-        useWhiteCard
-          ? `exo-elevated rounded-md border exo-border-subtle${isFocused ? " ring-1 ring-[var(--exo-focus-ring)]" : ""}`
-          : `${isFocused ? "ring-1 ring-[var(--exo-focus-ring)] rounded-lg" : ""}`
-      }`}
-    >
+    <div className="group/msg">
       {/* Header */}
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-2 py-3 px-2 transition-colors text-left hover:bg-[var(--exo-bg-surface-hover)]"
       >
-        <span
-          className={`min-w-0 truncate text-sm font-medium exo-text-primary`}
-        >
+        <span className={`min-w-0 truncate text-sm font-medium exo-text-primary`}>
           {formatMessageHeader(email, currentUserEmail, nameMap)}
         </span>
         <ChevronDown
           onClick={handleHeaderClick}
           className={`flex-shrink-0 w-3 h-3 transition-transform cursor-pointer ${showHeaderDetails ? "rotate-180" : ""} exo-text-muted`}
         />
-        <span
-          className={`flex-shrink-0 ml-auto text-sm exo-text-muted exo-micro-label`}
-        >
+        <span className={`flex-shrink-0 ml-auto text-sm exo-text-muted exo-micro-label`}>
           {formatDate(email.date)}
         </span>
         {/* Reply/Forward action buttons - top right, visible on hover */}
@@ -1000,9 +989,7 @@ function ThreadMessage({
       {/* Email body - no inner scroll. Masked in session replays via global maskTextSelector:"*" in posthog.ts. */}
       <div className="px-2 pb-4" data-ph-no-capture>
         {lightBody === null ? (
-          <div className="animate-pulse exo-text-muted text-sm py-4 px-2">
-            Loading…
-          </div>
+          <div className="animate-pulse exo-text-muted text-sm py-4 px-2">Loading…</div>
         ) : (
           <>
             {/* Cache key uses `:trimmed` suffix so stripped and full body are cached separately.
@@ -1170,10 +1157,28 @@ function InlineReply({
   // AI draft refinement state
   const [refineCritique, setRefineCritique] = useState("");
   const [isRefining, setIsRefining] = useState(false);
+  const [showRefineInput, setShowRefineInput] = useState(false);
+  const refineInputRef = useRef<HTMLInputElement>(null);
   const [preRefineContent, setPreRefineContent] = useState<{
     bodyHtml: string;
     bodyText: string;
   } | null>(null);
+
+  // Listen for Cmd+Shift+E toggle event from keyboard shortcuts
+  useEffect(() => {
+    const handler = () => {
+      if (!draftEmailId) return;
+      setShowRefineInput((prev) => {
+        if (!prev) {
+          // Opening — auto-focus after render
+          setTimeout(() => refineInputRef.current?.focus(), 0);
+        }
+        return !prev;
+      });
+    };
+    window.addEventListener("toggle-ai-refine", handler);
+    return () => window.removeEventListener("toggle-ai-refine", handler);
+  }, [draftEmailId]);
 
   // "Save as memory" state — shown after a successful refinement
   const [showSaveMemory, setShowSaveMemory] = useState(false);
@@ -1494,10 +1499,10 @@ function InlineReply({
   return (
     <div
       ref={containerRef}
-      className="border-t exo-border-subtle exo-elevated"
+      className="-mx-6 border-t exo-border-subtle bg-[var(--exo-bg-surface-soft)]"
       data-testid="inline-compose"
     >
-      <div className="px-4 pt-2">
+      <div className="px-6 pt-2">
         <div className="flex items-center justify-between mb-1">
           {/* Level 1: Collapsed summary / Level 2: Header with controls */}
           {!showAddressFields ? (
@@ -1621,7 +1626,7 @@ function InlineReply({
           </>
         )}
       </div>
-      <div className="px-4 py-2">
+      <div className="px-6 py-2">
         <ComposeEditor
           initialContent={editorInitialContent}
           onChange={handleEditorChange}
@@ -1632,9 +1637,7 @@ function InlineReply({
         />
         {/* Attachments */}
         {form.loadingForwardAttachments && (
-          <p className="text-xs exo-text-muted mt-1">
-            Loading forwarded attachments...
-          </p>
+          <p className="text-xs exo-text-muted mt-1">Loading forwarded attachments...</p>
         )}
         <ComposeAttachmentList
           attachments={form.composeAttachments}
@@ -1659,14 +1662,21 @@ function InlineReply({
             )}
           </div>
         )}
-        {/* AI Refine section */}
-        {draftEmailId && (
+        {/* AI Refine section — toggled via Cmd+Shift+E */}
+        {showRefineInput && draftEmailId && (
           <div className="flex items-center gap-2 mt-2">
             <input
+              ref={refineInputRef}
               type="text"
               value={refineCritique}
               onChange={(e) => setRefineCritique(e.target.value)}
               onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowRefineInput(false);
+                  return;
+                }
                 if (
                   e.key === "Enter" &&
                   !e.shiftKey &&
@@ -1680,13 +1690,13 @@ function InlineReply({
                 }
               }}
               placeholder="Refine with AI... e.g. 'make it shorter' or 'more formal'"
-              className="flex-1 px-3 py-1.5 border exo-border-strong rounded text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
+              className="flex-1 px-3 py-1.5 border exo-border-subtle rounded text-sm exo-text-secondary bg-transparent focus:ring-1 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
               disabled={isRefining}
             />
             <button
               onClick={handleRefine}
               disabled={isRefining || !refineCritique.trim()}
-              className="px-3 py-1.5 bg-purple-600 dark:bg-purple-500 text-white text-sm font-medium rounded hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-[var(--exo-accent)] text-white text-sm font-medium rounded hover:bg-[var(--exo-accent-strong)] transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
               {isRefining ? (
                 <>
@@ -1700,7 +1710,7 @@ function InlineReply({
             {preRefineContent && (
               <button
                 onClick={handleRevertRefine}
-                className="px-3 py-1.5 text-sm exo-text-muted hover:text-[var(--exo-text-primary)] border exo-border-strong rounded hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
+                className="px-3 py-1.5 text-sm exo-text-muted hover:text-[var(--exo-text-primary)] transition-colors"
               >
                 Revert
               </button>
@@ -1980,10 +1990,7 @@ function NewEmailCompose({
   }, [onCancel, getFormState]);
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 flex flex-col exo-surface overflow-hidden"
-    >
+    <div ref={containerRef} className="flex-1 flex flex-col exo-surface overflow-hidden">
       {/* Header */}
       <div className="h-9 px-4 exo-surface border-b exo-border-subtle flex items-center flex-shrink-0">
         <span className="exo-text-primary font-medium text-sm exo-micro-label">New Message</span>
@@ -3330,8 +3337,12 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
 
         {/* Thread messages - single scroll, no nested scrolls */}
         <div className="px-6">
-          {threadEmails.map((email) => (
-            <div key={email.id} data-email-id={email.id}>
+          {threadEmails.map((email, idx) => (
+            <div
+              key={email.id}
+              data-email-id={email.id}
+              className={idx < threadEmails.length - 1 ? "border-b exo-border-subtle" : ""}
+            >
               <ThreadMessage
                 email={email}
                 isExpanded={expandedMessagesRef.current.has(email.id)}
