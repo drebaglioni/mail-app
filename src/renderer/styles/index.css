@@ -31,6 +31,13 @@
   --exo-priority-high-bg: #fee2e2;
   --exo-priority-high-text: #991b1b;
   --exo-priority-high-border: #fca5a5;
+
+  --exo-priority-done-bg: #dbeafe;
+  --exo-priority-done-text: #1e40af;
+  --exo-priority-done-border: #93c5fd;
+
+  --exo-scrollbar-thumb: var(--exo-border-subtle);
+  --exo-scrollbar-thumb-hover: var(--exo-border-strong);
 }
 
 .dark {
@@ -62,6 +69,13 @@
   --exo-priority-high-bg: #3a1116;
   --exo-priority-high-text: #ff7a8a;
   --exo-priority-high-border: #7a2733;
+
+  --exo-priority-done-bg: rgba(34, 90, 204, 0.2);
+  --exo-priority-done-text: #5599ff;
+  --exo-priority-done-border: #2a5299;
+
+  --exo-scrollbar-thumb: var(--exo-border-subtle);
+  --exo-scrollbar-thumb-hover: var(--exo-border-strong);
 }
 
 body {
@@ -219,21 +233,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--exo-scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-thumb {
-  background: #4b5563;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: var(--exo-scrollbar-thumb-hover);
 }
 
 /* Titlebar drag region */
@@ -279,14 +284,14 @@ body {
 }
 
 .email-html-body blockquote {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--exo-border-subtle);
   padding-left: 12px;
   margin-left: 0;
-  color: #6b7280;
+  color: var(--exo-text-muted);
 }
 
 .email-html-body pre {
-  background: #f3f4f6;
+  background: var(--exo-bg-surface-soft);
   padding: 8px;
   border-radius: 4px;
   overflow-x: auto;
@@ -307,23 +312,7 @@ body {
   margin-bottom: 8px;
 }
 
-/* Dark mode email body overrides */
-.dark .email-html-body a {
-  color: var(--exo-accent);
-}
-
-.dark .email-html-body a:hover {
-  color: var(--exo-accent-strong);
-}
-
-.dark .email-html-body blockquote {
-  border-left-color: #4b5563;
-  color: #9ca3af;
-}
-
-.dark .email-html-body pre {
-  background: #1f2937;
-}
+/* Dark mode email body overrides — accent links already use vars, blockquote/pre use tokens */
 
 /* TipTap editor (compose) list/formatting styles — Tailwind Preflight resets these */
 .tiptap ul, .tiptap ol {
@@ -343,15 +332,10 @@ body {
 }
 
 .tiptap blockquote {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid var(--exo-border-subtle);
   padding-left: 12px;
   margin-left: 0;
-  color: #6b7280;
-}
-
-.dark .tiptap blockquote {
-  border-left-color: #4b5563;
-  color: #9ca3af;
+  color: var(--exo-text-muted);
 }
 
 /* Priority badge colors */
@@ -374,9 +358,9 @@ body {
 }
 
 .priority-done {
-  background-color: var(--exo-priority-low-bg);
-  color: var(--exo-priority-low-text);
-  border: 1px solid var(--exo-priority-low-border);
+  background-color: var(--exo-priority-done-bg);
+  color: var(--exo-priority-done-text);
+  border: 1px solid var(--exo-priority-done-border);
 }
 
 .priority-skipped {
@@ -417,11 +401,13 @@ body {
 }
 
 .agent-markdown code {
-  @apply bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded text-xs font-mono;
+  background-color: var(--exo-bg-surface-soft);
+  @apply px-1 py-0.5 rounded text-xs font-mono;
 }
 
 .agent-markdown pre {
-  @apply bg-gray-100 dark:bg-gray-900 p-2 rounded text-xs overflow-x-auto my-1;
+  background-color: var(--exo-bg-surface-soft);
+  @apply p-2 rounded text-xs overflow-x-auto my-1;
 }
 
 .agent-markdown pre code {
@@ -429,11 +415,14 @@ body {
 }
 
 .agent-markdown blockquote {
-  @apply border-l-2 border-gray-300 dark:border-gray-600 pl-3 my-1 text-gray-600 dark:text-gray-400;
+  border-left: 2px solid var(--exo-border-subtle);
+  color: var(--exo-text-muted);
+  @apply pl-3 my-1;
 }
 
 .agent-markdown a {
-  @apply text-blue-600 dark:text-blue-400 underline;
+  color: var(--exo-accent);
+  @apply underline;
 }
 
 .agent-markdown strong {
@@ -445,9 +434,11 @@ body {
 }
 
 .agent-markdown th, .agent-markdown td {
-  @apply border border-gray-200 dark:border-gray-700 px-2 py-1;
+  border: 1px solid var(--exo-border-subtle);
+  @apply px-2 py-1;
 }
 
 .agent-markdown th {
-  @apply bg-gray-50 dark:bg-gray-800 font-medium;
+  background-color: var(--exo-bg-surface-soft);
+  @apply font-medium;
 }

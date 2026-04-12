@@ -132,14 +132,14 @@ const SnippetList = forwardRef<SnippetListRef, SnippetListProps>(({ items, comma
   if (items.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-xl dark:shadow-black/50 max-h-60 overflow-y-auto z-50">
+    <div className="exo-elevated border exo-border-subtle rounded-lg shadow-lg dark:shadow-xl dark:shadow-black/50 max-h-60 overflow-y-auto z-50">
       {items.map((item, index) => (
         <div
           key={item.id}
           className={`px-3 py-2 cursor-pointer text-sm ${
             index === selectedIndex
-              ? "bg-blue-50 dark:bg-gray-700"
-              : "hover:bg-gray-100 dark:hover:bg-gray-700/50"
+              ? "bg-[var(--exo-accent-soft)]"
+              : "hover:bg-[var(--exo-bg-surface-hover)]"
           }`}
           onMouseDown={(e) => {
             e.preventDefault();
@@ -148,12 +148,12 @@ const SnippetList = forwardRef<SnippetListRef, SnippetListProps>(({ items, comma
           onMouseEnter={() => setSelectedIndex(index)}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-gray-900 dark:text-gray-100 truncate text-xs">
+            <span className="font-medium exo-text-primary truncate text-xs">
               {item.name}
             </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">Me</span>
+            <span className="text-[10px] exo-text-muted shrink-0">Me</span>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-[11px] exo-text-muted truncate">
             {stripHtmlPreview(item.body)}
           </p>
         </div>
@@ -387,7 +387,7 @@ function LinkPopover({
           onClose();
         }
       }}
-      className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 flex items-center gap-1.5"
+      className="absolute top-full left-0 mt-1 z-50 exo-elevated border exo-border-strong rounded-lg shadow-lg p-2 flex items-center gap-1.5"
     >
       <input
         ref={inputRef}
@@ -406,12 +406,12 @@ function LinkPopover({
           }
         }}
         placeholder="https://example.com"
-        className="w-56 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-56 px-2 py-1 text-sm rounded border exo-border-strong bg-[var(--exo-bg-elevated)] exo-text-primary focus:outline-none focus:ring-1 focus:ring-[var(--exo-focus-ring)]"
       />
       <button
         type="button"
         onClick={apply}
-        className="px-2 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+        className="px-2 py-1 text-sm rounded bg-[var(--exo-accent)] text-white hover:bg-[var(--exo-accent-strong)]"
       >
         Apply
       </button>

@@ -25,11 +25,11 @@ export function ComposeToolbar({
   availableSignatures,
 }: ComposeToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 dark:border-gray-700/30">
+    <div className="flex items-center gap-1.5 pt-2 border-t exo-border-subtle/30">
       <button
         onClick={onSend}
         disabled={isSending || isScheduling || !canSend}
-        className="px-3 py-1.5 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+        className="px-3 py-1.5 bg-[var(--exo-accent)] text-white text-sm font-medium rounded hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] disabled:opacity-50 transition-colors"
         data-testid="inline-compose-send"
       >
         {isSending ? "Sending..." : "Send"}
@@ -40,7 +40,7 @@ export function ComposeToolbar({
       />
       <button
         onClick={onPickFiles}
-        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+        className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded transition-colors"
         title="Attach file"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,12 +52,12 @@ export function ComposeToolbar({
           />
         </svg>
       </button>
-      <span className="text-xs text-gray-400 dark:text-gray-500">Cmd+Enter to send</span>
+      <span className="text-xs exo-text-muted">Cmd+Enter to send</span>
       {availableSignatures.length > 0 && (
         <select
           value={activeSignatureId ?? ""}
           onChange={(e) => onSignatureChange(e.target.value || null)}
-          className="ml-auto text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+          className="ml-auto text-sm border exo-border-strong rounded px-2 py-1.5 bg-[var(--exo-bg-elevated)] exo-text-secondary"
         >
           <option value="">No signature</option>
           {availableSignatures.map((sig) => (

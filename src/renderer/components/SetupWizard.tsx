@@ -204,37 +204,37 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const currentStepIndex = visibleSteps.indexOf(step);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
+    <div className="h-screen flex flex-col exo-app-bg">
       {/* Titlebar */}
-      <div className="titlebar-drag h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
+      <div className="titlebar-drag h-12 exo-elevated border-b exo-border-subtle flex items-center px-4">
         <div className="w-20" /> {/* Space for traffic lights */}
-        <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Exo Setup</h1>
+        <h1 className="text-lg font-semibold exo-text-primary">Exo Setup</h1>
       </div>
 
       {/* Content */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="max-w-xl w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-black/40 p-8">
+        <div className="max-w-xl w-full exo-elevated rounded-xl shadow-lg dark:shadow-black/40 p-8">
           {step === "loading" && (
             <div className="flex justify-center">
-              <div className="w-8 h-8 border-4 border-blue-200 dark:border-blue-800 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[var(--exo-accent-soft)] border-t-[var(--exo-accent)] rounded-full animate-spin" />
             </div>
           )}
 
           {step === "credentials" && (
             <>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">
                 Google Cloud Credentials
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="exo-text-secondary mb-6">
                 Exo needs Google OAuth credentials to access your Gmail account. You'll need to
                 create a Google Cloud project with the Gmail API enabled.
               </p>
 
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
+              <div className="bg-[var(--exo-accent-soft)] p-4 rounded-lg mb-6">
+                <h3 className="font-semibold text-[var(--exo-accent-strong)] mb-2">
                   Setup steps:
                 </h3>
-                <ol className="text-sm text-blue-800 dark:text-blue-300 space-y-2 list-decimal list-inside">
+                <ol className="text-sm text-[var(--exo-accent-strong)] space-y-2 list-decimal list-inside">
                   <li>
                     Go to the{" "}
                     <a
@@ -260,7 +260,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium exo-text-secondary mb-1">
                     Client ID
                   </label>
                   <input
@@ -268,11 +268,11 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                     value={googleClientId}
                     onChange={(e) => setGoogleClientId(e.target.value)}
                     placeholder="your-client-id.apps.google..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border exo-border-strong rounded-lg focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium exo-text-secondary mb-1">
                     Client Secret
                   </label>
                   <input
@@ -281,7 +281,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                     onChange={(e) => setGoogleClientSecret(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSaveCredentials()}
                     placeholder="your-client-secret"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border exo-border-strong rounded-lg focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -295,7 +295,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               <button
                 onClick={handleSaveCredentials}
                 disabled={isLoading || !googleClientId.trim() || !googleClientSecret.trim()}
-                className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-[var(--exo-accent)] text-white font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
               >
                 {isLoading ? "Saving..." : "Continue"}
               </button>
@@ -304,10 +304,10 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "oauth" && (
             <>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">
                 Authorize Gmail Access
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="exo-text-secondary mb-6">
                 Click the button below to authorize Exo to read your emails and create drafts. A
                 browser window will open for you to sign in with Google.
               </p>
@@ -336,7 +336,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               {isLoading && (
                 <button
                   onClick={handleCancelOAuth}
-                  className="w-full mt-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                  className="w-full mt-2 py-2 text-sm exo-text-secondary hover:text-[var(--exo-text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
@@ -346,10 +346,10 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "extensions" && (
             <>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">
                 Connect Services
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="exo-text-secondary mb-6">
                 Some extensions need authentication to enrich your emails. You can connect them now
                 or later.
               </p>
@@ -358,16 +358,16 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 {extensionAuths.map((ext) => (
                   <div
                     key={ext.extensionId}
-                    className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg"
+                    className="flex items-center justify-between p-4 border exo-border-subtle rounded-lg"
                   >
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-medium exo-text-primary">
                       {ext.displayName}
                     </span>
                     {ext.needsAuth ? (
                       <button
                         onClick={() => handleExtensionAuth(ext.extensionId, ext.authType)}
                         disabled={authenticatingExtension !== null}
-                        className="px-4 py-1.5 text-sm bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                        className="px-4 py-1.5 text-sm bg-[var(--exo-accent)] text-white font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
                       >
                         {authenticatingExtension === ext.extensionId ? (
                           <span className="flex items-center gap-2">
@@ -405,7 +405,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
               <button
                 onClick={() => setStep("analytics")}
                 disabled={authenticatingExtension !== null}
-                className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-[var(--exo-accent)] text-white font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
               >
                 Continue
               </button>
@@ -414,21 +414,21 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "analytics" && (
             <>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">
                 Help Improve Exo
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="exo-text-secondary mb-6">
                 We collect usage data and error reports to improve the app. No email content is ever
                 sent — only app interactions and crash diagnostics. Your email address is sent so we
                 can identify you in error reports. You can change this anytime in Settings.
               </p>
 
-              <label className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer mb-6">
+              <label className="flex items-center justify-between p-4 border exo-border-subtle rounded-lg cursor-pointer mb-6">
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-gray-100">
+                  <div className="font-medium exo-text-primary">
                     Usage Analytics
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="text-sm exo-text-muted">
                     Crash reports, app usage data, and session recordings for debugging
                   </div>
                 </div>
@@ -438,12 +438,12 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   onClick={() => setAnalyticsEnabled(!analyticsEnabled)}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
                     analyticsEnabled
-                      ? "bg-blue-600 dark:bg-blue-500"
-                      : "bg-gray-300 dark:bg-gray-600"
+                      ? "bg-[var(--exo-accent)]"
+                      : "bg-[var(--exo-border-subtle)]"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                       analyticsEnabled ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
@@ -479,7 +479,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   }
                 }}
                 disabled={isLoading}
-                className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-[var(--exo-accent)] text-white font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
               >
                 Get Started
               </button>
@@ -494,8 +494,8 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   key={s}
                   className={`w-2 h-2 rounded-full transition-colors ${
                     i <= currentStepIndex
-                      ? "bg-blue-600 dark:bg-blue-400"
-                      : "bg-gray-300 dark:bg-gray-600"
+                      ? "bg-[var(--exo-accent)]"
+                      : "bg-[var(--exo-border-subtle)]"
                   }`}
                 />
               ))}

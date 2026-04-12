@@ -20,11 +20,11 @@ function ConditionEditor({ condition, onChange, onRemove }: ConditionEditorProps
   const typeInfo = CONDITION_TYPES.find((t) => t.value === condition.type) || CONDITION_TYPES[0];
 
   return (
-    <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded">
+    <div className="flex items-center gap-2 p-2 exo-surface-soft rounded">
       <select
         value={condition.type}
         onChange={(e) => onChange({ ...condition, type: e.target.value as SplitCondition["type"] })}
-        className="text-sm border rounded px-2 py-1 w-24 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+        className="text-sm border rounded px-2 py-1 w-24"
       >
         {CONDITION_TYPES.map((t) => (
           <option key={t.value} value={t.value}>
@@ -33,7 +33,7 @@ function ConditionEditor({ condition, onChange, onRemove }: ConditionEditorProps
         ))}
       </select>
 
-      <label className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 shrink-0">
+      <label className="flex items-center gap-1 text-sm exo-text-secondary shrink-0">
         <input
           type="checkbox"
           checked={condition.negate ?? false}
@@ -48,7 +48,7 @@ function ConditionEditor({ condition, onChange, onRemove }: ConditionEditorProps
         value={condition.value}
         onChange={(e) => onChange({ ...condition, value: e.target.value })}
         placeholder={typeInfo.placeholder}
-        className="flex-1 text-sm border rounded px-2 py-1 font-mono dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+        className="flex-1 text-sm border rounded px-2 py-1 font-mono"
       />
 
       <button
@@ -123,11 +123,11 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
   const isValid = name.trim() && conditions.length > 0 && conditions.every((c) => c.value.trim());
 
   return (
-    <div className="border rounded-lg p-4 bg-white dark:bg-gray-800">
+    <div className="border rounded-lg p-4 exo-elevated">
       <div className="space-y-4">
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium exo-text-secondary mb-1">
               Name
             </label>
             <input
@@ -135,11 +135,11 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Work"
-              className="w-full text-sm border rounded px-3 py-2 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+              className="w-full text-sm border rounded px-3 py-2"
             />
           </div>
           <div className="w-20">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium exo-text-secondary mb-1">
               Icon
             </label>
             <input
@@ -148,20 +148,20 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
               onChange={(e) => setIcon(e.target.value)}
               placeholder="emoji"
               maxLength={2}
-              className="w-full text-sm border rounded px-3 py-2 text-center dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+              className="w-full text-sm border rounded px-3 py-2 text-center"
             />
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-sm font-medium exo-text-secondary">
               Conditions
             </label>
             <select
               value={conditionLogic}
               onChange={(e) => setConditionLogic(e.target.value as "and" | "or")}
-              className="text-xs border rounded px-2 py-1 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
+              className="text-xs border rounded px-2 py-1"
             >
               <option value="or">Match ANY</option>
               <option value="and">Match ALL</option>
@@ -179,16 +179,16 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
           </div>
           <button
             onClick={handleAddCondition}
-            className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+            className="mt-2 text-sm text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
           >
             + Add condition
           </button>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Use <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">*</code> as wildcard.
+          <p className="mt-2 text-xs exo-text-muted">
+            Use <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">*</code> as wildcard.
             Examples:{" "}
-            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">*@company.com</code>,
-            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded ml-1">john*</code>,
-            <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded ml-1">*newsletter*</code>
+            <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">*@company.com</code>,
+            <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded ml-1">john*</code>,
+            <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded ml-1">*newsletter*</code>
           </p>
         </div>
 
@@ -201,10 +201,10 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
               className="rounded"
             />
             <div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-medium exo-text-secondary">
                 Exclusive
               </span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs exo-text-muted">
                 Hide matching emails from "All" inbox and "Archive Ready"
               </p>
             </div>
@@ -214,14 +214,14 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
         <div className="flex justify-end gap-2 pt-2 border-t">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            className="px-3 py-1.5 text-sm exo-text-secondary hover:text-[var(--exo-text-primary)]"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!isValid}
-            className="px-3 py-1.5 text-sm bg-blue-500 dark:bg-blue-400 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 text-sm bg-[var(--exo-accent)] text-white rounded hover:bg-[var(--exo-accent)] dark:hover:bg-[var(--exo-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {split ? "Save" : "Create"}
           </button>
@@ -399,12 +399,12 @@ export function SplitConfigEditor() {
   const sortedSplits = [...splits].sort((a, b) => a.order - b.order);
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500 dark:text-gray-400">Loading splits...</div>;
+    return <div className="text-sm exo-text-muted">Loading splits...</div>;
   }
 
   if (!currentAccountId) {
     return (
-      <div className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="text-sm exo-text-muted">
         Select an account to manage splits.
       </div>
     );
@@ -414,8 +414,8 @@ export function SplitConfigEditor() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium text-gray-900 dark:text-gray-100">Inbox Splits</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <h3 className="font-medium exo-text-primary">Inbox Splits</h3>
+          <p className="text-sm exo-text-muted">
             Splits for <span className="font-medium">{currentAccount?.email}</span>. Use wildcards
             (*) in patterns.
           </p>
@@ -425,13 +425,13 @@ export function SplitConfigEditor() {
             <button
               onClick={handleDiscoverSuperhuman}
               disabled={shDiscovering}
-              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm border exo-border-strong exo-text-secondary rounded hover:bg-[var(--exo-bg-surface-hover)] disabled:opacity-50"
             >
               {shDiscovering ? "Checking..." : "Import from Superhuman"}
             </button>
             <button
               onClick={() => setIsCreating(true)}
-              className="px-3 py-1.5 text-sm bg-blue-500 dark:bg-blue-400 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-500"
+              className="px-3 py-1.5 text-sm bg-[var(--exo-accent)] text-white rounded hover:bg-[var(--exo-accent)] dark:hover:bg-[var(--exo-accent)]"
             >
               + New Split
             </button>
@@ -441,14 +441,14 @@ export function SplitConfigEditor() {
 
       {/* Superhuman import inline dialog */}
       {shAccounts && shAccounts.length > 0 && !shResult && (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800 space-y-2">
+        <div className="border exo-border-subtle rounded-lg p-4 exo-surface-soft space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium exo-text-secondary">
               Select Superhuman account to import from:
             </span>
             <button
               onClick={() => setShAccounts(null)}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              className="text-sm exo-text-muted hover:text-[var(--exo-text-primary)]"
             >
               Cancel
             </button>
@@ -458,10 +458,10 @@ export function SplitConfigEditor() {
               key={acct.email}
               onClick={() => handleImportSuperhuman(acct.email)}
               disabled={shImporting || acct.splitCount === 0}
-              className="w-full text-left px-3 py-2 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-left px-3 py-2 text-sm rounded border exo-border-subtle bg-[var(--exo-bg-elevated)] hover:bg-[var(--exo-bg-surface-soft)] exo-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="font-medium">{acct.email}</span>
-              <span className="ml-2 text-gray-500 dark:text-gray-400">
+              <span className="ml-2 exo-text-muted">
                 ({acct.splitCount} split{acct.splitCount !== 1 ? "s" : ""})
               </span>
             </button>
@@ -521,7 +521,7 @@ export function SplitConfigEditor() {
       )}
 
       {sortedSplits.length === 0 && !isCreating ? (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-8 exo-text-muted">
           <p className="text-sm">No splits configured yet.</p>
           <p className="text-xs mt-1">Create a split to filter your inbox.</p>
         </div>
@@ -530,22 +530,22 @@ export function SplitConfigEditor() {
           {sortedSplits.map((split, index) => (
             <div
               key={split.id}
-              className={`flex items-center justify-between p-3 border rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ${
+              className={`flex items-center justify-between p-3 border rounded-lg exo-border-subtle exo-elevated ${
                 editingSplit?.id === split.id ? "opacity-50" : ""
               }`}
             >
               <div className="flex items-center gap-2">
                 {split.icon && <span className="text-lg">{split.icon}</span>}
                 <div>
-                  <div className="font-medium text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <div className="font-medium text-sm exo-text-primary flex items-center gap-2">
                     {split.name}
                     {split.exclusive && (
-                      <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded">
+                      <span className="text-xs bg-[var(--exo-bg-surface-soft)] exo-text-secondary px-1.5 py-0.5 rounded">
                         exclusive
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-xs exo-text-muted">
                     {split.conditions.length} condition{split.conditions.length !== 1 ? "s" : ""} (
                     {split.conditionLogic})
                   </div>
@@ -556,7 +556,7 @@ export function SplitConfigEditor() {
                 <button
                   onClick={() => handleMoveUp(index)}
                   disabled={index === 0 || isSaving}
-                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+                  className="p-1 exo-text-muted hover:text-[var(--exo-text-primary)] disabled:opacity-30"
                   title="Move up"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -571,7 +571,7 @@ export function SplitConfigEditor() {
                 <button
                   onClick={() => handleMoveDown(index)}
                   disabled={index === sortedSplits.length - 1 || isSaving}
-                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+                  className="p-1 exo-text-muted hover:text-[var(--exo-text-primary)] disabled:opacity-30"
                   title="Move down"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -586,7 +586,7 @@ export function SplitConfigEditor() {
                 <button
                   onClick={() => setEditingSplit(split)}
                   disabled={isSaving || !!editingSplit}
-                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-30"
+                  className="p-1 exo-text-muted hover:text-[var(--exo-accent)] disabled:opacity-30"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -601,7 +601,7 @@ export function SplitConfigEditor() {
                 <button
                   onClick={() => handleDelete(split.id)}
                   disabled={isSaving}
-                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-30"
+                  className="p-1 exo-text-muted hover:text-red-600 dark:hover:text-red-400 disabled:opacity-30"
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

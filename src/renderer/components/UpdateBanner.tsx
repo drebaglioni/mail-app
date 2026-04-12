@@ -70,7 +70,7 @@ export function UpdateBanner() {
         </span>
         <button
           onClick={handleDownload}
-          className="px-2.5 py-0.5 text-xs font-semibold text-indigo-600 dark:text-indigo-700 bg-white hover:bg-indigo-50 dark:hover:bg-indigo-100 rounded transition-colors"
+          className="px-2.5 py-0.5 text-xs font-semibold text-indigo-600 dark:text-indigo-700 bg-[var(--exo-bg-elevated)] hover:bg-indigo-50 dark:hover:bg-indigo-100 rounded transition-colors"
         >
           Download
         </button>
@@ -118,7 +118,7 @@ export function UpdateBanner() {
         <div className="w-20">
           <div className="w-full bg-indigo-400/40 rounded-full h-1.5">
             <div
-              className="bg-white h-1.5 rounded-full transition-all duration-300"
+              className="bg-[var(--exo-bg-elevated)] h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${status.progress}%` }}
             />
           </div>
@@ -142,7 +142,7 @@ export function UpdateBanner() {
         <span className="text-white font-medium whitespace-nowrap">Restart to update</span>
         <button
           onClick={handleInstall}
-          className="px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:text-green-700 bg-white hover:bg-green-50 dark:hover:bg-green-100 rounded transition-colors"
+          className="px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:text-green-700 bg-[var(--exo-bg-elevated)] hover:bg-green-50 dark:hover:bg-green-100 rounded transition-colors"
         >
           Restart now
         </button>

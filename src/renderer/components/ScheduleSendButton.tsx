@@ -74,7 +74,7 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
-        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium exo-text-secondary bg-[var(--exo-bg-elevated)] border exo-border-strong rounded-lg hover:bg-[var(--exo-bg-surface-soft)] disabled:opacity-50 transition-colors"
         title="Schedule send"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,11 +92,11 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full mb-2 right-0 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+        <div className="absolute bottom-full mb-2 right-0 w-72 exo-elevated rounded-lg shadow-lg border exo-border-subtle z-50 overflow-hidden">
           {!showCustom ? (
             <>
-              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              <div className="px-3 py-2 border-b exo-border-subtle">
+                <p className="text-xs font-semibold exo-text-muted uppercase tracking-wide">
                   Schedule Send
                 </p>
               </div>
@@ -105,22 +105,22 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
                   <button
                     key={preset.label}
                     onClick={() => handlePreset(preset.timestamp)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
                   >
-                    <span className="text-gray-900 dark:text-gray-100">{preset.label}</span>
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">
+                    <span className="exo-text-primary">{preset.label}</span>
+                    <span className="exo-text-muted text-xs">
                       {preset.description}
                     </span>
                   </button>
                 ))}
               </div>
-              <div className="border-t border-gray-100 dark:border-gray-700 py-1">
+              <div className="border-t exo-border-subtle py-1">
                 <button
                   onClick={() => setShowCustom(true)}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
                 >
                   <svg
-                    className="w-4 h-4 text-gray-400 dark:text-gray-500"
+                    className="w-4 h-4 exo-text-muted"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -141,7 +141,7 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowCustom(false)}
-                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="p-1 exo-text-muted hover:text-[var(--exo-text-primary)]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -152,7 +152,7 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
                     />
                   </svg>
                 </button>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <p className="text-sm font-medium exo-text-primary">
                   Custom date & time
                 </p>
               </div>
@@ -162,19 +162,19 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
                   value={customDate}
                   onChange={(e) => setCustomDate(e.target.value)}
                   min={new Date().toISOString().split("T")[0]}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border exo-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--exo-focus-ring)]"
                 />
                 <input
                   type="time"
                   value={customTime}
                   onChange={(e) => setCustomTime(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border exo-border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--exo-focus-ring)]"
                 />
               </div>
               <button
                 onClick={handleCustomSubmit}
                 disabled={!customDate || !customTime}
-                className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                className="w-full px-3 py-2 text-sm font-medium text-white bg-[var(--exo-accent)] rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] disabled:opacity-50 transition-colors"
               >
                 Schedule
               </button>
@@ -325,9 +325,9 @@ export function ScheduledMessagesList({ accountId }: { accountId: string }) {
   if (isLoading || messages.length === 0) return null;
 
   return (
-    <div className="mt-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+    <div className="mt-3 border exo-border-subtle rounded-lg overflow-hidden">
+      <div className="px-3 py-2 exo-surface-soft border-b exo-border-subtle">
+        <p className="text-xs font-semibold exo-text-muted uppercase tracking-wide">
           Scheduled ({messages.length})
         </p>
       </div>
@@ -335,10 +335,10 @@ export function ScheduledMessagesList({ accountId }: { accountId: string }) {
         {messages.map((msg) => (
           <div key={msg.id} className="flex items-center justify-between px-3 py-2">
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-900 dark:text-gray-100 truncate">
+              <p className="text-sm exo-text-primary truncate">
                 {msg.subject || "(no subject)"}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs exo-text-muted">
                 To {msg.to.join(", ")} &middot; {formatScheduledTime(msg.scheduledAt)}
               </p>
             </div>

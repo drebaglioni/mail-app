@@ -237,14 +237,14 @@ export function AddressInput({
       data-testid={`address-input-${label.toLowerCase()}`}
       className={`relative flex items-center gap-2 py-1.5 border-b transition-colors ${
         isDragOver
-          ? "border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-          : "border-gray-200 dark:border-gray-700/50"
+          ? "border-[var(--exo-accent)] bg-[var(--exo-accent-soft)]"
+          : "border-[var(--exo-border-subtle)]"
       }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <label className="w-10 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">{label}</label>
+      <label className="w-10 text-sm exo-text-muted flex-shrink-0">{label}</label>
       <div className="flex-1 flex flex-wrap items-center">
         {value.map((email, i) => {
           const { text, hasName } = chipDisplay(email);
@@ -264,7 +264,7 @@ export function AddressInput({
                     }
                   : undefined
               }
-              className={`group/chip relative inline-flex items-center text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap rounded-full pl-1.5 pr-5 py-0.5 -my-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${hasName ? "cursor-pointer" : ""} ${fieldId ? "cursor-grab active:cursor-grabbing" : ""}`}
+              className={`group/chip relative inline-flex items-center text-sm exo-text-primary whitespace-nowrap rounded-full pl-1.5 pr-5 py-0.5 -my-0.5 hover:bg-[var(--exo-bg-surface-hover)] transition-colors ${hasName ? "cursor-pointer" : ""} ${fieldId ? "cursor-grab active:cursor-grabbing" : ""}`}
               data-testid="address-chip"
               role={hasName ? "button" : undefined}
               tabIndex={hasName ? 0 : undefined}
@@ -296,7 +296,7 @@ export function AddressInput({
                   e.stopPropagation();
                   handleRemove(email);
                 }}
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover/chip:opacity-100 z-10"
+                className="absolute right-1 top-1/2 -translate-y-1/2 exo-text-muted hover:text-[var(--exo-text-primary)] opacity-0 group-hover/chip:opacity-100 z-10"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -308,7 +308,7 @@ export function AddressInput({
                 </svg>
               </button>
               {(i < value.length - 1 || inputValue !== "") && (
-                <span className="ml-0.5 text-gray-400 dark:text-gray-500 select-none group-hover/chip:invisible">
+                <span className="ml-0.5 exo-text-muted select-none group-hover/chip:invisible">
                   ·
                 </span>
               )}
@@ -324,7 +324,7 @@ export function AddressInput({
           onBlur={handleBlur}
           placeholder={value.length === 0 ? placeholder : ""}
           autoFocus={autoFocus}
-          className="flex-1 min-w-[120px] text-sm dark:text-gray-100 dark:placeholder-gray-400 bg-transparent"
+          className="flex-1 min-w-[120px] text-sm dark:placeholder-gray-400 bg-transparent"
           style={{ outline: "none", border: "none", boxShadow: "none" }}
         />
       </div>
@@ -334,14 +334,14 @@ export function AddressInput({
         <div
           ref={suggestionsRef}
           data-testid="autocomplete-dropdown"
-          className="absolute left-[calc(2.5rem+0.5rem)] top-full mt-0.5 w-[calc(100%-2.5rem-0.5rem)] bg-gray-800 border border-gray-700 rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto z-50"
+          className="absolute left-[calc(2.5rem+0.5rem)] top-full mt-0.5 w-[calc(100%-2.5rem-0.5rem)] bg-[var(--exo-bg-elevated)] border border-[var(--exo-border-subtle)] rounded-lg shadow-xl shadow-black/50 max-h-60 overflow-y-auto z-50"
           onMouseDown={(e) => e.preventDefault()}
         >
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.email}
               className={`px-4 py-2.5 cursor-pointer text-sm flex items-center justify-between gap-4 ${
-                index === selectedIndex ? "bg-gray-700" : "hover:bg-gray-700/50"
+                index === selectedIndex ? "bg-[var(--exo-bg-surface-hover)]" : "hover:bg-[var(--exo-bg-surface-hover)]"
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -350,9 +350,9 @@ export function AddressInput({
               onMouseEnter={() => setSelectedIndex(index)}
               data-testid="autocomplete-suggestion"
             >
-              <span className="text-gray-100 truncate">{suggestion.name || suggestion.email}</span>
+              <span className="text-[var(--exo-text-primary)] truncate">{suggestion.name || suggestion.email}</span>
               {suggestion.name && (
-                <span className="text-gray-500 text-sm truncate flex-shrink-0">
+                <span className="text-[var(--exo-text-muted)] text-sm truncate flex-shrink-0">
                   {suggestion.email}
                 </span>
               )}

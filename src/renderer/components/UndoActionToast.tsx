@@ -291,12 +291,12 @@ function UndoActionToastItem({ item }: { item: UndoActionItem }) {
   const label = `${noun} ${verb}.`;
 
   return (
-    <div className="bg-gray-900 dark:bg-gray-700 text-white rounded-lg shadow-lg flex items-center justify-between px-4 py-3 min-w-[280px]">
+    <div className="bg-[var(--exo-bg-app)] text-white rounded-lg shadow-lg flex items-center justify-between px-4 py-3 min-w-[280px]">
       <span className="text-sm">{label}</span>
       {!executedRef.current && (
         <button
           onClick={handleUndo}
-          className="ml-4 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0"
+          className="ml-4 text-sm font-medium text-[var(--exo-accent)] hover:text-[var(--exo-accent)] transition-colors flex-shrink-0"
           title={navigator.platform.includes("Mac") ? "Cmd+Z" : "Ctrl+Z"}
         >
           Undo

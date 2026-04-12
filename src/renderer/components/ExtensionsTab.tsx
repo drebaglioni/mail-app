@@ -262,15 +262,15 @@ export function ExtensionsTab() {
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Extensions</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <h2 className="text-lg font-semibold exo-text-primary">Extensions</h2>
+          <p className="text-sm exo-text-muted mt-1">
             Manage installed extensions that add functionality to Exo.
           </p>
         </div>
         <button
           onClick={handleInstall}
           disabled={isInstalling}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-sm font-medium text-white bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] rounded-lg transition-colors disabled:opacity-50"
         >
           {isInstalling ? "Installing..." : "Install Extension"}
         </button>
@@ -291,22 +291,22 @@ export function ExtensionsTab() {
       {/* Installed extensions */}
       {installedExtensions.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-semibold exo-text-secondary uppercase tracking-wide mb-3">
             Installed
           </h3>
           <div className="space-y-3">
             {installedExtensions.map((ext) => (
               <div
                 key={ext.id}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4"
+                className="exo-settings-card p-4"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <h4 className="text-sm font-medium exo-text-primary">
                         {ext.displayName}
                       </h4>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                      <span className="text-xs exo-text-muted">
                         v{ext.version}
                       </span>
                       {ext.isActive ? (
@@ -314,7 +314,7 @@ export function ExtensionsTab() {
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[var(--exo-bg-surface-soft)] exo-text-muted">
                           Inactive
                         </span>
                       )}
@@ -324,13 +324,13 @@ export function ExtensionsTab() {
                         </span>
                       )}
                       {!ext.hasAgentProvider && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] dark:text-[var(--exo-accent)]">
                           Extension
                         </span>
                       )}
                     </div>
                     {ext.description && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-sm exo-text-muted mt-1">
                         {ext.description}
                       </p>
                     )}
@@ -345,7 +345,7 @@ export function ExtensionsTab() {
                                 : "bg-red-500"
                           }`}
                         />
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs exo-text-muted">
                           {healthStatuses[ext.id].status === "connected"
                             ? "Connected"
                             : healthStatuses[ext.id].status === "not_configured"
@@ -367,22 +367,22 @@ export function ExtensionsTab() {
                       </div>
                     )}
                     {ext.agentProviderManifest?.contributes?.settings && (
-                      <div className="mt-3 border-t border-gray-200 dark:border-gray-600 pt-3">
-                        <h5 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      <div className="mt-3 border-t exo-border-subtle pt-3">
+                        <h5 className="text-xs font-semibold exo-text-secondary uppercase tracking-wide mb-2">
                           Provider Settings
                         </h5>
                         <div className="space-y-2">
                           {ext.agentProviderManifest.contributes.settings.map(
                             (setting: SettingDefinition) => (
                               <div key={setting.id}>
-                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                                <label className="block text-xs font-medium exo-text-secondary mb-0.5">
                                   {setting.title}
                                   {setting.required && (
                                     <span className="text-red-500 ml-0.5">*</span>
                                   )}
                                 </label>
                                 {setting.description && (
-                                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+                                  <p className="text-xs exo-text-muted mb-1">
                                     {setting.description}
                                   </p>
                                 )}
@@ -399,7 +399,7 @@ export function ExtensionsTab() {
                                         },
                                       }))
                                     }
-                                    className="rounded border-gray-300 dark:border-gray-600"
+                                    className="rounded exo-border-strong"
                                   />
                                 ) : (
                                   <input
@@ -428,7 +428,7 @@ export function ExtensionsTab() {
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                    className="w-full px-2 py-1 text-sm border exo-border-strong rounded bg-[var(--exo-bg-elevated)] exo-text-primary"
                                   />
                                 )}
                               </div>
@@ -439,7 +439,7 @@ export function ExtensionsTab() {
                           <button
                             onClick={() => handleSaveSettings(ext.id)}
                             disabled={savingSettings === ext.id}
-                            className="px-3 py-1 text-xs font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded transition-colors disabled:opacity-50"
+                            className="px-3 py-1 text-xs font-medium text-white bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] rounded transition-colors disabled:opacity-50"
                           >
                             {savingSettings === ext.id ? "Saving..." : "Save"}
                           </button>
@@ -464,7 +464,7 @@ export function ExtensionsTab() {
                       </button>
                       <button
                         onClick={() => setConfirmUninstall(null)}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium exo-text-secondary bg-[var(--exo-bg-surface-soft)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
                       >
                         Cancel
                       </button>
@@ -489,28 +489,28 @@ export function ExtensionsTab() {
 
       {/* Bundled extensions */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-3">
+        <h3 className="text-sm font-semibold exo-text-secondary uppercase tracking-wide mb-3">
           Built-in
         </h3>
         <div className="space-y-3">
           {bundledExtensions.map((ext) => (
             <div
               key={ext.id}
-              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4"
+              className="exo-settings-card p-4"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <h4 className="text-sm font-medium exo-text-primary">
                       {ext.displayName}
                     </h4>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">v{ext.version}</span>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                    <span className="text-xs exo-text-muted">v{ext.version}</span>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] dark:text-[var(--exo-accent)]">
                       Built-in
                     </span>
                   </div>
                   {ext.description && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm exo-text-muted mt-1">
                       {ext.description}
                     </p>
                   )}
@@ -519,19 +519,19 @@ export function ExtensionsTab() {
             </div>
           ))}
           {bundledExtensions.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 italic">Loading...</p>
+            <p className="text-sm exo-text-muted italic">Loading...</p>
           )}
         </div>
       </div>
 
       {/* OpenClaw Agent Provider */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
+      <div className="exo-settings-card p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+            <h4 className="text-base font-medium exo-text-primary">
               OpenClaw Agent
             </h4>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm exo-text-muted mt-1">
               Connect a local or remote OpenClaw agent for richer context during email drafting.
             </p>
           </div>
@@ -552,20 +552,20 @@ export function ExtensionsTab() {
                 });
               }}
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-gray-600 peer-checked:bg-blue-600" />
+            <div className="w-11 h-6 bg-[var(--exo-border-subtle)] peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--exo-focus-ring)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--exo-bg-elevated)] after:border-[var(--exo-border-strong)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--exo-accent)]" />
           </label>
         </div>
 
         {openclawEnabled && (
-          <div className="space-y-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="space-y-3 mt-4 pt-4 border-t exo-border-subtle">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium exo-text-secondary mb-1">
                 Gateway URL{" "}
-                <span className="text-gray-400 font-normal">(optional — blank = local)</span>
+                <span className="text-[var(--exo-text-muted)] font-normal">(optional — blank = local)</span>
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                className="w-full px-3 py-2 text-sm border exo-border-strong rounded-lg bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400"
                 placeholder="ws://192.168.1.50:18789"
                 value={openclawGatewayUrl}
                 onChange={(e) => setOpenclawGatewayUrl(e.target.value)}
@@ -573,12 +573,12 @@ export function ExtensionsTab() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Gateway Token <span className="text-gray-400 font-normal">(optional)</span>
+              <label className="block text-sm font-medium exo-text-secondary mb-1">
+                Gateway Token <span className="text-[var(--exo-text-muted)] font-normal">(optional)</span>
               </label>
               <input
                 type="password"
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                className="w-full px-3 py-2 text-sm border exo-border-strong rounded-lg bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400"
                 placeholder="Bearer token"
                 value={openclawGatewayToken}
                 onChange={(e) => setOpenclawGatewayToken(e.target.value)}
@@ -587,7 +587,7 @@ export function ExtensionsTab() {
 
             <div className="flex items-center gap-3">
               <button
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-[var(--exo-accent)] rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] disabled:opacity-50 transition-colors"
                 disabled={openclawTesting}
                 onClick={async () => {
                   // Save first, then test
@@ -612,7 +612,7 @@ export function ExtensionsTab() {
               </button>
 
               <button
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-[var(--exo-accent)] rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors"
                 onClick={async () => {
                   await window.api.settings.set({
                     openclaw: {
@@ -641,17 +641,17 @@ export function ExtensionsTab() {
       </div>
 
       {/* Info box */}
-      <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+      <div className="exo-surface-soft p-4 rounded-lg text-sm exo-text-secondary">
         <p className="font-medium mb-2">Installing extensions</p>
         <p>
           Extensions are distributed as{" "}
-          <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">.zip</code> files. Click
+          <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">.zip</code> files. Click
           "Install Extension" to select a file and install it. Packages can add sidebar panels,
           email enrichment providers, and agent providers.
         </p>
-        <p className="mt-2 text-gray-500 dark:text-gray-400">
+        <p className="mt-2 exo-text-muted">
           To build an extension, run:{" "}
-          <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">
+          <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">
             node scripts/build-extension.mjs &lt;extension-dir&gt;
           </code>
         </p>

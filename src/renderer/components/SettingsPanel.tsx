@@ -816,8 +816,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             data-active={activeTab === "snippets" ? "true" : undefined}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeTab === "snippets"
-                ? "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300"
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent-strong)]"
+                : "exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
             }`}
           >
             Snippets
@@ -1026,10 +1026,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               <div className="exo-settings-card p-4 mb-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="font-semibold exo-text-primary">
                       Default Mail App
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm exo-text-secondary mt-1">
                       Register Exo as the default handler for mailto: links. Clicking email links in
                       other apps will open a compose window here.
                     </p>
@@ -1061,12 +1061,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       isDefaultMailAppLoading ? "opacity-50 cursor-not-allowed" : ""
                     } ${
                       isDefaultMailApp
-                        ? "bg-blue-600 dark:bg-blue-500"
-                        : "bg-gray-200 dark:bg-gray-700"
+                        ? "bg-[var(--exo-accent)]"
+                        : "bg-[var(--exo-border-subtle)]"
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                         isDefaultMailApp ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
@@ -1082,8 +1082,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               {/* AI Models */}
               <div className="exo-settings-card p-4 mb-6">
                 <div className="mb-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">AI Models</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <h3 className="font-semibold exo-text-primary">AI Models</h3>
+                  <p className="text-sm exo-text-secondary mt-1">
                     {aiProvider === "codex"
                       ? "These model tiers apply to Anthropic-powered features and fallback. Codex uses the model in Agent Settings -> Codex (OAuth)."
                       : "Choose which Claude model to use for each feature. Haiku is fastest and cheapest, Opus is most capable."}
@@ -1134,13 +1134,13 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   ].map(({ key, label, description }) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                      className="flex items-center justify-between py-2 border-b exo-border-subtle last:border-0"
                     >
                       <div className="flex-1 min-w-0 mr-4">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <p className="text-sm font-medium exo-text-primary">
                           {label}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+                        <p className="text-xs exo-text-muted">{description}</p>
                       </div>
                       <select
                         value={modelConfig[key]}
@@ -1150,7 +1150,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                             setModelConfig((prev) => ({ ...prev, [key]: tier as ModelTier }));
                           }
                         }}
-                        className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="px-3 py-1.5 text-sm border border-[var(--exo-border-strong)] rounded-lg bg-[var(--exo-bg-elevated)] exo-text-primary focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                       >
                         {MODEL_TIERS.map((tier) => (
                           <option key={tier} value={tier}>
@@ -1166,9 +1166,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               {/* Updates */}
               <div className="exo-settings-card p-4 mb-6">
                 <div className="mb-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Updates</h3>
+                  <h3 className="font-semibold exo-text-primary">Updates</h3>
                   {appVersion && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm exo-text-secondary mt-1">
                       Current version: {appVersion}
                     </p>
                   )}
@@ -1181,12 +1181,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       disabled={
                         updateStatus?.state === "checking" || updateStatus?.state === "downloading"
                       }
-                      className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-transparent dark:border-gray-600 disabled:opacity-50"
+                      className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-[var(--exo-bg-surface-soft)] exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)] border border-transparent disabled:opacity-50"
                     >
                       {updateStatus?.state === "checking" ? "Checking..." : "Check for Updates"}
                     </button>
                     {updateStatus?.state === "idle" && (
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm exo-text-secondary">
                         You're on the latest version.
                       </span>
                     )}
@@ -1198,13 +1198,13 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   </div>
 
                   {updateStatus?.state === "available" && (
-                    <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
-                      <span className="text-sm text-blue-800 dark:text-blue-300">
+                    <div className="flex items-center gap-3 bg-[var(--exo-accent-soft)] p-3 rounded-lg">
+                      <span className="text-sm text-[var(--exo-accent-strong)]">
                         Version {updateStatus.version} is available
                       </span>
                       <button
                         onClick={() => window.api.updates.download()}
-                        className="px-3 py-1 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded transition-colors"
+                        className="px-3 py-1 text-sm font-medium text-white bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] rounded transition-colors"
                       >
                         Download
                       </button>
@@ -1212,9 +1212,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   )}
 
                   {updateStatus?.state === "downloading" && (
-                    <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+                    <div className="flex items-center gap-3 bg-[var(--exo-accent-soft)] p-3 rounded-lg">
                       <svg
-                        className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin flex-shrink-0"
+                        className="w-4 h-4 text-[var(--exo-accent)] animate-spin flex-shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                       >
@@ -1232,18 +1232,18 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                       </svg>
-                      <span className="text-sm text-blue-800 dark:text-blue-300">
+                      <span className="text-sm text-[var(--exo-accent-strong)]">
                         Downloading update...
                       </span>
                       <div className="flex-1 max-w-xs">
-                        <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5">
+                        <div className="w-full bg-[var(--exo-accent-soft)] rounded-full h-1.5">
                           <div
-                            className="bg-blue-600 dark:bg-blue-400 h-1.5 rounded-full transition-all duration-300"
+                            className="bg-[var(--exo-accent)] h-1.5 rounded-full transition-all duration-300"
                             style={{ width: `${updateStatus.progress}%` }}
                           />
                         </div>
                       </div>
-                      <span className="text-blue-600 dark:text-blue-400 text-sm tabular-nums">
+                      <span className="text-[var(--exo-accent)] text-sm tabular-nums">
                         {updateStatus.progress}%
                       </span>
                     </div>
@@ -1278,7 +1278,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium exo-text-secondary mb-1">
                     GitHub Token
                   </label>
                   <input
@@ -1286,23 +1286,23 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={githubToken}
                     onChange={(e) => setGithubToken(e.target.value)}
                     placeholder="ghp_..."
-                    className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs exo-text-muted mt-1">
                     Required for auto-updates from a private repo. Needs{" "}
-                    <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">repo</code> scope or
+                    <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">repo</code> scope or
                     fine-grained{" "}
-                    <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">contents:read</code>{" "}
+                    <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">contents:read</code>{" "}
                     permission. Also used for private extension downloads.
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between mt-4 pt-4 border-t exo-border-subtle">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-medium exo-text-secondary">
                       Pre-release updates
                     </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <p className="text-xs exo-text-muted mt-0.5">
                       Receive beta and release candidate builds before official release.
                     </p>
                   </div>
@@ -1312,12 +1312,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     onClick={() => setAllowPrereleaseUpdates(!allowPrereleaseUpdates)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       allowPrereleaseUpdates
-                        ? "bg-blue-600 dark:bg-blue-500"
-                        : "bg-gray-200 dark:bg-gray-700"
+                        ? "bg-[var(--exo-accent)]"
+                        : "bg-[var(--exo-border-subtle)]"
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                         allowPrereleaseUpdates ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
@@ -1329,10 +1329,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               <div className="exo-settings-card p-4 mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="font-semibold exo-text-primary">
                       Sender Lookup
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm exo-text-secondary mt-1">
                       When generating a draft, search the web for information about the sender to
                       provide better context.
                     </p>
@@ -1341,12 +1341,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     onClick={() => setEnableSenderLookup(!enableSenderLookup)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       enableSenderLookup
-                        ? "bg-blue-600 dark:bg-blue-500"
-                        : "bg-gray-200 dark:bg-gray-700"
+                        ? "bg-[var(--exo-accent)]"
+                        : "bg-[var(--exo-border-subtle)]"
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                         enableSenderLookup ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
@@ -1354,7 +1354,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 </div>
 
                 {enableSenderLookup && (
-                  <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg text-sm text-blue-800 dark:text-blue-300">
+                  <div className="bg-[var(--exo-accent-soft)] p-3 rounded-lg text-sm text-[var(--exo-accent-strong)]">
                     <p className="font-medium mb-1">How it works:</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Uses Claude's web search to find information about the sender</li>
@@ -1366,11 +1366,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               </div>
 
               {/* Troubleshooting */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+              <div className="exo-elevated p-4 rounded-lg border exo-border-subtle">
+                <h3 className="font-semibold exo-text-primary mb-1">
                   Troubleshooting
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                <p className="text-sm exo-text-secondary mb-3">
                   Export log files to share with support. Email content is automatically redacted.
                 </p>
                 <button
@@ -1390,7 +1390,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     }
                   }}
                   disabled={isExportingLogs}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium exo-text-secondary bg-[var(--exo-bg-surface-soft)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors disabled:opacity-50"
                 >
                   {isExportingLogs ? "Exporting..." : "Export Logs"}
                 </button>
@@ -1404,7 +1404,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <button
                   onClick={handleSaveGeneral}
                   disabled={isSavingGeneral}
-                  className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                  className="px-6 py-2 bg-[var(--exo-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
                 >
                   {isSavingGeneral ? "Saving..." : "Save Changes"}
                 </button>
@@ -1416,10 +1416,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "accounts" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Connected Accounts
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="exo-text-secondary mb-4">
                 Manage your connected Gmail accounts. You can add multiple accounts and switch
                 between them.
               </p>
@@ -1431,9 +1431,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               )}
 
               {/* Account list */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 divide-y divide-gray-200 dark:divide-gray-700 mb-6">
+              <div className="exo-settings-card divide-y divide-gray-200 dark:divide-gray-700 mb-6">
                 {accounts.length === 0 ? (
-                  <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                  <div className="p-6 text-center exo-text-muted">
                     No accounts connected. Click "Add Account" to connect your first Gmail account.
                   </div>
                 ) : (
@@ -1441,15 +1441,15 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     <div key={account.id} className="p-4 flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div
-                          className={`w-3 h-3 rounded-full ${account.isConnected ? "bg-green-500" : "bg-gray-400 dark:bg-gray-500"}`}
+                          className={`w-3 h-3 rounded-full ${account.isConnected ? "bg-green-500" : "bg-[var(--exo-text-muted)]"}`}
                         />
                         <div>
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                          <div className="font-medium exo-text-primary">
                             {account.email}
                           </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                          <div className="text-sm exo-text-muted">
                             {account.isPrimary && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-800/60 text-blue-800 dark:text-blue-200 mr-2">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--exo-accent-soft)] text-[var(--exo-accent-strong)] mr-2">
                                 Primary
                               </span>
                             )}
@@ -1461,7 +1461,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                         {!account.isPrimary && (
                           <button
                             onClick={() => handleSetPrimary(account.id)}
-                            className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                            className="px-3 py-1.5 text-sm text-[var(--exo-accent)] hover:bg-[var(--exo-accent-soft)] rounded-lg transition-colors"
                           >
                             Set as Primary
                           </button>
@@ -1494,7 +1494,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               {/* Add account button */}
               <button
                 onClick={handleAddAccount}
-                className="w-full py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                className="w-full py-3 border-2 border-dashed exo-border-strong rounded-lg exo-text-secondary hover:border-[var(--exo-accent)] hover:text-[var(--exo-accent)] hover:bg-[var(--exo-accent-soft)] transition-colors"
               >
                 {isAddingAccount ? (
                   <span className="flex items-center justify-center space-x-2">
@@ -1520,7 +1520,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 )}
               </button>
 
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <p className="text-xs exo-text-muted mt-2">
                 Adding an account will open a Google sign-in window. You'll need to authorize Exo to
                 access your emails.
               </p>
@@ -1531,18 +1531,18 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "calendar" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Calendar Visibility
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="exo-text-secondary mb-4">
                 Choose which calendars to show in the sidebar. Only visible calendars will have
                 their events displayed.
               </p>
 
               {calendarLoading ? (
-                <p className="text-gray-500 dark:text-gray-400">Loading calendars...</p>
+                <p className="exo-text-muted">Loading calendars...</p>
               ) : calendars.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-600 text-center text-gray-500 dark:text-gray-400">
+                <div className="exo-elevated p-6 rounded-lg border exo-border-subtle text-center exo-text-muted">
                   No calendars found. Calendar sync may not have completed yet.
                 </div>
               ) : (
@@ -1557,10 +1557,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   return Array.from(grouped.entries()).map(([accountId, cals]) => (
                     <div key={accountId} className="mb-6">
-                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      <h3 className="text-sm font-semibold exo-text-secondary mb-3">
                         {accountEmails[accountId] ?? accountId}
                       </h3>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 divide-y divide-gray-200 dark:divide-gray-700">
+                      <div className="exo-settings-card divide-y divide-gray-200 dark:divide-gray-700">
                         {cals.map((cal) => (
                           <div
                             key={cal.calendarId}
@@ -1571,7 +1571,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                                 className="w-3 h-3 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: cal.calendarColor ?? "#4285f4" }}
                               />
-                              <span className="text-gray-900 dark:text-gray-100 text-sm">
+                              <span className="exo-text-primary text-sm">
                                 {cal.calendarName ?? cal.calendarId}
                               </span>
                             </div>
@@ -1585,12 +1585,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                               }
                               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                                 cal.visible
-                                  ? "bg-blue-600 dark:bg-blue-500"
-                                  : "bg-gray-200 dark:bg-gray-700"
+                                  ? "bg-[var(--exo-accent)]"
+                                  : "bg-[var(--exo-border-subtle)]"
                               }`}
                             >
                               <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                                   cal.visible ? "translate-x-6" : "translate-x-1"
                                 }`}
                               />
@@ -1621,30 +1621,30 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "signatures" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Email Signatures
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="exo-text-secondary mb-4">
                 Create and manage email signatures. The default signature is automatically appended
                 when composing new emails.
               </p>
 
               {/* Exo branding toggle */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4 mb-6">
+              <div className="exo-settings-card p-4 mb-6">
                 <label className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={showExoBranding}
                     onChange={(e) => handleToggleExoBranding(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded exo-border-strong text-[var(--exo-accent)] focus:ring-[var(--exo-focus-ring)]"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-medium exo-text-primary">
                       Show &quot;Sent by Exo&quot; branding
                     </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs exo-text-muted">
                       Appends a small &quot;Sent by{" "}
-                      <a href="https://exo.email" className="text-blue-500 hover:underline">
+                      <a href="https://exo.email" className="text-[var(--exo-accent)] hover:underline">
                         Exo
                       </a>
                       &quot; line after your signature.
@@ -1656,9 +1656,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               {/* Signature list */}
               {!editingSignature && (
                 <>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 divide-y divide-gray-200 dark:divide-gray-700 mb-6">
+                  <div className="exo-settings-card divide-y divide-gray-200 dark:divide-gray-700 mb-6">
                     {signatures.length === 0 ? (
-                      <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                      <div className="p-6 text-center exo-text-muted">
                         No signatures yet. Click "Add Signature" to create one.
                       </div>
                     ) : (
@@ -1666,12 +1666,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                         <div key={sig.id} className="p-4 flex items-center justify-between">
                           <div className="flex items-center space-x-3 min-w-0">
                             <div className="min-w-0">
-                              <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                              <div className="font-medium exo-text-primary truncate">
                                 {sig.name || "Untitled"}
                               </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                              <div className="text-sm exo-text-muted flex items-center gap-2">
                                 {sig.isDefault && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--exo-accent-soft)] text-[var(--exo-accent-strong)]">
                                     Default
                                   </span>
                                 )}
@@ -1687,7 +1687,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           <div className="flex items-center space-x-2 flex-shrink-0">
                             <button
                               onClick={() => setEditingSignature(sig)}
-                              className="px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                              className="px-3 py-1.5 text-sm text-[var(--exo-accent)] hover:bg-[var(--exo-accent-soft)] rounded-lg transition-colors"
                             >
                               Edit
                             </button>
@@ -1718,7 +1718,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   <button
                     onClick={handleAddSignature}
-                    className="w-full py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                    className="w-full py-3 border-2 border-dashed exo-border-strong rounded-lg exo-text-secondary hover:border-[var(--exo-accent)] hover:text-[var(--exo-accent)] hover:bg-[var(--exo-accent-soft)] transition-colors"
                   >
                     + Add Signature
                   </button>
@@ -1727,9 +1727,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
               {/* Signature editor */}
               {editingSignature && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6 space-y-4">
+                <div className="exo-settings-card p-6 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium exo-text-secondary mb-1">
                       Signature Name
                     </label>
                     <input
@@ -1739,12 +1739,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                         setEditingSignature({ ...editingSignature, name: e.target.value })
                       }
                       placeholder="e.g., Work, Personal"
-                      className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium exo-text-secondary mb-1">
                       Signature Content (HTML)
                     </label>
                     <textarea
@@ -1754,9 +1754,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       }
                       rows={8}
                       placeholder="<p>Best regards,<br>Your Name</p>"
-                      className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs exo-text-muted mt-1">
                       You can use HTML tags for formatting (e.g., &lt;b&gt;, &lt;i&gt;, &lt;a
                       href="..."&gt;).
                     </p>
@@ -1765,11 +1765,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   {/* Preview */}
                   {editingSignature.bodyHtml.trim() && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium exo-text-secondary mb-1">
                         Preview
                       </label>
                       <div
-                        className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-sm"
+                        className="p-3 border exo-border-subtle rounded-lg exo-surface-soft text-sm"
                         dangerouslySetInnerHTML={{
                           __html: DOMPurify.sanitize(editingSignature.bodyHtml),
                         }}
@@ -1779,7 +1779,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   {accounts.length > 1 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium exo-text-secondary mb-1">
                         Account (optional)
                       </label>
                       <select
@@ -1790,7 +1790,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                             accountId: e.target.value || undefined,
                           })
                         }
-                        className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                        className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                       >
                         <option value="">All accounts (global)</option>
                         {accounts.map((account) => (
@@ -1799,7 +1799,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-xs exo-text-muted mt-1">
                         Restrict this signature to a specific account, or leave as global.
                       </p>
                     </div>
@@ -1815,17 +1815,17 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       }
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                         editingSignature.isDefault
-                          ? "bg-blue-600 dark:bg-blue-500"
-                          : "bg-gray-200 dark:bg-gray-700"
+                          ? "bg-[var(--exo-accent)]"
+                          : "bg-[var(--exo-border-subtle)]"
                       }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                           editingSignature.isDefault ? "translate-x-6" : "translate-x-1"
                         }`}
                       />
                     </button>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span className="text-sm font-medium exo-text-secondary">
                       Set as default signature
                     </span>
                   </div>
@@ -1833,14 +1833,14 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   <div className="flex justify-end space-x-3 pt-2">
                     <button
                       onClick={() => setEditingSignature(null)}
-                      className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => handleSaveSignature(editingSignature)}
                       disabled={isSavingSignatures || !editingSignature.name.trim()}
-                      className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                      className="px-6 py-2 bg-[var(--exo-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
                     >
                       {isSavingSignatures ? "Saving..." : "Save Signature"}
                     </button>
@@ -1854,23 +1854,23 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "prompts" && (
           <div className="max-w-3xl space-y-6">
             {isLoading ? (
-              <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+              <p className="exo-text-muted">Loading settings...</p>
             ) : (
               <>
                 {/* Analysis Prompt */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <label className="block text-sm font-semibold exo-text-secondary">
                       Analysis Prompt
                     </label>
                     <button
                       onClick={handleResetAnalysis}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      className="text-xs text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
                     >
                       Reset to Default
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-xs exo-text-muted mb-2">
                     Each email is categorized as SKIP (no reply), or HIGH / MEDIUM / LOW priority.
                     Customize the rules below to control how emails are triaged. The required output
                     format is handled automatically.
@@ -1879,24 +1879,24 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={analysisPrompt}
                     onChange={(e) => setAnalysisPrompt(e.target.value)}
                     rows={12}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
                 </div>
 
                 {/* Agent Drafter System Prompt */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <label className="block text-sm font-semibold exo-text-secondary">
                       Agent System Prompt
                     </label>
                     <button
                       onClick={handleResetAgentDrafter}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      className="text-xs text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
                     >
                       Reset to Default
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-xs exo-text-muted mb-2">
                     System prompt for the AI agent that drafts replies. The agent can look up
                     senders online, search your email history, and use other tools to gather context
                     before writing the draft.
@@ -1905,7 +1905,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={agentDrafterPrompt}
                     onChange={(e) => setAgentDrafterPrompt(e.target.value)}
                     rows={10}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
                   <div className="mt-3 flex items-center gap-3">
                     <button
@@ -1958,17 +1958,17 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 {/* Draft Writing Prompt */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <label className="block text-sm font-semibold exo-text-secondary">
                       Draft Writing Prompt
                     </label>
                     <button
                       onClick={handleResetDraft}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      className="text-xs text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
                     >
                       Reset to Default
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-xs exo-text-muted mb-2">
                     Used by the agent in the final step when it writes the actual reply text.
                     Controls tone, structure, and style of the generated email. The output format is
                     handled automatically.
@@ -1977,24 +1977,24 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={draftPrompt}
                     onChange={(e) => setDraftPrompt(e.target.value)}
                     rows={8}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
                 </div>
 
                 {/* Archive Ready Prompt */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <label className="block text-sm font-semibold exo-text-secondary">
                       Archive Ready Prompt
                     </label>
                     <button
                       onClick={handleResetArchiveReady}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      className="text-xs text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
                     >
                       Reset to Default
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-xs exo-text-muted mb-2">
                     Each thread is classified as READY or NOT READY to archive. Customize the rules
                     below to control what gets surfaced for archiving. The required output format is
                     handled automatically.
@@ -2003,7 +2003,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={archiveReadyPrompt}
                     onChange={(e) => setArchiveReadyPrompt(e.target.value)}
                     rows={12}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                    className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm font-mono resize-none focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   />
                 </div>
 
@@ -2015,7 +2015,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                    className="px-6 py-2 bg-[var(--exo-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
                   >
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
@@ -2028,20 +2028,20 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "style" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Writing Style
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="exo-text-secondary mb-4">
                 Drafts automatically include examples of your past emails to this recipient (or
                 similar recipients) so the AI can match your tone and formality. No manual indexing
                 needed — it works from your synced sent emails.
               </p>
 
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
+              <div className="bg-[var(--exo-accent-soft)] p-4 rounded-lg mb-6">
+                <h3 className="font-semibold text-[var(--exo-accent-strong)] mb-2">
                   How it works:
                 </h3>
-                <ol className="text-sm text-blue-800 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                <ol className="text-sm text-[var(--exo-accent-strong)] space-y-1 list-decimal list-inside">
                   <li>
                     Finds sent emails to this recipient (or same domain, or similar formality)
                   </li>
@@ -2053,12 +2053,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium exo-text-secondary">
                     Style Prompt
                   </label>
                   <button
                     onClick={handleResetStylePrompt}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-xs text-[var(--exo-accent)] hover:underline"
                   >
                     Reset to default
                   </button>
@@ -2067,10 +2067,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   value={stylePrompt}
                   onChange={(e) => setStylePrompt(e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-[var(--exo-border-strong)] rounded-lg exo-elevated exo-text-primary text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                   placeholder="Describe your writing style..."
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs exo-text-muted">
                   This prompt is prepended to your draft generation when style examples are
                   available. It tells the AI how to interpret the examples of your past emails.
                 </p>
@@ -2079,7 +2079,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               <button
                 onClick={handleSaveStylePrompt}
                 disabled={isSaving}
-                className="mt-4 px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="mt-4 px-6 py-2 bg-[var(--exo-accent)] text-white font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save Style Prompt"}
               </button>
@@ -2090,20 +2090,20 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "assistant" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Executive Assistant Integration
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="exo-text-secondary mb-4">
                 When enabled, Exo will automatically CC your executive assistant on emails that
                 involve scheduling or calendar coordination. This lets your assistant handle
                 scheduling while you focus on the content of your response.
               </p>
 
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-6">
-                <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
+              <div className="bg-[var(--exo-accent-soft)] p-4 rounded-lg mb-6">
+                <h3 className="font-semibold text-[var(--exo-accent-strong)] mb-2">
                   How it works:
                 </h3>
-                <ol className="text-sm text-blue-800 dark:text-blue-300 space-y-1 list-decimal list-inside">
+                <ol className="text-sm text-[var(--exo-accent-strong)] space-y-1 list-decimal list-inside">
                   <li>When you generate a draft, Exo detects scheduling language</li>
                   <li>If scheduling is detected, your EA is automatically added to the CC</li>
                   <li>The draft includes a note deferring scheduling to your EA</li>
@@ -2116,16 +2116,16 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <button
                   onClick={() => setEaEnabled(!eaEnabled)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    eaEnabled ? "bg-blue-600 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
+                    eaEnabled ? "bg-[var(--exo-accent)]" : "bg-[var(--exo-border-subtle)]"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                       eaEnabled ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium exo-text-secondary">
                   Enable EA integration for scheduling
                 </span>
               </div>
@@ -2134,7 +2134,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               {eaEnabled && (
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium exo-text-secondary mb-1">
                       EA Name
                     </label>
                     <input
@@ -2142,15 +2142,15 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       value={eaName}
                       onChange={(e) => setEaName(e.target.value)}
                       placeholder="e.g., Sarah"
-                      className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs exo-text-muted mt-1">
                       This name will be used in the deferral message.
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium exo-text-secondary mb-1">
                       EA Email
                     </label>
                     <input
@@ -2158,9 +2158,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       value={eaEmail}
                       onChange={(e) => setEaEmail(e.target.value)}
                       placeholder="e.g., sarah@company.com"
-                      className="w-full p-3 border border-gray-300 dark:border-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                      className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs exo-text-muted mt-1">
                       Your EA will be CC'd on scheduling-related emails.
                     </p>
                   </div>
@@ -2173,7 +2173,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <button
                   onClick={handleSaveEA}
                   disabled={isSavingEA || eaSaved}
-                  className="px-6 py-2 bg-blue-600 dark:bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50"
+                  className="px-6 py-2 bg-[var(--exo-accent)] text-white text-sm font-medium rounded-lg hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)] transition-colors disabled:opacity-50"
                 >
                   {isSavingEA ? "Saving..." : eaSaved ? "Saved!" : "Save Changes"}
                 </button>
@@ -2197,10 +2197,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "queue" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Background Processing Queue
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="exo-text-secondary mb-4">
                 Monitor the background processing of email analysis, sender lookups, and draft
                 generation.
               </p>
@@ -2215,10 +2215,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           ? "bg-green-500 animate-pulse"
                           : prefetchProgress.status === "error"
                             ? "bg-red-500"
-                            : "bg-gray-400 dark:bg-gray-500"
+                            : "bg-[var(--exo-text-muted)]"
                       }`}
                     />
-                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                    <span className="font-medium exo-text-primary">
                       {prefetchProgress.status === "running"
                         ? "Processing"
                         : prefetchProgress.status === "error"
@@ -2226,17 +2226,17 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           : "Idle"}
                     </span>
                   </div>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm exo-text-muted">
                     {prefetchProgress.queueLength} items in queue
                   </span>
                 </div>
 
                 {/* Current task */}
                 {prefetchProgress.currentTask && (
-                  <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg mb-4">
+                  <div className="bg-[var(--exo-accent-soft)] p-3 rounded-lg mb-4">
                     <div className="flex items-center space-x-2">
                       <svg
-                        className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin"
+                        className="w-4 h-4 text-[var(--exo-accent)] animate-spin"
                         fill="none"
                         viewBox="0 0 24 24"
                       >
@@ -2254,11 +2254,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         />
                       </svg>
-                      <span className="text-sm text-blue-800 dark:text-blue-300">
+                      <span className="text-sm text-[var(--exo-accent-strong)]">
                         <span className="font-medium capitalize">
                           {prefetchProgress.currentTask.type.replace("-", " ")}
                         </span>
-                        <span className="text-blue-600 dark:text-blue-400 ml-2 font-mono text-xs">
+                        <span className="text-[var(--exo-accent)] ml-2 font-mono text-xs">
                           {prefetchProgress.currentTask.emailId.slice(0, 8)}...
                         </span>
                       </span>
@@ -2270,14 +2270,14 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600 dark:text-gray-300">Analysis</span>
-                      <span className="text-gray-900 dark:text-gray-100 font-medium">
+                      <span className="exo-text-secondary">Analysis</span>
+                      <span className="exo-text-primary font-medium">
                         {prefetchProgress.processed.analysis}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-[var(--exo-border-subtle)] rounded-full h-2">
                       <div
-                        className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        className="bg-[var(--exo-accent)] h-2 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min(prefetchProgress.processed.analysis, 100)}%` }}
                       />
                     </div>
@@ -2285,12 +2285,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600 dark:text-gray-300">Sender Profiles</span>
-                      <span className="text-gray-900 dark:text-gray-100 font-medium">
+                      <span className="exo-text-secondary">Sender Profiles</span>
+                      <span className="exo-text-primary font-medium">
                         {prefetchProgress.processed.senderProfile}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-[var(--exo-border-subtle)] rounded-full h-2">
                       <div
                         className="bg-purple-600 dark:bg-purple-500 h-2 rounded-full transition-all duration-300"
                         style={{
@@ -2302,14 +2302,14 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600 dark:text-gray-300">
+                      <span className="exo-text-secondary">
                         Extension Enrichments
                       </span>
-                      <span className="text-gray-900 dark:text-gray-100 font-medium">
+                      <span className="exo-text-primary font-medium">
                         {prefetchProgress.processed.extensionEnrichment}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-[var(--exo-border-subtle)] rounded-full h-2">
                       <div
                         className="bg-green-600 dark:bg-green-500 h-2 rounded-full transition-all duration-300"
                         style={{
@@ -2321,12 +2321,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600 dark:text-gray-300">Drafts</span>
-                      <span className="text-gray-900 dark:text-gray-100 font-medium">
+                      <span className="exo-text-secondary">Drafts</span>
+                      <span className="exo-text-primary font-medium">
                         {prefetchProgress.processed.draft}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-[var(--exo-border-subtle)] rounded-full h-2">
                       <div
                         className="bg-amber-600 dark:bg-amber-500 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${Math.min(prefetchProgress.processed.draft, 100)}%` }}
@@ -2341,17 +2341,17 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 (prefetchProgress.agentDrafts.running > 0 ||
                   prefetchProgress.agentDrafts.queued > 0 ||
                   prefetchProgress.agentDrafts.completed > 0) && (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-                    <h5 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                  <div className="exo-settings-card p-4">
+                    <h5 className="text-sm font-medium exo-text-primary mb-3">
                       Agent Draft Queue
                     </h5>
-                    <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    <div className="flex gap-4 text-xs exo-text-muted mb-3">
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-[var(--exo-accent)] animate-pulse" />
                         {prefetchProgress.agentDrafts.running} running
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-gray-400" />
+                        <span className="w-2 h-2 rounded-full bg-[var(--exo-text-muted)]" />
                         {prefetchProgress.agentDrafts.queued} queued
                       </span>
                       <span className="flex items-center gap-1">
@@ -2369,23 +2369,23 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       {prefetchProgress.agentDrafts.items.map((item) => (
                         <div
                           key={item.emailId}
-                          className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-gray-50 dark:bg-gray-700/50"
+                          className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-[var(--exo-bg-surface-soft)]/50"
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                               item.status === "running"
-                                ? "bg-blue-500 animate-pulse"
+                                ? "bg-[var(--exo-accent)] animate-pulse"
                                 : item.status === "queued"
-                                  ? "bg-gray-400"
+                                  ? "bg-[var(--exo-text-muted)]"
                                   : item.status === "completed"
                                     ? "bg-green-500"
                                     : "bg-red-500"
                             }`}
                           />
-                          <span className="truncate flex-1 text-gray-700 dark:text-gray-300">
+                          <span className="truncate flex-1 exo-text-secondary">
                             {item.subject}
                           </span>
-                          <span className="text-gray-400 dark:text-gray-500 flex-shrink-0">
+                          <span className="exo-text-muted flex-shrink-0">
                             {
                               item.from
                                 .replace(/<[^>]+>/, "")
@@ -2399,7 +2399,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                                 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                 : item.priority === "medium"
                                   ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                  : "bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
+                                  : "bg-[var(--exo-bg-surface-soft)] text-[var(--exo-text-secondary)]"
                             }`}
                           >
                             {item.priority}
@@ -2411,7 +2411,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 )}
 
               {/* Info box */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+              <div className="exo-surface-soft p-4 rounded-lg text-sm exo-text-secondary">
                 <p className="font-medium mb-2">How it works:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
@@ -2438,25 +2438,25 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "agents" && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+              <h3 className="text-lg font-medium exo-text-primary mb-4">
                 Agent Settings
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              <p className="text-sm exo-text-muted mb-6">
                 Configure AI agent capabilities including browser automation.
               </p>
             </div>
 
             {/* Authentication */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
-              <h4 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-4">
+            <div className="exo-settings-card p-6">
+              <h4 className="text-base font-medium exo-text-primary mb-4">
                 Authentication
               </h4>
 
               <div className="mb-6">
-                <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <h5 className="text-sm font-medium exo-text-secondary mb-1">
                   Default AI Provider
                 </h5>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                <p className="text-xs exo-text-muted mb-3">
                   Codex is recommended. Anthropic remains available as a fallback path.
                 </p>
                 <div className="grid grid-cols-2 gap-2 mb-3">
@@ -2464,8 +2464,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     onClick={() => setAiProvider("codex")}
                     className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
                       aiProvider === "codex"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                        ? "bg-[var(--exo-accent)] text-white border-[var(--exo-accent)]"
+                        : "bg-[var(--exo-bg-elevated)] exo-text-secondary exo-border-strong"
                     }`}
                   >
                     Codex
@@ -2474,41 +2474,41 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     onClick={() => setAiProvider("anthropic")}
                     className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
                       aiProvider === "anthropic"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                        ? "bg-[var(--exo-accent)] text-white border-[var(--exo-accent)]"
+                        : "bg-[var(--exo-bg-elevated)] exo-text-secondary exo-border-strong"
                     }`}
                   >
                     Anthropic
                   </button>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <label className="flex items-center gap-2 text-sm exo-text-secondary">
                   <input
                     type="checkbox"
                     checked={enableAnthropicFallback}
                     onChange={(e) => setEnableAnthropicFallback(e.target.checked)}
-                    className="rounded border-gray-300 dark:border-gray-600"
+                    className="rounded exo-border-strong"
                   />
                   Enable Anthropic fallback when Codex fails
                 </label>
               </div>
 
-              <div className="mb-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <div className="mb-6 pt-4 border-t exo-border-subtle">
+                <h5 className="text-sm font-medium exo-text-secondary mb-1">
                   Codex (OAuth)
                 </h5>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                <p className="text-xs exo-text-muted mb-3">
                   Uses your Codex login from <code>codex login</code>.
                 </p>
 
                 <div className="flex items-center gap-3 mb-3">
                   {codexAuthStatus === "checking" && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Checking...</span>
+                    <span className="text-sm exo-text-muted">Checking...</span>
                   )}
                   {codexAuthStatus === "authenticated" && (
                     <span className="text-sm text-green-700 dark:text-green-400">Logged in</span>
                   )}
                   {codexAuthStatus === "not_authenticated" && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Not logged in</span>
+                    <span className="text-sm exo-text-muted">Not logged in</span>
                   )}
                   {!codexCliAvailable && (
                     <span className="text-xs text-amber-700 dark:text-amber-400">
@@ -2523,18 +2523,18 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={codexModel}
                     onChange={(e) => setCodexModel(e.target.value)}
                     placeholder="o3"
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="flex-1 px-3 py-2 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary"
                   />
                   <button
                     onClick={handleTestCodexConnection}
                     disabled={isTestingCodex}
-                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-[var(--exo-bg-surface-soft)] exo-text-secondary text-sm font-medium rounded-lg hover:bg-[var(--exo-bg-surface-hover)] disabled:opacity-50 transition-colors"
                   >
                     {isTestingCodex ? "Testing..." : "Test"}
                   </button>
                 </div>
                 {codexStatusText && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{codexStatusText}</p>
+                  <p className="text-xs exo-text-muted mb-2">{codexStatusText}</p>
                 )}
                 {codexTestError && (
                   <p className="text-xs text-red-600 dark:text-red-400">{codexTestError}</p>
@@ -2543,10 +2543,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
               {/* Anthropic API Key */}
               <div className="mb-6">
-                <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <h5 className="text-sm font-medium exo-text-secondary mb-1">
                   Anthropic API Key
                 </h5>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                <p className="text-xs exo-text-muted mb-3">
                   Required for email analysis, draft generation, and sender lookup.
                 </p>
                 <div className="flex gap-2">
@@ -2555,7 +2555,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     value={anthropicApiKey}
                     onChange={(e) => setAnthropicApiKey(e.target.value)}
                     placeholder="sk-ant-..."
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400"
+                    className="flex-1 px-3 py-2 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400 dark:placeholder-gray-400"
                   />
                   <button
                     onClick={handleSaveApiKey}
@@ -2563,7 +2563,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors ${
                       apiKeySaved
                         ? "bg-green-600 dark:bg-green-500"
-                        : "bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600"
+                        : "bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)]"
                     }`}
                   >
                     {isSavingApiKey ? "Saving..." : apiKeySaved ? "Saved" : "Save"}
@@ -2578,7 +2578,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors ${
                     aiConfigSaved
                       ? "bg-green-600 dark:bg-green-500"
-                      : "bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600"
+                      : "bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)]"
                   }`}
                 >
                   {isSavingAiConfig ? "Saving..." : aiConfigSaved ? "Saved" : "Save AI Settings"}
@@ -2587,18 +2587,18 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
               {/* Claude Account (OAuth) — only shown when claude CLI is available */}
               {claudeCliAvailable && (
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <div className="pt-4 border-t exo-border-subtle">
+                  <h5 className="text-sm font-medium exo-text-secondary mb-1">
                     Claude Agent
                   </h5>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  <p className="text-xs exo-text-muted mb-3">
                     The agent can also authenticate via your Claude account. If you have Claude Code
                     installed and logged in, this is detected automatically.
                   </p>
 
                   <div className="flex items-center gap-3 mb-3">
                     {claudeAuthStatus === "checking" && (
-                      <span className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-2 text-sm exo-text-muted">
                         <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                           <circle
                             className="opacity-25"
@@ -2636,7 +2636,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       </span>
                     )}
                     {claudeAuthStatus === "not_authenticated" && (
-                      <span className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-2 text-sm exo-text-muted">
                         <svg
                           className="w-4 h-4"
                           fill="none"
@@ -2658,7 +2658,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   <button
                     onClick={handleClaudeLogin}
                     disabled={isLoggingIn}
-                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-[var(--exo-bg-surface-soft)] exo-text-secondary text-sm font-medium rounded-lg hover:bg-[var(--exo-bg-surface-hover)] disabled:opacity-50 transition-colors"
                   >
                     {isLoggingIn ? "Logging in..." : "Login with Claude Account"}
                   </button>
@@ -2667,7 +2667,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     <p className="text-xs text-red-600 dark:text-red-400 mt-2">{loginError}</p>
                   )}
 
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                  <p className="text-xs exo-text-muted mt-3">
                     An API key above also enables the agent. Claude Account login is only needed if
                     you don't have an API key.
                   </p>
@@ -2676,13 +2676,13 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             </div>
 
             {/* Browser Automation */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
+            <div className="exo-settings-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+                  <h4 className="text-base font-medium exo-text-primary">
                     Browser Automation
                   </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-sm exo-text-muted mt-1">
                     Allow agents to browse the web using Chrome DevTools Protocol. Requires Chrome
                     to be running with remote debugging enabled.
                   </p>
@@ -2690,11 +2690,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <button
                   onClick={() => setBrowserEnabled(!browserEnabled)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    browserEnabled ? "bg-purple-600" : "bg-gray-300 dark:bg-gray-600"
+                    browserEnabled ? "bg-purple-600" : "bg-[var(--exo-border-subtle)]"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-[var(--exo-bg-elevated)] transition-transform ${
                       browserEnabled ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
@@ -2702,9 +2702,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               </div>
 
               {browserEnabled && (
-                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="space-y-4 pt-4 border-t exo-border-subtle">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium exo-text-secondary mb-1">
                       Chrome Debug Port
                     </label>
                     <input
@@ -2713,16 +2713,16 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       onChange={(e) => setChromeDebugPort(Number(e.target.value))}
                       min={1024}
                       max={65535}
-                      className="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-32 px-3 py-2 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs exo-text-muted mt-1">
                       Default: 9222. Chrome must be launched with --remote-debugging-port=
                       {chromeDebugPort}
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium exo-text-secondary mb-1">
                       Chrome Profile Path (optional)
                     </label>
                     <input
@@ -2730,9 +2730,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       value={chromeProfilePath}
                       onChange={(e) => setChromeProfilePath(e.target.value)}
                       placeholder="~/.chrome-debug-profile"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400"
+                      className="w-full px-3 py-2 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400 dark:placeholder-gray-400"
                     />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs exo-text-muted mt-1">
                       Use a separate profile directory for persistent login sessions.
                     </p>
                   </div>
@@ -2775,12 +2775,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             </div>
 
             {/* Custom MCP Servers */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
+            <div className="exo-settings-card p-6">
               <div className="mb-4">
-                <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+                <h4 className="text-base font-medium exo-text-primary">
                   Custom MCP Servers
                 </h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm exo-text-muted mt-1">
                   Add MCP servers to give the agent access to custom tools. Paste the JSON config
                   from your MCP server&apos;s docs.
                 </p>
@@ -2798,16 +2798,16 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     return (
                       <div
                         key={name}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-[var(--exo-bg-surface-soft)]/50 rounded-lg"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <p className="text-sm font-medium exo-text-primary">
                             {name}
-                            <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
+                            <span className="ml-2 text-xs font-normal exo-text-muted">
                               {transport}
                             </span>
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-mono">
+                          <p className="text-xs exo-text-muted truncate font-mono">
                             {detail}
                           </p>
                         </div>
@@ -2829,7 +2829,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     rows={12}
                     spellCheck={false}
                     placeholder={`Paste MCP config JSON, e.g.:\n\n{\n  "mcpServers": {\n    "exa": {\n      "url": "https://mcp.exa.ai/mcp"\n    }\n  }\n}\n\nOr stdio format:\n{\n  "mcpServers": {\n    "filesystem": {\n      "command": "npx",\n      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]\n    }\n  }\n}`}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-mono leading-relaxed"
+                    className="w-full px-3 py-2 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400 dark:placeholder-gray-500 font-mono leading-relaxed"
                   />
                   {mcpFormError && (
                     <p className="text-xs text-red-600 dark:text-red-400">{mcpFormError}</p>
@@ -2840,7 +2840,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                         setIsMcpEditing(false);
                         setMcpFormError(null);
                       }}
-                      className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      className="px-3 py-1.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
@@ -3014,12 +3014,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             </div>
 
             {/* CLI Tools */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
+            <div className="exo-settings-card p-6">
               <div className="mb-4">
-                <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+                <h4 className="text-base font-medium exo-text-primary">
                   CLI Tools
                 </h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm exo-text-muted mt-1">
                   Allow the agent to run specific CLI commands. Each command becomes a dedicated
                   tool the agent can call.
                 </p>
@@ -3029,7 +3029,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 {cliTools.map((tool, idx) => (
                   <div
                     key={tool._key}
-                    className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg space-y-2"
+                    className="p-3 bg-[var(--exo-bg-surface-soft)]/50 rounded-lg space-y-2"
                   >
                     <div className="flex items-center gap-2">
                       <input
@@ -3041,13 +3041,13 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           setCliTools(updated);
                         }}
                         placeholder="e.g. curl, python3, jq"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-mono"
+                        className="flex-1 px-3 py-1.5 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400 dark:placeholder-gray-500 font-mono"
                       />
                       <button
                         onClick={() => {
                           setCliTools(cliTools.filter((_, i) => i !== idx));
                         }}
-                        className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                        className="p-1.5 text-[var(--exo-text-muted)] hover:text-red-500 dark:hover:text-red-400 transition-colors"
                         title="Remove tool"
                       >
                         <svg
@@ -3074,7 +3074,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       }}
                       placeholder="Instructions for when to use this tool (optional)"
                       rows={2}
-                      className="w-full px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full px-3 py-1.5 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                 ))}
@@ -3125,12 +3125,12 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             </div>
 
             {/* Extra PATH Directories */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
+            <div className="exo-settings-card p-6">
               <div className="mb-4">
-                <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+                <h4 className="text-base font-medium exo-text-primary">
                   Additional Tool Directories
                 </h4>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-sm exo-text-muted mt-1">
                   Extra directories to add to the system PATH so agents can find CLI tools installed
                   in non-standard locations.
                 </p>
@@ -3148,11 +3148,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                         setExtraPathDirs(updated);
                       }}
                       placeholder="/path/to/tools/bin"
-                      className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 font-mono"
+                      className="flex-1 px-3 py-1.5 border exo-border-strong rounded-lg text-sm bg-[var(--exo-bg-elevated)] exo-text-primary placeholder-gray-400 dark:placeholder-gray-500 font-mono"
                     />
                     <button
                       onClick={() => setExtraPathDirs(extraPathDirs.filter((_, i) => i !== idx))}
-                      className="p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                      className="p-1.5 text-[var(--exo-text-muted)] hover:text-red-500 dark:hover:text-red-400 transition-colors"
                       title="Remove directory"
                     >
                       <svg
@@ -3211,7 +3211,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             </div>
 
             {/* Agent Capabilities Info */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+            <div className="exo-surface-soft p-4 rounded-lg text-sm exo-text-secondary">
               <p className="font-medium mb-2">Available agent capabilities:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>
@@ -3246,34 +3246,34 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "analytics" && (
           <div className="max-w-3xl space-y-6">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+              <h3 className="text-lg font-medium exo-text-primary mb-4">
                 Analytics
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              <p className="text-sm exo-text-muted mb-6">
                 Help improve Exo by sharing usage data and error reports. No email content is ever
                 sent.
               </p>
             </div>
 
             {/* Enable/Disable Toggle */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-6">
+            <div className="exo-settings-card p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
+                  <h4 className="text-base font-medium exo-text-primary">
                     Enable Analytics
                   </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-sm exo-text-muted mt-1">
                     Crash reports, app usage data, and session recordings for debugging
                   </p>
                 </div>
                 <button
                   onClick={() => setPosthogEnabled(!posthogEnabled)}
                   className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                    posthogEnabled ? "bg-blue-600 dark:bg-blue-500" : "bg-gray-200 dark:bg-gray-700"
+                    posthogEnabled ? "bg-[var(--exo-accent)]" : "bg-[var(--exo-border-subtle)]"
                   }`}
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    className={`inline-block h-5 w-5 transform rounded-full bg-[var(--exo-bg-elevated)] shadow-sm transition-transform ${
                       posthogEnabled ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
@@ -3322,7 +3322,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors ${
                   analyticsSaveResult === "saved"
                     ? "bg-green-600 dark:bg-green-500"
-                    : "bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600"
+                    : "bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] dark:hover:bg-[var(--exo-accent)]"
                 }`}
               >
                 {isSavingAnalytics
@@ -3337,7 +3337,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             </div>
 
             {/* Info box about what's tracked */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+            <div className="exo-surface-soft p-4 rounded-lg text-sm exo-text-secondary">
               <p className="font-medium mb-2">What we collect:</p>
               <ul className="list-disc list-inside space-y-1">
                 <li>
@@ -3415,12 +3415,12 @@ function UsageCostSection() {
   const history = historyResult?.success ? historyResult.data : null;
 
   return (
-    <div className="space-y-6 mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+    <div className="space-y-6 mt-8 border-t exo-border-subtle pt-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+        <h3 className="text-lg font-medium exo-text-primary mb-1">
           AI Usage & Costs
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm exo-text-muted mb-4">
           Token usage and estimated costs for Claude API calls (last 30 days).
         </p>
       </div>
@@ -3436,15 +3436,15 @@ function UsageCostSection() {
         ).map(([label, bucket]) => (
           <div
             key={label}
-            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4"
+            className="exo-settings-card p-4"
           >
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <p className="text-xs font-medium exo-text-muted uppercase tracking-wide">
               {label}
             </p>
-            <p className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-1">
+            <p className="text-2xl font-semibold exo-text-primary mt-1">
               {formatCost(bucket?.totalCostCents ?? 0)}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm exo-text-muted">
               {bucket?.totalCalls ?? 0} calls
             </p>
           </div>
@@ -3452,12 +3452,12 @@ function UsageCostSection() {
       </div>
 
       {/* Breakdown by Caller */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">By Caller</h4>
+      <div className="exo-settings-card p-4">
+        <h4 className="text-sm font-medium exo-text-primary mb-3">By Caller</h4>
         {stats?.byCaller && stats.byCaller.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+              <tr className="text-left exo-text-muted border-b exo-border-subtle">
                 <th className="pb-2 font-medium">Caller</th>
                 <th className="pb-2 font-medium text-right">Cost</th>
                 <th className="pb-2 font-medium text-right">Calls</th>
@@ -3465,12 +3465,12 @@ function UsageCostSection() {
             </thead>
             <tbody>
               {stats.byCaller.map((row) => (
-                <tr key={row.caller} className="border-b border-gray-50 dark:border-gray-700/50">
-                  <td className="py-1.5 text-gray-900 dark:text-gray-100">{row.caller}</td>
-                  <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                <tr key={row.caller} className="border-b border-[var(--exo-border-subtle)]/30/50">
+                  <td className="py-1.5 exo-text-primary">{row.caller}</td>
+                  <td className="py-1.5 text-right exo-text-secondary">
                     {formatCost(row.costCents)}
                   </td>
-                  <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                  <td className="py-1.5 text-right exo-text-secondary">
                     {row.calls}
                   </td>
                 </tr>
@@ -3478,17 +3478,17 @@ function UsageCostSection() {
             </tbody>
           </table>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500">No usage data yet.</p>
+          <p className="text-sm exo-text-muted">No usage data yet.</p>
         )}
       </div>
 
       {/* Breakdown by Model */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">By Model</h4>
+      <div className="exo-settings-card p-4">
+        <h4 className="text-sm font-medium exo-text-primary mb-3">By Model</h4>
         {stats?.byModel && stats.byModel.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+              <tr className="text-left exo-text-muted border-b exo-border-subtle">
                 <th className="pb-2 font-medium">Model</th>
                 <th className="pb-2 font-medium text-right">Cost</th>
                 <th className="pb-2 font-medium text-right">Calls</th>
@@ -3496,14 +3496,14 @@ function UsageCostSection() {
             </thead>
             <tbody>
               {stats.byModel.map((row) => (
-                <tr key={row.model} className="border-b border-gray-50 dark:border-gray-700/50">
-                  <td className="py-1.5 text-gray-900 dark:text-gray-100 font-mono text-xs">
+                <tr key={row.model} className="border-b border-[var(--exo-border-subtle)]/30/50">
+                  <td className="py-1.5 exo-text-primary font-mono text-xs">
                     {row.model}
                   </td>
-                  <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                  <td className="py-1.5 text-right exo-text-secondary">
                     {formatCost(row.costCents)}
                   </td>
-                  <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                  <td className="py-1.5 text-right exo-text-secondary">
                     {row.calls}
                   </td>
                 </tr>
@@ -3511,18 +3511,18 @@ function UsageCostSection() {
             </tbody>
           </table>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500">No usage data yet.</p>
+          <p className="text-sm exo-text-muted">No usage data yet.</p>
         )}
       </div>
 
       {/* Recent Calls */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Recent Calls</h4>
+      <div className="exo-settings-card p-4">
+        <h4 className="text-sm font-medium exo-text-primary mb-3">Recent Calls</h4>
         {history && history.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <tr className="text-left exo-text-muted border-b exo-border-subtle">
                   <th className="pb-2 font-medium">Time</th>
                   <th className="pb-2 font-medium">Caller</th>
                   <th className="pb-2 font-medium">Model</th>
@@ -3534,21 +3534,21 @@ function UsageCostSection() {
               </thead>
               <tbody>
                 {history.map((row) => (
-                  <tr key={row.id} className="border-b border-gray-50 dark:border-gray-700/50">
-                    <td className="py-1.5 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                  <tr key={row.id} className="border-b border-[var(--exo-border-subtle)]/30/50">
+                    <td className="py-1.5 exo-text-secondary whitespace-nowrap">
                       {new Date(row.created_at.replace(" ", "T") + "Z").toLocaleString()}
                     </td>
-                    <td className="py-1.5 text-gray-900 dark:text-gray-100">{row.caller}</td>
-                    <td className="py-1.5 text-gray-700 dark:text-gray-300 font-mono">
+                    <td className="py-1.5 exo-text-primary">{row.caller}</td>
+                    <td className="py-1.5 exo-text-secondary font-mono">
                       {row.model}
                     </td>
-                    <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                    <td className="py-1.5 text-right exo-text-secondary">
                       {row.input_tokens.toLocaleString()} / {row.output_tokens.toLocaleString()}
                     </td>
-                    <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                    <td className="py-1.5 text-right exo-text-secondary">
                       {formatCost(row.cost_cents)}
                     </td>
-                    <td className="py-1.5 text-right text-gray-700 dark:text-gray-300">
+                    <td className="py-1.5 text-right exo-text-secondary">
                       {(row.duration_ms / 1000).toFixed(1)}s
                     </td>
                     <td className="py-1.5 text-center">
@@ -3564,7 +3564,7 @@ function UsageCostSection() {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-gray-400 dark:text-gray-500">No calls recorded yet.</p>
+          <p className="text-sm exo-text-muted">No calls recorded yet.</p>
         )}
       </div>
     </div>
