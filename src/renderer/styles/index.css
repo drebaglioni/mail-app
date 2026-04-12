@@ -22,9 +22,9 @@
   --exo-accent-soft: #e7eeff;
   --exo-focus-ring: #4d78ff;
 
-  --exo-priority-low-bg: #dcfce7;
-  --exo-priority-low-text: #166534;
-  --exo-priority-low-border: #86efac;
+  --exo-priority-low-bg: #f0f0f0;
+  --exo-priority-low-text: #6b6b6b;
+  --exo-priority-low-border: #d4d4d4;
   --exo-priority-medium-bg: #fef9c3;
   --exo-priority-medium-text: #854d0e;
   --exo-priority-medium-border: #fde047;
@@ -60,9 +60,9 @@
   --exo-accent-soft: #261200;
   --exo-focus-ring: #ff6a2a;
 
-  --exo-priority-low-bg: #123124;
-  --exo-priority-low-text: #7dffb3;
-  --exo-priority-low-border: #2a7c5a;
+  --exo-priority-low-bg: #1a1e24;
+  --exo-priority-low-text: #8a8f98;
+  --exo-priority-low-border: #333840;
   --exo-priority-medium-bg: #3a2d00;
   --exo-priority-medium-text: #ffd65c;
   --exo-priority-medium-border: #7a5a00;
@@ -267,7 +267,7 @@ body {
   box-shadow: 0 0 8px rgba(255, 214, 92, 0.25);
 }
 .dark .priority-low {
-  box-shadow: 0 0 8px rgba(125, 255, 179, 0.2);
+  box-shadow: none;
 }
 .dark .priority-done {
   box-shadow: 0 0 8px rgba(85, 153, 255, 0.3);
