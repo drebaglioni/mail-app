@@ -2,6 +2,22 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { useAppStore, useSplitFilteredThreads } from "../store";
 import DOMPurify from "dompurify";
 import {
+  Archive,
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  Clock,
+  Forward,
+  Loader2,
+  MailOpen,
+  MoreHorizontal,
+  Package,
+  Reply,
+  ReplyAll,
+  Star,
+  Trash2,
+} from "lucide-react";
+import {
   emailBodyCache,
   isHtmlContent,
   hasRichBackground,
@@ -35,7 +51,6 @@ import { ComposeToolbar } from "./ComposeToolbar";
 import { FromSelector } from "./FromSelector";
 import { trackEvent } from "../services/posthog";
 import { draftBodyToHtml } from "../../shared/draft-utils";
-import { AnalysisPrioritySection } from "./AnalysisPrioritySection";
 
 declare global {
   interface Window {
@@ -403,12 +418,6 @@ interface TrackingInfo {
   url: string;
 }
 
-type ThreadSplitSuggestion = {
-  splitId: string;
-  score: number;
-  reason: string;
-};
-
 function detectTrackingNumbers(bodies: string[]): TrackingInfo[] {
   const combined = bodies.map((b) => b.replace(/<[^>]*>/g, " ")).join(" ");
   const results: TrackingInfo[] = [];
@@ -594,16 +603,11 @@ function AddressField({
     >
       {display}
       {!allBare && !showExpanded && (
-        <svg
+        <ChevronDown
           className={`inline-block ml-1 w-3 h-3 opacity-0 group-hover/addr:opacity-60 transition-opacity ${
             useWhiteCard ? "text-gray-400" : "text-gray-400 dark:text-gray-500"
           }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        />
       )}
     </span>
   );
@@ -838,12 +842,8 @@ function ThreadMessage({
     <div
       className={`group/msg ${
         useWhiteCard
-          ? `bg-white rounded-lg${isFocused ? " ring-1 ring-blue-300 dark:ring-blue-500" : ""}`
-          : `relative before:absolute before:left-[-6px] before:top-0 before:bottom-0 before:rounded-full bg-gray-50/50 dark:bg-gray-800/30 ${
-              isFocused
-                ? "before:w-1 before:bg-blue-600 before:dark:bg-blue-400"
-                : "before:w-0.5 before:bg-blue-500 before:dark:bg-blue-400"
-            }`
+          ? `bg-white rounded-lg${isFocused ? " ring-1 ring-gray-200 dark:ring-gray-600" : ""}`
+          : `${isFocused ? "ring-1 ring-gray-200 dark:ring-gray-700 rounded-lg" : ""}`
       }`}
     >
       {/* Header */}
@@ -854,20 +854,14 @@ function ThreadMessage({
         }`}
       >
         <span
-          onClick={handleHeaderClick}
-          className={`min-w-0 truncate text-sm font-medium cursor-pointer ${useWhiteCard ? "text-gray-900" : "text-gray-900 dark:text-gray-100"}`}
+          className={`min-w-0 truncate text-sm font-medium ${useWhiteCard ? "text-gray-900" : "text-gray-900 dark:text-gray-100"}`}
         >
           {formatMessageHeader(email, currentUserEmail, nameMap)}
         </span>
-        <svg
+        <ChevronDown
           onClick={handleHeaderClick}
           className={`flex-shrink-0 w-3 h-3 transition-transform cursor-pointer ${showHeaderDetails ? "rotate-180" : ""} ${useWhiteCard ? "text-gray-400" : "text-gray-400 dark:text-gray-500"}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        />
         <span
           className={`flex-shrink-0 ml-auto text-sm ${useWhiteCard ? "text-gray-400" : "text-gray-400 dark:text-gray-500"}`}
         >
@@ -889,14 +883,7 @@ function ThreadMessage({
               }`}
               title="Reply"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 10l6-6m0 0v12m0-12h12a2 2 0 012 2v8a2 2 0 01-2 2H9"
-                />
-              </svg>
+              <Reply className="w-3.5 h-3.5" />
             </span>
             <span
               role="button"
@@ -911,20 +898,7 @@ function ThreadMessage({
               }`}
               title="Reply All"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 10h8a8 8 0 018 8v2M7 10l6 6m-6-6l6-6"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 14l4-4-4-4"
-                />
-              </svg>
+              <ReplyAll className="w-3.5 h-3.5" />
             </span>
             <span
               role="button"
@@ -939,14 +913,7 @@ function ThreadMessage({
               }`}
               title="Forward"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                />
-              </svg>
+              <Forward className="w-3.5 h-3.5" />
             </span>
           </span>
         )}
@@ -1565,19 +1532,7 @@ function InlineReply({
                     className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                     title="Collapse address fields"
                   >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 15l7-7 7 7"
-                      />
-                    </svg>
+                    <ChevronUp className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {!form.showCcBcc && (
@@ -1597,14 +1552,7 @@ function InlineReply({
               data-testid="inline-compose-close"
               title="Discard draft"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1632,19 +1580,9 @@ function InlineReply({
                 className="ml-2 flex-shrink-0 p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 title={form.showCcBcc ? "Hide Cc/Bcc/From" : "Show Cc/Bcc/From"}
               >
-                <svg
+                <ChevronDown
                   className={`w-4 h-4 transition-transform ${form.showCcBcc ? "rotate-180" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                />
               </button>
             </div>
             {form.showCcBcc && (
@@ -1754,21 +1692,7 @@ function InlineReply({
             >
               {isRefining ? (
                 <>
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Refining...
                 </>
               ) : (
@@ -2070,14 +1994,7 @@ function NewEmailCompose({
           className="ml-auto p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
           title="Discard draft"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
@@ -2112,19 +2029,9 @@ function NewEmailCompose({
               data-testid="compose-cc-bcc-toggle"
               title={form.showCcBcc ? "Hide Cc/Bcc/From" : "Show Cc/Bcc/From"}
             >
-              <svg
+              <ChevronDown
                 className={`w-4 h-4 transition-transform ${form.showCcBcc ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+              />
             </button>
           </div>
 
@@ -2247,28 +2154,24 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
     setViewMode,
     accounts,
     currentAccountId,
-    splits,
     composeState,
     closeCompose,
     openCompose,
     removeLocalDraft,
     addLocalDraft,
-    setCurrentSplitId,
   } = useAppStore();
 
   const addRecentlyRepliedThread = useAppStore((s) => s.addRecentlyRepliedThread);
   const addUndoAction = useAppStore((s) => s.addUndoAction);
   const snoozedThreads = useAppStore((s) => s.snoozedThreads);
-  const removeSnoozedThread = useAppStore((s) => s.removeSnoozedThread);
+
   const showSnoozeMenu = useAppStore((s) => s.showSnoozeMenu);
   const setShowSnoozeMenu = useAppStore((s) => s.setShowSnoozeMenu);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const isInlineReplyOpen = useAppStore((s) => s.isInlineReplyOpen);
   const setInlineReplyOpen = useAppStore((s) => s.setInlineReplyOpen);
   const focusedThreadEmailId = useAppStore((s) => s.focusedThreadEmailId);
   const setFocusedThreadEmailId = useAppStore((s) => s.setFocusedThreadEmailId);
-  const splitAssignments = useAppStore((s) => s.splitAssignments);
-  const assignThreadToSplit = useAppStore((s) => s.assignThreadToSplit);
-  const clearThreadSplitAssignment = useAppStore((s) => s.clearThreadSplitAssignment);
 
   const { threads: currentThreads } = useSplitFilteredThreads();
 
@@ -2360,83 +2263,6 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
   }, [selectedEmailId, storeEmail, addEmails]);
 
   const selectedEmail = storeEmail ?? fetchedEmail;
-  const [isSuggestingSplit, setIsSuggestingSplit] = useState(false);
-  const [splitSuggestionError, setSplitSuggestionError] = useState<string | null>(null);
-  const [splitSuggestions, setSplitSuggestions] = useState<ThreadSplitSuggestion[]>([]);
-
-  const accountSplits = useMemo(
-    () => splits.filter((split) => split.accountId === currentAccountId),
-    [splits, currentAccountId],
-  );
-  const splitNameById = useMemo(
-    () => new Map(accountSplits.map((split) => [split.id, split.name])),
-    [accountSplits],
-  );
-  const assignedSplitId = selectedEmail
-    ? (splitAssignments.get(selectedEmail.threadId) ?? null)
-    : null;
-
-  useEffect(() => {
-    setIsSuggestingSplit(false);
-    setSplitSuggestionError(null);
-    setSplitSuggestions([]);
-  }, [selectedEmail?.threadId, currentAccountId]);
-
-  const handleSuggestSplit = useCallback(async () => {
-    if (!currentAccountId || !selectedEmail) return;
-    setIsSuggestingSplit(true);
-    setSplitSuggestionError(null);
-    try {
-      const result = await window.api.splits.suggestThread(currentAccountId, selectedEmail.threadId);
-      if (!result.success) {
-        setSplitSuggestionError(result.error || "Failed to suggest a split");
-        setSplitSuggestions([]);
-        return;
-      }
-      setSplitSuggestions(result.data?.suggestions ?? []);
-      if ((result.data?.suggestions?.length ?? 0) === 0) {
-        setSplitSuggestionError("No confident split suggestions for this thread yet.");
-      }
-    } catch (error) {
-      setSplitSuggestionError(error instanceof Error ? error.message : "Failed to suggest a split");
-      setSplitSuggestions([]);
-    } finally {
-      setIsSuggestingSplit(false);
-    }
-  }, [currentAccountId, selectedEmail]);
-
-  const handleApplySplitAssignment = useCallback(
-    async (splitId: string) => {
-      if (!currentAccountId || !selectedEmail) return;
-      const result = (await window.api.splits.assignThread(
-        currentAccountId,
-        selectedEmail.threadId,
-        splitId,
-      )) as IpcResponse<void>;
-      if (!result.success) {
-        setSplitSuggestionError(result.error || "Failed to assign split");
-        return;
-      }
-      assignThreadToSplit(selectedEmail.threadId, splitId);
-      setCurrentSplitId(splitId);
-      setSplitSuggestionError(null);
-    },
-    [assignThreadToSplit, currentAccountId, selectedEmail, setCurrentSplitId],
-  );
-
-  const handleClearSplitAssignment = useCallback(async () => {
-    if (!currentAccountId || !selectedEmail) return;
-    const result = (await window.api.splits.clearThreadAssignment(
-      currentAccountId,
-      selectedEmail.threadId,
-    )) as IpcResponse<void>;
-    if (!result.success) {
-      setSplitSuggestionError(result.error || "Failed to clear split assignment");
-      return;
-    }
-    clearThreadSplitAssignment(selectedEmail.threadId);
-    setSplitSuggestionError(null);
-  }, [clearThreadSplitAssignment, currentAccountId, selectedEmail]);
 
   // Get current user email for "Me" detection
   const currentAccount = accounts.find((a) => a.id === currentAccountId);
@@ -2514,17 +2340,6 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
 
   // The latest email is the one we're typically replying to
   const latestEmail = threadEmails.length > 0 ? threadEmails[threadEmails.length - 1] : null;
-
-  // The latest RECEIVED email (not sent by user) — used for analysis display
-  // so that the user's own sent reply doesn't override the thread's analysis.
-  const latestReceivedEmail = useMemo(() => {
-    if (!currentUserEmail) return latestEmail;
-    const received = threadEmails.filter((e) => {
-      const sender = e.from.match(/<(.+?)>/)?.[1] ?? e.from;
-      return sender.toLowerCase() !== currentUserEmail.toLowerCase();
-    });
-    return received.length > 0 ? received[received.length - 1] : latestEmail;
-  }, [threadEmails, currentUserEmail, latestEmail]);
 
   // The email that has an AI-generated draft attached — may differ from latestEmail
   // when the agent drafted on an earlier received email and a sent reply is now the latest.
@@ -3336,14 +3151,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
             onClick={handleBackToSplit}
             className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-sm"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ChevronLeft className="w-4 h-4" />
             Back
           </button>
         </div>
@@ -3358,11 +3166,46 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
               <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                 {cleanSubject}
               </h1>
-              {threadEmails.length > 1 && (
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                  {threadEmails.length} messages
-                </p>
-              )}
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
+                {threadEmails.length > 1 && <span>{threadEmails.length} messages</span>}
+                {(() => {
+                  const snoozeInfo = snoozedThreads.get(latestEmail.threadId);
+                  return snoozeInfo ? (
+                    <>
+                      {threadEmails.length > 1 && <span>·</span>}
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Snoozed until {formatSnoozeTime(snoozeInfo.snoozeUntil)}
+                      </span>
+                    </>
+                  ) : null;
+                })()}
+                {trackingNumbers.map((t, i) => (
+                  <React.Fragment key={i}>
+                    <span>·</span>
+                    <button
+                      onClick={() => window.open(t.url, "_blank")}
+                      className="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                      title={`Track ${t.carrier} package ${t.trackingNumber}`}
+                    >
+                      <Package className="w-3 h-3" />
+                      Track {t.carrier}
+                    </button>
+                  </React.Fragment>
+                ))}
+                {unsubscribeUrl && (
+                  <>
+                    <span>·</span>
+                    <button
+                      onClick={() => window.open(unsubscribeUrl!, "_blank")}
+                      className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                      title="Unsubscribe from this mailing list"
+                    >
+                      Unsubscribe
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex items-center ml-4 flex-shrink-0">
               <div className="flex items-center">
@@ -3371,88 +3214,8 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                   className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                   title="Archive"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M5 8h14M5 8a2 2 0 01-2-2V4a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 01-2 2M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                    />
-                  </svg>
+                  <Archive className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={handleTrash}
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="Delete"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleMarkUnread}
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="Mark as unread"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleToggleStar}
-                  className={`p-1.5 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                    isStarred
-                      ? "text-yellow-400 hover:text-yellow-500"
-                      : "text-gray-400 dark:text-gray-500 hover:text-yellow-400"
-                  }`}
-                  title={isStarred ? "Unstar" : "Star"}
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill={isStarred ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                    />
-                  </svg>
-                </button>
-                {/* Snooze button */}
-                <button
-                  onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
-                  className={`p-1.5 rounded transition-colors ${
-                    snoozedThreads.has(latestEmail.threadId)
-                      ? "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                  title={snoozedThreads.has(latestEmail.threadId) ? "Snoozed" : "Snooze (h)"}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="w-px h-4 bg-gray-200 dark:bg-gray-600 mx-1" />
-              <div className="flex items-center">
                 <button
                   onClick={() =>
                     openCompose(
@@ -3461,125 +3224,111 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                     )
                   }
                   className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="Reply All"
+                  title="Reply All (a)"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M7 10h8a8 8 0 018 8v2M7 10l6 6m-6-6l6-6"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M3 14l4-4-4-4"
-                    />
-                  </svg>
+                  <ReplyAll className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() =>
-                    openCompose(
-                      "forward",
-                      focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
-                    )
-                  }
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="Forward"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                    title="More actions"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                  {showMoreMenu && (
+                    <div
+                      className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1"
+                      onMouseLeave={() => setShowMoreMenu(false)}
+                    >
+                      <button
+                        onClick={() => {
+                          openCompose(
+                            "reply",
+                            focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
+                          );
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Reply className="w-4 h-4" /> Reply
+                        </span>
+                        <span className="text-xs text-gray-400">r</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          openCompose(
+                            "forward",
+                            focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
+                          );
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Forward className="w-4 h-4" /> Forward
+                        </span>
+                        <span className="text-xs text-gray-400">f</span>
+                      </button>
+                      <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                      <button
+                        onClick={() => {
+                          handleToggleStar();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Star className="w-4 h-4" fill={isStarred ? "currentColor" : "none"} />
+                          {isStarred ? "Unstar" : "Star"}
+                        </span>
+                        <span className="text-xs text-gray-400">s</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleMarkUnread();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <MailOpen className="w-4 h-4" /> Mark as unread
+                        </span>
+                        <span className="text-xs text-gray-400">&#8679;U</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSnoozeMenu(!showSnoozeMenu);
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" /> Snooze
+                        </span>
+                        <span className="text-xs text-gray-400">h</span>
+                      </button>
+                      <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                      <button
+                        onClick={() => {
+                          handleTrash();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Trash2 className="w-4 h-4" /> Trash
+                        </span>
+                        <span className="text-xs text-gray-400">#</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Snooze banner */}
-        {snoozedThreads.has(latestEmail.threadId) &&
-          currentAccountId &&
-          (() => {
-            const snoozeInfo = snoozedThreads.get(latestEmail.threadId);
-            return snoozeInfo ? (
-              <div className="px-6 py-2.5 border-b border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-amber-500 dark:text-amber-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span className="text-sm text-amber-700 dark:text-amber-300">
-                    Snoozed until {formatSnoozeTime(snoozeInfo.snoozeUntil)}
-                  </span>
-                </div>
-                <button
-                  onClick={async () => {
-                    await window.api.snooze.unsnooze(latestEmail.threadId, currentAccountId);
-                    removeSnoozedThread(latestEmail.threadId);
-                  }}
-                  className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-medium"
-                >
-                  Unsnooze
-                </button>
-              </div>
-            ) : null;
-          })()}
-
-        {/* Action buttons (Track Package, Unsubscribe) */}
-        {(trackingNumbers.length > 0 || unsubscribeUrl) && (
-          <div className="px-6 py-2.5 border-b border-gray-100 flex items-center gap-2 flex-wrap">
-            {trackingNumbers.map((t, i) => (
-              <button
-                key={i}
-                onClick={() => window.open(t.url, "_blank")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
-                title={`Track ${t.carrier} package ${t.trackingNumber}`}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                  />
-                </svg>
-                Track {t.carrier} Package
-              </button>
-            ))}
-            {unsubscribeUrl && (
-              <button
-                onClick={() => window.open(unsubscribeUrl!, "_blank")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-                title="Unsubscribe from this mailing list"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                  />
-                </svg>
-                Unsubscribe
-              </button>
-            )}
-          </div>
-        )}
 
         {/* Thread messages - single scroll, no nested scrolls */}
         <div className="px-6">
@@ -3661,87 +3410,6 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
             </div>
           ))}
         </div>
-
-        {/* Analysis section with priority override — uses latestReceivedEmail
-             so the user's own sent reply doesn't override the thread's analysis */}
-        {latestReceivedEmail?.analysis && (
-          <AnalysisPrioritySection
-            email={latestReceivedEmail}
-            onAnalysisUpdated={(newNeedsReply, newPriority) => {
-              updateEmail(latestReceivedEmail.id, {
-                analysis: {
-                  ...latestReceivedEmail.analysis!,
-                  needsReply: newNeedsReply,
-                  priority: (newPriority as "high" | "medium" | "low" | "skip" | null) ?? undefined,
-                },
-              });
-            }}
-          />
-        )}
-
-        {currentAccountId && selectedEmail && accountSplits.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                Split assignment
-              </span>
-              {assignedSplitId && (
-                <span className="text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
-                  Assigned: {splitNameById.get(assignedSplitId) ?? assignedSplitId}
-                </span>
-              )}
-              <button
-                onClick={() => void handleSuggestSplit()}
-                disabled={isSuggestingSplit}
-                className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-              >
-                {isSuggestingSplit ? "Suggesting..." : "Suggest Split"}
-              </button>
-              {assignedSplitId && (
-                <button
-                  onClick={() => void handleClearSplitAssignment()}
-                  className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Clear assignment
-                </button>
-              )}
-            </div>
-
-            {splitSuggestionError && (
-              <div className="text-xs text-amber-700 dark:text-amber-300">{splitSuggestionError}</div>
-            )}
-
-            {splitSuggestions.length > 0 && (
-              <div className="space-y-1.5">
-                {splitSuggestions.map((suggestion) => {
-                  const splitName = splitNameById.get(suggestion.splitId) ?? suggestion.splitId;
-                  const scorePct = Math.round(suggestion.score * 100);
-                  return (
-                    <div
-                      key={suggestion.splitId}
-                      className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-700/40 rounded-md px-2.5 py-1.5"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-gray-800 dark:text-gray-100 truncate">
-                          {splitName} ({scorePct}%)
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-300 truncate">
-                          {suggestion.reason}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => void handleApplySplitAssignment(suggestion.splitId)}
-                        className="inline-flex items-center px-2 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Attachment preview modal */}

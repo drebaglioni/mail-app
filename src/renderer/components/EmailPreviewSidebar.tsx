@@ -2,6 +2,7 @@ import { memo, useMemo, useEffect, useRef } from "react";
 import { useAppStore } from "../store";
 import { useExtensionPanels, ExtensionPanelSlot } from "../extensions";
 import { AgentTabContent } from "./AgentPanel";
+import { AnalysisPrioritySection } from "./AnalysisPrioritySection";
 import type { ScopedAgentEvent } from "../../shared/agent-types";
 
 // SVG icon components for sidebar tabs
@@ -97,6 +98,7 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
   const globalAgentTaskKey = useAppStore((s) => s.globalAgentTaskKey);
   // Draft task key for agent tab — drafts use `draft:${id}` as their task key
   const draftTaskKey = selectedDraftId ? `draft:${selectedDraftId}` : null;
+  const updateEmail = useAppStore((s) => s.updateEmail);
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
   // Whether the selected email has a persisted agent trace (even if not yet loaded into memory)
@@ -422,6 +424,22 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Analysis priority — shown in email tab */}
+        {sidebarTab === "email" && latestReceivedEmail?.analysis && (
+          <AnalysisPrioritySection
+            email={latestReceivedEmail}
+            onAnalysisUpdated={(newNeedsReply, newPriority) => {
+              updateEmail(latestReceivedEmail.id, {
+                analysis: {
+                  ...latestReceivedEmail.analysis!,
+                  needsReply: newNeedsReply,
+                  priority: (newPriority as "high" | "medium" | "low" | "skip" | null) ?? undefined,
+                },
+              });
+            }}
+          />
         )}
 
         {/* Extension panels for active tab */}

@@ -122,6 +122,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     setSelectedThreadId,
     setShowSnoozeMenu,
     emails,
+    splits,
+    splitAssignments,
+    assignThreadToSplit,
+    clearThreadSplitAssignment,
+    setCurrentSplitId,
   } = useAppStore();
 
   const { threads } = useThreadedEmails();
@@ -579,6 +584,52 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         execute: () => useAppStore.getState().setAgentPaletteOpen(true),
       },
 
+      // --- Split assignment ---
+      ...splits
+        .filter((split) => split.accountId === currentAccountId)
+        .map((split) => ({
+          id: `assign-split-${split.id}`,
+          label: `Assign to split: ${split.name}`,
+          category: "Split",
+          icon: ICONS.layout,
+          available: () => hasSelectedThread,
+          execute: () => {
+            if (!currentAccountId || !selectedThreadId) return;
+            window.api.splits
+              .assignThread(currentAccountId, selectedThreadId, split.id)
+              .then((result: unknown) => {
+                const r = result as IpcResponse<void>;
+                if (r.success) {
+                  assignThreadToSplit(selectedThreadId, split.id);
+                  setCurrentSplitId(split.id);
+                }
+              })
+              .catch(console.error);
+          },
+        })),
+      {
+        id: "clear-split-assignment",
+        label: "Clear split assignment",
+        category: "Split",
+        icon: ICONS.layout,
+        available: () => {
+          if (!selectedThreadId) return false;
+          return splitAssignments.has(selectedThreadId);
+        },
+        execute: () => {
+          if (!currentAccountId || !selectedThreadId) return;
+          window.api.splits
+            .clearThreadAssignment(currentAccountId, selectedThreadId)
+            .then((result: unknown) => {
+              const r = result as IpcResponse<void>;
+              if (r.success) {
+                clearThreadSplitAssignment(selectedThreadId);
+              }
+            })
+            .catch(console.error);
+        },
+      },
+
       // --- Account switching ---
       ...accounts.map((account) => ({
         id: `switch-account-${account.id}`,
@@ -622,6 +673,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     setSelectedEmailId,
     setSelectedThreadId,
     setShowSnoozeMenu,
+    splits,
+    splitAssignments,
+    assignThreadToSplit,
+    clearThreadSplitAssignment,
+    setCurrentSplitId,
   ]);
 
   // Filter actions by query
