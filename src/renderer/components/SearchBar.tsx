@@ -68,7 +68,6 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
     isOnline,
     setRemoteSearchResults,
     setRemoteSearchError,
-    setCurrentSplitId,
   } = useAppStore();
 
   // The "search all mail" affordance is at index === results.length
@@ -125,14 +124,6 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
   const performFullSearch = useCallback(() => {
     if (!query.trim() || !currentAccountId) return;
 
-    // Special handling for "in:draft" / "in:drafts" — switch to drafts view instead of searching
-    const trimmed = query.trim().toLowerCase();
-    if (trimmed === "in:draft" || trimmed === "in:drafts") {
-      setCurrentSplitId("__drafts__");
-      onClose();
-      return;
-    }
-
     trackEvent("search_performed");
 
     // Close modal immediately and show SearchResultsView with loading state.
@@ -187,7 +178,6 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
     setActiveSearch,
     setRemoteSearchResults,
     setRemoteSearchError,
-    setCurrentSplitId,
     onClose,
   ]);
 

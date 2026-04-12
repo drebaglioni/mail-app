@@ -87,8 +87,7 @@ export function SplitTabs() {
   const setCurrentAutomatedCategory = useAppStore((state) => state.setCurrentAutomatedCategory);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const splitAssignments = useAppStore((state) => state.splitAssignments);
-  const localDrafts = useAppStore((state) => state.localDrafts);
-  const { peopleThreads, automatedThreads, snoozedCount, threads } = useThreadedEmails();
+  const { peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
 
   // Filter splits for current account
   const splits = useMemo(
@@ -103,17 +102,6 @@ export function SplitTabs() {
       recentlyUnsnoozedThreadIds.has(t.threadId) ||
       !exclusiveSplits.some((s) => threadMatchesSplit(t, s, splitAssignments.get(t.threadId)));
   }, [splits, recentlyUnsnoozedThreadIds, splitAssignments]);
-
-  // Count both local drafts (compose sessions) and AI-generated drafts (on emails)
-  const emailDraftsCount = useMemo(
-    () => threads.filter((t) => t.draft && t.draft.body).length,
-    [threads],
-  );
-  const localDraftsCount = useMemo(
-    () => localDrafts.filter((d) => !currentAccountId || d.accountId === currentAccountId).length,
-    [localDrafts, currentAccountId],
-  );
-  const draftsCount = emailDraftsCount + localDraftsCount;
 
   // Counts for People and Automated tabs
   const peopleCount = useMemo(
@@ -155,25 +143,6 @@ export function SplitTabs() {
         </Tab>
 
         {/* Conditional virtual tabs */}
-        {draftsCount > 0 && (
-          <Tab
-            active={currentSplitId === "__drafts__"}
-            onClick={() => setCurrentSplitId("__drafts__")}
-            count={draftsCount}
-          >
-            <span className="inline-flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Drafts
-            </span>
-          </Tab>
-        )}
         {snoozedCount > 0 && (
           <Tab
             active={currentSplitId === "__snoozed__"}

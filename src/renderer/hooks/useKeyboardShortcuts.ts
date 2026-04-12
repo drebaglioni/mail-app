@@ -139,11 +139,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
 
       const mode = getKeyboardMode();
       const currentThreads = threadsRef.current;
-      // In drafts view, scope all thread operations to visible draft threads
-      const visibleThreads =
-        state.currentSplitId === "__drafts__"
-          ? currentThreads.filter((t) => t.draft && t.draft.body)
-          : currentThreads;
+      const visibleThreads = currentThreads;
 
       // Always allow Escape to close modals or go back in view modes
       if (e.key === "Escape") {
@@ -318,16 +314,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
         }
 
         if (isGmail) {
-          if (e.key === "d") {
-            // g d → go to drafts (Gmail)
-            e.preventDefault();
-            state.setCurrentSplitId("__drafts__");
-            setSelectedThreadId(null);
-            setSelectedEmailId(null);
-            setViewMode("split");
-            return;
-          }
-
           if (e.key === "t") {
             // g t → go to sent (Gmail)
             e.preventDefault();
@@ -374,18 +360,14 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           | { type: "thread"; threadId: string; emailId: string }
         )[] = [];
 
-        // Add drafts if we're in inbox view or drafts view
+        // Add drafts if we're in inbox view (People, custom splits, snoozed)
         const accountDrafts = localDrafts.filter(
           (d) => !currentAccountId || d.accountId === currentAccountId,
         );
-        const isDraftsView = currentSplitId === "__drafts__";
 
         const isSnoozedView = currentSplitId === "__snoozed__";
         const isSentView = currentSplitId === "__sent__";
-        if (
-          isDraftsView ||
-          (accountDrafts.length > 0 && currentSplitId !== "__automated__" && !isSentView)
-        ) {
+        if (accountDrafts.length > 0 && currentSplitId !== "__automated__" && !isSentView) {
           let draftsForNav: typeof accountDrafts;
           if (isSnoozedView) {
             draftsForNav = accountDrafts.filter(
@@ -697,25 +679,12 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       }
 
       // --- Helper: get ordered split IDs matching visible SplitTabs ---
-      // Only includes __drafts__ / __snoozed__ when they have content (matching
-      // SplitTabs.tsx conditional rendering). __sent__ is excluded because it's
-      // a separate view that hides the tab bar entirely.
+      // Only includes __snoozed__ when it has content (matching SplitTabs.tsx
+      // conditional rendering). __sent__ is excluded because it's a separate
+      // view that hides the tab bar entirely.
       // Custom splits are filter chips within Automated, not top-level tabs.
       const getOrderedSplitIds = (): string[] => {
         const ids: string[] = ["__people__", "__automated__"];
-        // Conditional virtual tabs (only when visible in SplitTabs)
-        const hasLocalDrafts = state.localDrafts.some(
-          (d) => !currentAccountId || d.accountId === currentAccountId,
-        );
-        const hasAiDrafts = state.emails.some(
-          (e) =>
-            e.draft &&
-            e.draft.body &&
-            (!currentAccountId || e.accountId === currentAccountId) &&
-            (e.labelIds?.includes("INBOX") ?? true) &&
-            !state.snoozedThreadIds.has(e.threadId),
-        );
-        if (hasLocalDrafts || hasAiDrafts) ids.push("__drafts__");
         // Only include snoozed when there are snoozed threads with loaded email data
         // for the current account (matches SplitTabs.tsx snoozedCount from useThreadedEmails)
         const hasSnoozed = state.emails.some(
