@@ -10,7 +10,7 @@ function StatusChip({ status }: { status: AgentTaskState }) {
   const config: Record<AgentTaskState, { label: string; classes: string }> = {
     running: {
       label: "Running",
-      classes: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+      classes: "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)]",
     },
     pending_approval: {
       label: "Awaiting Approval",
@@ -18,7 +18,7 @@ function StatusChip({ status }: { status: AgentTaskState }) {
     },
     pending_async: {
       label: "Waiting",
-      classes: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400",
+      classes: "bg-[var(--exo-bg-surface-soft)] exo-text-secondary",
     },
     completed: {
       label: "Completed",
@@ -30,7 +30,7 @@ function StatusChip({ status }: { status: AgentTaskState }) {
     },
     cancelled: {
       label: "Cancelled",
-      classes: "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
+      classes: "bg-[var(--exo-bg-surface-soft)] exo-text-muted",
     },
   };
 
@@ -49,7 +49,7 @@ function TextBlock({ events }: { events: ScopedAgentEvent[] }) {
   if (!text) return null;
 
   return (
-    <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed agent-markdown">
+    <div className="text-sm exo-text-secondary leading-relaxed agent-markdown">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </div>
   );
@@ -73,7 +73,7 @@ function UserMessageBlock({ text }: { text: string }) {
           />
         </svg>
       </div>
-      <div className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-medium">{text}</div>
+      <div className="flex-1 text-sm exo-text-primary font-medium">{text}</div>
     </div>
   );
 }
@@ -112,7 +112,7 @@ function SqlHighlight({ code }: { code: string }) {
       parts.push(code.slice(lastIndex, match.index));
     }
     parts.push(
-      <span key={match.index} className="text-blue-400 font-semibold">
+      <span key={match.index} className="text-[var(--exo-accent)] font-semibold">
         {match[0]}
       </span>,
     );
@@ -209,14 +209,14 @@ function ToolCallEvent({
   const inputEntries = Object.entries(inputObj).filter(([, v]) => v !== undefined && v !== null);
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden my-2">
+    <div className="rounded-lg border exo-border-subtle overflow-hidden my-2">
       {/* Header bar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+      <div className="flex items-center gap-2 px-3 py-1.5 exo-surface-soft exo-text-secondary">
         <ToolIcon name={event.toolName} />
         <span className="text-xs font-medium">{humanizeToolName(event.toolName)}</span>
         {!isDone && (
           <svg
-            className="w-3.5 h-3.5 text-blue-500 animate-spin ml-auto"
+            className="w-3.5 h-3.5 text-[var(--exo-accent)] animate-spin ml-auto"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -257,27 +257,27 @@ function ToolCallEvent({
 
             return (
               <div key={key}>
-                <span className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">
+                <span className="text-[10px] uppercase tracking-wider exo-text-muted font-medium">
                   {key}
                 </span>
                 {isCode ? (
                   <>
-                    <pre className="mt-0.5 text-xs bg-gray-900 dark:bg-gray-950 text-gray-300 rounded p-2 overflow-x-auto font-mono">
+                    <pre className="mt-0.5 text-xs bg-[var(--exo-bg-app)] text-[var(--exo-text-secondary)] rounded p-2 overflow-x-auto font-mono">
                       <SqlHighlight code={displayValue} />
-                      {isTruncated && !inputExpanded && <span className="text-gray-500">...</span>}
+                      {isTruncated && !inputExpanded && <span className="text-[var(--exo-text-muted)]">...</span>}
                     </pre>
                     {isTruncated && (
                       <button
                         onClick={() => setInputExpanded(!inputExpanded)}
-                        className="text-[10px] text-blue-500 hover:text-blue-400 mt-0.5"
+                        className="text-[10px] text-[var(--exo-accent)] hover:text-[var(--exo-accent)] mt-0.5"
                       >
                         {inputExpanded ? "Show less" : "Show more"}
                       </button>
                     )}
                   </>
                 ) : (
-                  <div className="text-xs text-gray-700 dark:text-gray-300 mt-0.5 break-words">
-                    {strValue || <span className="text-gray-400 italic">empty</span>}
+                  <div className="text-xs exo-text-secondary mt-0.5 break-words">
+                    {strValue || <span className="text-[var(--exo-text-muted)] italic">empty</span>}
                   </div>
                 )}
               </div>
@@ -288,10 +288,10 @@ function ToolCallEvent({
 
       {/* Result section */}
       {isDone && hasResult && (
-        <div className="border-t border-gray-200 dark:border-gray-700">
+        <div className="border-t exo-border-subtle">
           <button
             onClick={() => setResultExpanded(!resultExpanded)}
-            className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs exo-text-muted hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
           >
             <svg
               className="w-3 h-3 text-green-500"
@@ -314,7 +314,7 @@ function ToolCallEvent({
             </svg>
           </button>
           {resultExpanded && (
-            <pre className="px-3 pb-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 overflow-x-auto max-h-60 overflow-y-auto whitespace-pre-wrap break-words">
+            <pre className="px-3 pb-2 text-xs exo-text-muted exo-surface-soft overflow-x-auto max-h-60 overflow-y-auto whitespace-pre-wrap break-words">
               {resultStr}
             </pre>
           )}
@@ -852,13 +852,13 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
 
   if (!task) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-sm text-gray-400 dark:text-gray-500 p-4 gap-3">
+      <div className="flex flex-col items-center justify-center h-full text-sm exo-text-muted p-4 gap-3">
         <span>No active agent task. Press Cmd+J to start.</span>
         {hasPendingDraft && (
           <button
             onClick={handleRegenerate}
             disabled={regenerating}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--exo-accent)] bg-[var(--exo-accent-soft)] hover:bg-[var(--exo-accent-soft)] rounded-lg transition-colors disabled:opacity-50"
           >
             {regenerating ? (
               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -901,11 +901,11 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Status + cancel header */}
-      <div className="h-10 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="h-10 flex items-center justify-between px-4 border-b exo-border-subtle flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <StatusChip status={task.status} />
           {task.providerIds.length === 1 && (
-            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
+            <span className="text-xs exo-text-muted truncate">
               {availableProviders.find((p) => p.id === task.providerIds[0])?.name ??
                 task.providerIds[0]}
             </span>
@@ -916,7 +916,7 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
             <button
               onClick={handleRegenerate}
               disabled={regenerating}
-              className="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded transition-colors disabled:opacity-30"
+              className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-accent)] rounded transition-colors disabled:opacity-30"
               title="Regenerate draft"
             >
               {regenerating ? (
@@ -958,7 +958,7 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
                 window.api?.agent?.cancel?.(task.taskId);
                 cancelAgentTask(task.taskId);
               }}
-              className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
+              className="p-1 text-[var(--exo-text-muted)] hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
               title="Cancel"
             >
               <svg
@@ -986,7 +986,7 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
           return (
             <div key={providerId}>
               {task.providerIds.length > 1 && (
-                <div className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+                <div className="text-xs font-medium exo-text-muted uppercase tracking-wider mb-2">
                   {providerName}
                 </div>
               )}
@@ -1003,7 +1003,7 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
 
       {/* Follow-up input */}
       {(task.status === "completed" || task.status === "running" || task.status === "failed") && (
-        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="px-4 py-3 border-t exo-border-subtle flex-shrink-0">
           <div className="flex items-center gap-2">
             <input
               ref={inputRef}
@@ -1025,7 +1025,7 @@ export const AgentTabContent = memo(function AgentTabContent({ emailId }: { emai
                     : "Follow up..."
               }
               disabled={task.status === "running"}
-              className="flex-1 text-sm px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg outline-none text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 disabled:opacity-50"
+              className="flex-1 text-sm px-3 py-1.5 bg-[var(--exo-bg-surface-soft)] rounded-lg outline-none exo-text-secondary placeholder-[var(--exo-text-muted)] disabled:opacity-50"
             />
             <button
               onClick={handleFollowUp}

@@ -7,8 +7,8 @@ import type { ScopedAgentEvent } from "../../shared/agent-types";
 // SVG icon components for sidebar tabs
 function PersonIcon({ active }: { active: boolean }) {
   const cls = active
-    ? "text-blue-600 dark:text-blue-400"
-    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300";
+    ? "text-[var(--exo-accent)]"
+    : "exo-text-muted hover:text-[var(--exo-text-primary)]";
   return (
     <svg
       className={`w-4 h-4 ${cls}`}
@@ -28,8 +28,8 @@ function PersonIcon({ active }: { active: boolean }) {
 
 function CalendarIcon({ active }: { active: boolean }) {
   const cls = active
-    ? "text-blue-600 dark:text-blue-400"
-    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300";
+    ? "text-[var(--exo-accent)]"
+    : "exo-text-muted hover:text-[var(--exo-text-primary)]";
   return (
     <svg
       className={`w-4 h-4 ${cls}`}
@@ -50,7 +50,7 @@ function CalendarIcon({ active }: { active: boolean }) {
 function AgentIcon({ active }: { active: boolean }) {
   const cls = active
     ? "text-purple-600 dark:text-purple-400"
-    : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300";
+    : "exo-text-muted hover:text-[var(--exo-text-primary)]";
   return (
     <svg
       className={`w-4 h-4 ${cls}`}
@@ -293,7 +293,7 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
   if (!selectedEmail || !latestEmail) {
     if (agentTaskKey && hasAgentTask) {
       return (
-        <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+        <div className="w-80 exo-elevated border-l exo-border-subtle flex flex-col overflow-hidden">
           <AgentTabContent emailId={agentTaskKey} />
         </div>
       );
@@ -301,12 +301,12 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
     // Draft is selected but no agent task yet — show prompt hint
     if (selectedDraftId) {
       return (
-        <div className="w-80 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex items-center justify-center">
+        <div className="w-80 exo-surface-soft border-l exo-border-subtle flex items-center justify-center">
           <div className="text-center px-6">
-            <p className="text-gray-400 dark:text-gray-500 text-sm">Draft selected</p>
-            <p className="text-gray-300 dark:text-gray-500 text-xs mt-1">
+            <p className="exo-text-muted text-sm">Draft selected</p>
+            <p className="text-[var(--exo-text-secondary)] text-xs mt-1">
               Press{" "}
-              <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 font-mono text-xs">
+              <kbd className="px-1 py-0.5 bg-[var(--exo-border-subtle)] rounded exo-text-secondary font-mono text-xs">
                 Cmd+J
               </kbd>{" "}
               to ask agent about this draft
@@ -316,10 +316,10 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
       );
     }
     return (
-      <div className="w-80 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex items-center justify-center">
+      <div className="w-80 exo-surface-soft border-l exo-border-subtle flex items-center justify-center">
         <div className="text-center px-6">
-          <p className="text-gray-400 dark:text-gray-500 text-sm">Select an email to see details</p>
-          <p className="text-gray-300 text-xs mt-1">Use j/k to navigate, Cmd+J for agent</p>
+          <p className="exo-text-muted text-sm">Select an email to see details</p>
+          <p className="text-[var(--exo-text-secondary)] text-xs mt-1">Use j/k to navigate, Cmd+J for agent</p>
         </div>
       </div>
     );
@@ -340,10 +340,10 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
   const activePanels = sidebarTab === "sender" ? senderPanels : emailPanels;
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+    <div className="w-80 exo-elevated border-l exo-border-subtle flex flex-col overflow-hidden">
       {/* Tab bar — only show when multiple tabs available */}
       {availableTabs.length > 1 && (
-        <div className="flex-shrink-0 h-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+        <div className="flex-shrink-0 h-10 border-b exo-border-subtle exo-surface-soft/80">
           <div className="flex h-full">
             {availableTabs.map((tab) => {
               const Icon = TAB_ICONS[tab];
@@ -355,9 +355,9 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
                   className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
                     isActive
                       ? tab === "agent"
-                        ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400 bg-white dark:bg-gray-800"
-                        : "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800"
-                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                        ? "text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400 exo-elevated"
+                        : "text-[var(--exo-accent)] border-b-2 border-[var(--exo-accent)] exo-elevated"
+                      : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
                   }`}
                   title={`${TAB_LABELS[tab]} (press b to switch)`}
                 >
@@ -383,8 +383,8 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
             <AgentTabContent emailId={displayAgentKey} />
           ) : displayHasPersistedTrace ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center text-sm text-gray-400 dark:text-gray-500">
-                <div className="animate-spin w-5 h-5 border-2 border-gray-300 dark:border-gray-600 border-t-purple-500 rounded-full mx-auto mb-2" />
+              <div className="text-center text-sm exo-text-muted">
+                <div className="animate-spin w-5 h-5 border-2 exo-border-strong border-t-purple-500 rounded-full mx-auto mb-2" />
                 Loading agent trace…
               </div>
             </div>
@@ -401,21 +401,21 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
       >
         {/* Sender header — only in sender tab */}
         {sidebarTab === "sender" && (
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700/50 flex-shrink-0">
+          <div className="p-4 border-b exo-border-subtle flex-shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold text-lg flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[var(--exo-accent-soft)] flex items-center justify-center text-[var(--exo-accent)] font-semibold text-lg flex-shrink-0">
                 {senderName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <p
                   data-testid="sidebar-sender-name"
-                  className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate"
+                  className="text-sm font-semibold exo-text-primary truncate"
                 >
                   {senderName}
                 </p>
                 <p
                   data-testid="sidebar-sender-email"
-                  className="text-xs text-gray-500 dark:text-gray-400 truncate"
+                  className="text-xs exo-text-muted truncate"
                 >
                   {senderEmail}
                 </p>
@@ -441,7 +441,7 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
               />
             ))
           ) : (
-            <div className="p-4 text-center text-gray-400 dark:text-gray-500 text-sm">
+            <div className="p-4 text-center exo-text-muted text-sm">
               <p>No additional info available</p>
             </div>
           )}
@@ -450,12 +450,12 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
 
       {/* Hint bar — hidden when agent tab is active (it has its own input) */}
       {sidebarTab !== "agent" && (
-        <div className="p-3 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+        <div className="p-3 border-t exo-border-subtle exo-surface-soft flex-shrink-0">
+          <p className="text-xs exo-text-muted text-center">
             {availableTabs.length > 1 ? (
               <>
                 Press{" "}
-                <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 font-mono">
+                <kbd className="px-1 py-0.5 bg-[var(--exo-border-subtle)] rounded exo-text-secondary font-mono">
                   b
                 </kbd>{" "}
                 to switch tabs
@@ -463,7 +463,7 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
             ) : (
               <>
                 Press{" "}
-                <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-400 font-mono">
+                <kbd className="px-1 py-0.5 bg-[var(--exo-border-subtle)] rounded exo-text-secondary font-mono">
                   Enter
                 </kbd>{" "}
                 to read email

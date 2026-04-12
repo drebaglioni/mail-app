@@ -47,7 +47,7 @@ export function DraftEditLearnedToast() {
   // Subtle toast for draft-only (no promotions) — clickable to view draft memories
   if (hasDraftOnly) {
     return (
-      <div className="bg-gray-800 dark:bg-gray-700 text-gray-200 rounded-lg shadow-lg px-4 py-2.5 min-w-[280px] max-w-[400px]">
+      <div className="bg-[var(--exo-bg-app)] text-[var(--exo-text-primary)] rounded-lg shadow-lg px-4 py-2.5 min-w-[280px] max-w-[400px]">
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={() => {
@@ -65,7 +65,7 @@ export function DraftEditLearnedToast() {
             onClick={() => {
               clearDraftEditLearned();
             }}
-            className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+            className="text-[var(--exo-text-muted)] hover:text-white transition-colors flex-shrink-0"
             title="Dismiss"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

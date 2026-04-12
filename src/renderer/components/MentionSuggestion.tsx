@@ -56,7 +56,7 @@ const MentionList = forwardRef<MentionListRef, MentionListProps>(({ items, comma
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-xl dark:shadow-black/50 max-h-60 overflow-y-auto z-50"
+      className="exo-elevated border exo-border-subtle rounded-lg shadow-lg dark:shadow-xl dark:shadow-black/50 max-h-60 overflow-y-auto z-50"
       data-testid="mention-dropdown"
     >
       {items.map((item, index) => (
@@ -64,18 +64,18 @@ const MentionList = forwardRef<MentionListRef, MentionListProps>(({ items, comma
           key={item.email}
           className={`px-4 py-2.5 cursor-pointer text-sm flex items-center justify-between gap-4 ${
             index === selectedIndex
-              ? "bg-blue-50 dark:bg-gray-700"
-              : "hover:bg-gray-100 dark:hover:bg-gray-700/50"
+              ? "bg-[var(--exo-accent-soft)]"
+              : "hover:bg-[var(--exo-bg-surface-hover)]"
           }`}
           onClick={() => selectItem(index)}
           onMouseEnter={() => setSelectedIndex(index)}
           data-testid="mention-suggestion"
         >
-          <span className="text-gray-900 dark:text-gray-100 truncate">
+          <span className="exo-text-primary truncate">
             {item.name || item.email}
           </span>
           {item.name && (
-            <span className="text-gray-500 dark:text-gray-500 text-sm truncate flex-shrink-0">
+            <span className="text-[var(--exo-text-muted)] text-sm truncate flex-shrink-0">
               {item.email}
             </span>
           )}

@@ -8,13 +8,13 @@ import type {
 function ProviderStatusDot({ status }: { status: AgentTaskState | "ready" | "unavailable" }) {
   const config: Record<string, { color: string; pulse: boolean; label: string }> = {
     ready: { color: "bg-green-500", pulse: false, label: "Ready" },
-    running: { color: "bg-blue-500", pulse: true, label: "Running" },
-    unavailable: { color: "bg-gray-400 dark:bg-gray-600", pulse: false, label: "Unavailable" },
+    running: { color: "bg-[var(--exo-accent)]", pulse: true, label: "Running" },
+    unavailable: { color: "bg-[var(--exo-text-muted)]", pulse: false, label: "Unavailable" },
     failed: { color: "bg-red-500", pulse: false, label: "Error" },
     completed: { color: "bg-green-500", pulse: false, label: "Ready" },
     cancelled: { color: "bg-green-500", pulse: false, label: "Ready" },
     pending_approval: { color: "bg-amber-500", pulse: true, label: "Awaiting Approval" },
-    pending_async: { color: "bg-gray-400", pulse: true, label: "Waiting" },
+    pending_async: { color: "bg-[var(--exo-text-muted)]", pulse: true, label: "Waiting" },
   };
 
   const { color, pulse, label } = config[status] ?? config.ready;
@@ -54,13 +54,13 @@ function ProviderRow({ provider }: { provider: AgentProviderConfig }) {
       className={`w-full px-3 py-2 flex items-center gap-3 text-left text-sm transition-colors rounded-lg ${
         isSelected
           ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
-          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+          : "exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
       }`}
     >
       {/* Checkbox */}
       <div
         className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-          isSelected ? "bg-purple-600 border-purple-600" : "border-gray-300 dark:border-gray-600"
+          isSelected ? "bg-purple-600 border-purple-600" : "exo-border-strong"
         }`}
       >
         {isSelected && (
@@ -82,7 +82,7 @@ function ProviderRow({ provider }: { provider: AgentProviderConfig }) {
           {provider.icon && <span className="text-sm">{provider.icon}</span>}
           <span className="font-medium truncate">{provider.name}</span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+        <div className="text-xs exo-text-muted truncate mt-0.5">
           {provider.description}
         </div>
       </div>
@@ -97,7 +97,7 @@ function TaskHistoryRow({ entry }: { entry: AgentTaskHistoryEntry }) {
   const statusIcon: Record<string, string> = {
     completed: "text-green-500",
     failed: "text-red-500",
-    cancelled: "text-gray-400",
+    cancelled: "text-[var(--exo-text-muted)]",
   };
 
   const relativeTime = (ts: number) => {
@@ -109,10 +109,10 @@ function TaskHistoryRow({ entry }: { entry: AgentTaskHistoryEntry }) {
   };
 
   return (
-    <div className="px-3 py-2 text-xs text-gray-600 dark:text-gray-400">
+    <div className="px-3 py-2 text-xs exo-text-secondary">
       <div className="flex items-center gap-1.5">
         <svg
-          className={`w-3 h-3 flex-shrink-0 ${statusIcon[entry.status] ?? "text-gray-400"}`}
+          className={`w-3 h-3 flex-shrink-0 ${statusIcon[entry.status] ?? "text-[var(--exo-text-muted)]"}`}
           fill="currentColor"
           viewBox="0 0 24 24"
         >
@@ -125,12 +125,12 @@ function TaskHistoryRow({ entry }: { entry: AgentTaskHistoryEntry }) {
           )}
         </svg>
         <span className="truncate flex-1">{entry.prompt}</span>
-        <span className="text-gray-400 dark:text-gray-500 flex-shrink-0">
+        <span className="exo-text-muted flex-shrink-0">
           {relativeTime(entry.timestamp)}
         </span>
       </div>
       {entry.summary && (
-        <div className="ml-4.5 mt-0.5 text-gray-400 dark:text-gray-500 truncate">
+        <div className="ml-4.5 mt-0.5 exo-text-muted truncate">
           {entry.summary}
         </div>
       )}
@@ -153,13 +153,13 @@ export function AgentsSidebar() {
   const recentHistory = [...agentTaskHistory].reverse().slice(0, 20);
 
   return (
-    <div className="w-56 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col h-full">
+    <div className="w-56 flex-shrink-0 border-r exo-border-subtle exo-elevated flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Agents</span>
+      <div className="flex items-center justify-between px-3 py-3 border-b exo-border-subtle">
+        <span className="text-sm font-medium exo-text-primary">Agents</span>
         <button
           onClick={toggleAgentsSidebar}
-          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
+          className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] rounded transition-colors"
           title="Close sidebar"
         >
           <svg
@@ -177,7 +177,7 @@ export function AgentsSidebar() {
       {/* Provider list */}
       <div className="p-2 space-y-1">
         {availableProviders.length === 0 ? (
-          <div className="px-3 py-4 text-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="px-3 py-4 text-center text-sm exo-text-muted">
             No agents available.
           </div>
         ) : (
@@ -190,8 +190,8 @@ export function AgentsSidebar() {
       {/* Task History */}
       {recentHistory.length > 0 && (
         <>
-          <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="px-3 py-2 border-t exo-border-subtle">
+            <span className="text-xs font-medium exo-text-muted uppercase tracking-wider">
               Recent Tasks
             </span>
           </div>
@@ -204,10 +204,10 @@ export function AgentsSidebar() {
       )}
 
       {/* Footer */}
-      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700">
+      <div className="px-3 py-2 border-t exo-border-subtle">
         <button
           onClick={() => setShowSettings(true)}
-          className="w-full px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors text-center"
+          className="w-full px-3 py-1.5 text-xs exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors text-center"
         >
           Manage...
         </button>

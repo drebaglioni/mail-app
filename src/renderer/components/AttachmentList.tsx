@@ -53,13 +53,13 @@ function FileIcon({ type }: { type: string }) {
     {
       image: "text-purple-500",
       pdf: "text-red-500",
-      doc: "text-blue-500",
+      doc: "text-[var(--exo-accent)]",
       sheet: "text-green-500",
       slides: "text-orange-500",
-      text: "text-gray-500",
+      text: "text-[var(--exo-text-muted)]",
       archive: "text-yellow-600",
-      file: "text-gray-400",
-    }[type] || "text-gray-400";
+      file: "text-[var(--exo-text-muted)]",
+    }[type] || "text-[var(--exo-text-muted)]";
 
   return (
     <svg
@@ -148,7 +148,7 @@ export function EmailAttachmentList({
         return (
           <div
             key={att.id}
-            className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors max-w-xs"
+            className="group flex items-center gap-2 px-3 py-2 rounded-lg border exo-border-subtle bg-[var(--exo-bg-surface-soft)]/50 hover:bg-[var(--exo-bg-surface-hover)] transition-colors max-w-xs"
           >
             <FileIcon type={iconType} />
             <button
@@ -157,10 +157,10 @@ export function EmailAttachmentList({
               className="flex-1 min-w-0 text-left cursor-pointer"
               title={canPreview ? "Click to preview" : att.filename}
             >
-              <div className="text-sm text-gray-700 dark:text-gray-300 truncate">
+              <div className="text-sm exo-text-secondary truncate">
                 {att.filename}
               </div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">
+              <div className="text-xs exo-text-muted">
                 {formatFileSize(att.size)}
               </div>
             </button>
@@ -169,7 +169,7 @@ export function EmailAttachmentList({
                 <button
                   onClick={() => handlePreview(att)}
                   disabled={isPreviewing}
-                  className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                  className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-accent)] transition-colors"
                   title="Preview"
                 >
                   {isPreviewing ? (
@@ -211,7 +211,7 @@ export function EmailAttachmentList({
                 <button
                   onClick={() => handleDownload(att)}
                   disabled={isDownloading}
-                  className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                  className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-accent)] transition-colors"
                   title="Download"
                 >
                   {isDownloading ? (
@@ -279,23 +279,23 @@ export function ComposeAttachmentList({
         return (
           <div
             key={att.id}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 max-w-xs"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border exo-border-subtle bg-[var(--exo-bg-surface-soft)]/50 max-w-xs"
           >
             <FileIcon type={iconType} />
             <div className="flex-1 min-w-0">
               <div
-                className="text-sm text-gray-700 dark:text-gray-300 truncate"
+                className="text-sm exo-text-secondary truncate"
                 title={att.filename}
               >
                 {att.filename}
               </div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">
+              <div className="text-xs exo-text-muted">
                 {formatFileSize(att.size)}
               </div>
             </div>
             <button
               onClick={() => onRemove(att.id)}
-              className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
+              className="p-0.5 text-[var(--exo-text-muted)] hover:text-red-500 transition-colors"
               title="Remove"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,17 +345,17 @@ export function AttachmentPreviewModal({
       onClick={onClose}
     >
       <div
-        className="relative max-w-4xl max-h-[90vh] w-full mx-4 bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative max-w-4xl max-h-[90vh] w-full mx-4 exo-elevated rounded-xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+        <div className="flex items-center justify-between px-4 py-3 border-b exo-border-subtle">
+          <h3 className="text-sm font-medium exo-text-primary truncate">
             {attachment.filename}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -385,7 +385,7 @@ export function AttachmentPreviewModal({
             />
           )}
           {!isImage && !isPdf && (
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="exo-text-muted">
               Preview not available for this file type
             </p>
           )}

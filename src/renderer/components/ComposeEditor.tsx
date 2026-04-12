@@ -64,8 +64,8 @@ function ToolbarButton({
       tabIndex={-1}
       className={`p-1.5 rounded text-sm ${
         active
-          ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
-          : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+          ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)]"
+          : "text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-hover)]"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       {children}
@@ -132,14 +132,14 @@ const SnippetList = forwardRef<SnippetListRef, SnippetListProps>(({ items, comma
   if (items.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg dark:shadow-xl dark:shadow-black/50 max-h-60 overflow-y-auto z-50">
+    <div className="exo-elevated border exo-border-subtle rounded-lg shadow-lg dark:shadow-xl dark:shadow-black/50 max-h-60 overflow-y-auto z-50">
       {items.map((item, index) => (
         <div
           key={item.id}
           className={`px-3 py-2 cursor-pointer text-sm ${
             index === selectedIndex
-              ? "bg-blue-50 dark:bg-gray-700"
-              : "hover:bg-gray-100 dark:hover:bg-gray-700/50"
+              ? "bg-[var(--exo-accent-soft)]"
+              : "hover:bg-[var(--exo-bg-surface-hover)]"
           }`}
           onMouseDown={(e) => {
             e.preventDefault();
@@ -148,12 +148,12 @@ const SnippetList = forwardRef<SnippetListRef, SnippetListProps>(({ items, comma
           onMouseEnter={() => setSelectedIndex(index)}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-gray-900 dark:text-gray-100 truncate text-xs">
+            <span className="font-medium exo-text-primary truncate text-xs">
               {item.name}
             </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">Me</span>
+            <span className="text-[10px] exo-text-muted shrink-0">Me</span>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+          <p className="text-[11px] exo-text-muted truncate">
             {stripHtmlPreview(item.body)}
           </p>
         </div>
@@ -387,7 +387,7 @@ function LinkPopover({
           onClose();
         }
       }}
-      className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 flex items-center gap-1.5"
+      className="absolute top-full left-0 mt-1 z-50 exo-elevated border exo-border-strong rounded-lg shadow-lg p-2 flex items-center gap-1.5"
     >
       <input
         ref={inputRef}
@@ -406,12 +406,12 @@ function LinkPopover({
           }
         }}
         placeholder="https://example.com"
-        className="w-56 px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-56 px-2 py-1 text-sm rounded border exo-border-strong bg-[var(--exo-bg-elevated)] exo-text-primary focus:outline-none focus:ring-1 focus:ring-[var(--exo-focus-ring)]"
       />
       <button
         type="button"
         onClick={apply}
-        className="px-2 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+        className="px-2 py-1 text-sm rounded bg-[var(--exo-accent)] text-white hover:bg-[var(--exo-accent-strong)]"
       >
         Apply
       </button>
@@ -475,7 +475,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
   if (!editor) return null;
 
   return (
-    <div className="flex items-center gap-0.5 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+    <div className="flex items-center gap-0.5 p-2 border-b exo-border-subtle exo-surface-soft">
       {/* Text formatting */}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -529,7 +529,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
         </svg>
       </ToolbarButton>
 
-      <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />
+      <div className="w-px h-5 bg-[var(--exo-border-strong)] mx-1" />
 
       {/* Lists */}
       <ToolbarButton
@@ -574,7 +574,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
         </svg>
       </ToolbarButton>
 
-      <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />
+      <div className="w-px h-5 bg-[var(--exo-border-strong)] mx-1" />
 
       {/* Block quote */}
       <ToolbarButton
@@ -613,7 +613,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
         )}
       </div>
 
-      <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />
+      <div className="w-px h-5 bg-[var(--exo-border-strong)] mx-1" />
 
       {/* Insert image */}
       <ToolbarButton onClick={insertImage} title="Insert image">
@@ -636,7 +636,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
         onChange={handleFileSelected}
       />
 
-      <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1" />
+      <div className="w-px h-5 bg-[var(--exo-border-strong)] mx-1" />
 
       {/* Text alignment */}
       <ToolbarButton
@@ -721,7 +721,7 @@ export function ComposeEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-blue-600 underline",
+          class: "exo-accent-text underline",
         },
       }),
       Image.configure({
@@ -829,17 +829,17 @@ export function ComposeEditor({
 
   return (
     <div
-      className={`border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 ${className}`}
+      className={`border exo-border-subtle rounded-md overflow-hidden exo-elevated ${className}`}
     >
       <Toolbar editor={editor} />
-      <div className="dark:text-gray-100">
+      <div className="text-[var(--exo-text-primary)]">
         <EditorContent editor={editor} />
       </div>
       {/* Quoted content rendered as non-editable HTML */}
       {quotedContent && (
-        <div className="border-t border-gray-200 dark:border-gray-700">
+        <div className="border-t exo-border-subtle">
           <div
-            className="p-3 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50"
+            className="p-3 text-sm exo-text-secondary exo-surface-soft"
             style={{ maxHeight: "300px", overflowY: "auto" }}
           >
             {/* Use an iframe to safely render the original email HTML with all its styles */}
@@ -854,19 +854,19 @@ export function ComposeEditor({
                       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                       font-size: 14px;
                       line-height: 1.5;
-                      color: ${isDark ? "#e5e7eb" : "#333"};
-                      background: ${isDark ? "#1f2937" : "transparent"};
+                      color: ${isDark ? "#eaf0ff" : "#0b1220"};
+                      background: ${isDark ? "#0e1526" : "transparent"};
                       margin: 0;
                       padding: 0;
                     }
                     blockquote {
-                      border-left: 2px solid ${isDark ? "#4b5563" : "#ccc"};
+                      border-left: 2px solid ${isDark ? "#34466b" : "#d7dfec"};
                       margin: 8px 0;
                       padding-left: 12px;
-                      color: ${isDark ? "#9ca3af" : "#555"};
+                      color: ${isDark ? "#a6b4d3" : "#4f5f7a"};
                     }
                     img { max-width: 100%; height: auto; }
-                    a { color: ${isDark ? "#60a5fa" : "#1a73e8"}; }
+                    a { color: ${isDark ? "#5b83ff" : "#2155ff"}; }
                   </style>
                 </head>
                 <body>${quotedContent}</body>

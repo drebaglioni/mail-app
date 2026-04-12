@@ -28,10 +28,10 @@ export function BatchActionBar({
   return (
     <div
       data-testid="batch-action-bar"
-      className="h-10 px-4 flex items-center gap-2 border-b border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30"
+      className="h-10 px-4 flex items-center gap-2 border-b border-[var(--exo-accent-soft)] bg-[var(--exo-accent-soft)]"
     >
       {/* Selection info */}
-      <span className="text-sm font-medium text-blue-700 dark:text-blue-300 mr-1">
+      <span className="text-sm font-medium text-[var(--exo-accent)] mr-1">
         {selectedCount} selected
       </span>
 
@@ -39,7 +39,7 @@ export function BatchActionBar({
       {!allSelected && (
         <button
           onClick={onSelectAll}
-          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          className="text-xs text-[var(--exo-accent)] hover:underline"
           data-testid="batch-select-all"
         >
           Select all {totalCount}
@@ -47,19 +47,19 @@ export function BatchActionBar({
       )}
       <button
         onClick={onClearSelection}
-        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+        className="text-xs text-[var(--exo-accent)] hover:underline"
         data-testid="batch-clear-selection"
       >
         Clear
       </button>
 
       {/* Divider */}
-      <div className="w-px h-5 bg-blue-200 dark:bg-blue-700 mx-1" />
+      <div className="w-px h-5 bg-[var(--exo-accent-soft)] mx-1" />
 
       {/* Action buttons */}
       <button
         onClick={onArchive}
-        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded transition-colors"
+        className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-accent-soft)] rounded transition-colors"
         title="Archive selected (e)"
         data-testid="batch-archive"
       >
@@ -74,7 +74,7 @@ export function BatchActionBar({
       </button>
       <button
         onClick={onTrash}
-        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded transition-colors"
+        className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-accent-soft)] rounded transition-colors"
         title="Delete selected (#)"
         data-testid="batch-trash"
       >
@@ -89,7 +89,7 @@ export function BatchActionBar({
       </button>
       <button
         onClick={onMarkUnread}
-        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded transition-colors"
+        className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-accent-soft)] rounded transition-colors"
         title="Mark unread (u)"
         data-testid="batch-mark-unread"
       >
@@ -104,7 +104,7 @@ export function BatchActionBar({
       </button>
       <button
         onClick={onToggleStar}
-        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded transition-colors"
+        className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-accent-soft)] rounded transition-colors"
         title="Star selected (s)"
         data-testid="batch-star"
       >
@@ -119,7 +119,7 @@ export function BatchActionBar({
       </button>
       <button
         onClick={onSnooze}
-        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-800/50 rounded transition-colors"
+        className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-accent-soft)] rounded transition-colors"
         title="Snooze selected (h)"
         data-testid="batch-snooze"
       >

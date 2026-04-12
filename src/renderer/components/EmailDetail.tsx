@@ -388,7 +388,7 @@ function EmailBodyRenderer({
 
   return (
     <div
-      className={`whitespace-pre-wrap text-sm leading-relaxed ${useLightMode ? "text-gray-700" : "text-gray-300"}`}
+      className={`whitespace-pre-wrap text-sm leading-relaxed ${useLightMode ? "text-[var(--exo-text-secondary)]" : "text-[var(--exo-text-secondary)]"}`}
     >
       {decodedBody}
     </div>
@@ -539,7 +539,7 @@ function AddressField({
     // Always show "Name <email>" with bold name, no toggle
     return (
       <span
-        className={`select-all ${useWhiteCard ? "text-gray-700" : "text-gray-700 dark:text-gray-300"}`}
+        className={`select-all ${useWhiteCard ? "text-[var(--exo-text-secondary)]" : "exo-text-secondary"}`}
       >
         {parsed.map((p, i) => (
           <React.Fragment key={`${p.email}-${i}`}>
@@ -569,7 +569,7 @@ function AddressField({
   return (
     <span
       className={`select-all ${!allBare ? "cursor-pointer" : ""} ${
-        useWhiteCard ? "text-gray-700" : "text-gray-700 dark:text-gray-300"
+        useWhiteCard ? "text-[var(--exo-text-secondary)]" : "exo-text-secondary"
       }`}
       role={allBare ? undefined : "button"}
       tabIndex={allBare ? undefined : 0}
@@ -596,7 +596,7 @@ function AddressField({
       {!allBare && !showExpanded && (
         <svg
           className={`inline-block ml-1 w-3 h-3 opacity-0 group-hover/addr:opacity-60 transition-opacity ${
-            useWhiteCard ? "text-gray-400" : "text-gray-400 dark:text-gray-500"
+            useWhiteCard ? "text-[var(--exo-text-muted)]" : "exo-text-muted"
           }`}
           fill="none"
           stroke="currentColor"
@@ -810,23 +810,23 @@ function ThreadMessage({
     return (
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-4 py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left border-b border-gray-100 dark:border-gray-700/50"
+        className="w-full flex items-center gap-4 py-3 px-2 hover:bg-[var(--exo-bg-surface-hover)] transition-colors text-left border-b exo-border-subtle"
       >
         {/* Sender */}
         <div className="w-28 flex-shrink-0">
-          <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
+          <span className="text-sm font-medium exo-text-primary truncate block">
             {isFromMe ? "Me" : senderName}
           </span>
         </div>
 
         {/* Preview */}
         <div className="flex-1 min-w-0">
-          <span className="text-sm text-gray-500 dark:text-gray-400 truncate block">{snippet}</span>
+          <span className="text-sm exo-text-secondary truncate block">{snippet}</span>
         </div>
 
         {/* Date */}
         <div className="flex-shrink-0">
-          <span className="text-sm text-gray-400 dark:text-gray-500">{formatDate(email.date)}</span>
+          <span className="text-sm exo-text-muted exo-micro-label">{formatDate(email.date)}</span>
         </div>
       </button>
     );
@@ -838,30 +838,30 @@ function ThreadMessage({
     <div
       className={`group/msg ${
         useWhiteCard
-          ? `bg-white rounded-lg${isFocused ? " ring-1 ring-blue-300 dark:ring-blue-500" : ""}`
-          : `relative before:absolute before:left-[-6px] before:top-0 before:bottom-0 before:rounded-full bg-gray-50/50 dark:bg-gray-800/30 ${
+          ? `exo-elevated rounded-md border exo-border-subtle${isFocused ? " ring-1 ring-[var(--exo-focus-ring)]" : ""}`
+          : `relative before:absolute before:left-[-6px] before:top-0 before:bottom-0 before:rounded-full bg-[var(--exo-bg-surface-soft)] ${
               isFocused
-                ? "before:w-1 before:bg-blue-600 before:dark:bg-blue-400"
-                : "before:w-0.5 before:bg-blue-500 before:dark:bg-blue-400"
+                ? "before:w-1 before:bg-[var(--exo-accent)]"
+                : "before:w-0.5 before:bg-[var(--exo-accent-strong)]"
             }`
       }`}
     >
       {/* Header */}
       <button
         onClick={onToggle}
-        className={`w-full flex items-center gap-2 py-3 px-2 transition-colors text-left ${
-          useWhiteCard ? "hover:bg-gray-100/50" : "hover:bg-gray-100/50 dark:hover:bg-gray-700/30"
-        }`}
+        className="w-full flex items-center gap-2 py-3 px-2 transition-colors text-left hover:bg-[var(--exo-bg-surface-hover)]"
       >
         <span
           onClick={handleHeaderClick}
-          className={`min-w-0 truncate text-sm font-medium cursor-pointer ${useWhiteCard ? "text-gray-900" : "text-gray-900 dark:text-gray-100"}`}
+          className={`min-w-0 truncate text-sm font-medium cursor-pointer ${useWhiteCard ? "exo-text-primary" : "exo-text-primary"}`}
         >
           {formatMessageHeader(email, currentUserEmail, nameMap)}
         </span>
         <svg
           onClick={handleHeaderClick}
-          className={`flex-shrink-0 w-3 h-3 transition-transform cursor-pointer ${showHeaderDetails ? "rotate-180" : ""} ${useWhiteCard ? "text-gray-400" : "text-gray-400 dark:text-gray-500"}`}
+          className={`flex-shrink-0 w-3 h-3 transition-transform cursor-pointer ${
+            showHeaderDetails ? "rotate-180" : ""
+          } ${useWhiteCard ? "exo-text-muted" : "exo-text-muted"}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -869,7 +869,7 @@ function ThreadMessage({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
         <span
-          className={`flex-shrink-0 ml-auto text-sm ${useWhiteCard ? "text-gray-400" : "text-gray-400 dark:text-gray-500"}`}
+          className={`flex-shrink-0 ml-auto text-sm exo-text-muted exo-micro-label`}
         >
           {formatDate(email.date)}
         </span>
@@ -884,8 +884,8 @@ function ThreadMessage({
               }}
               className={`p-1 rounded transition-colors ${
                 useWhiteCard
-                  ? "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                  : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  ? "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-soft)]"
+                  : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
               }`}
               title="Reply"
             >
@@ -906,8 +906,8 @@ function ThreadMessage({
               }}
               className={`p-1 rounded transition-colors ${
                 useWhiteCard
-                  ? "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                  : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  ? "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-soft)]"
+                  : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
               }`}
               title="Reply All"
             >
@@ -934,8 +934,8 @@ function ThreadMessage({
               }}
               className={`p-1 rounded transition-colors ${
                 useWhiteCard
-                  ? "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                  : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  ? "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-soft)]"
+                  : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
               }`}
               title="Forward"
             >
@@ -957,13 +957,13 @@ function ThreadMessage({
         <div
           className={`mx-2 mt-1 p-2 rounded border text-xs space-y-1 ${
             useWhiteCard
-              ? "bg-gray-50 border-gray-200"
-              : "bg-gray-100/50 dark:bg-gray-700/40 border-gray-200 dark:border-gray-600"
+              ? "bg-[var(--exo-bg-surface-soft)] border-[var(--exo-border-subtle)]"
+              : "bg-[var(--exo-bg-surface-soft)]/50/40 exo-border-subtle"
           }`}
         >
           <div className="flex group/addr">
             <span
-              className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}
+              className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-[var(--exo-text-muted)]" : "exo-text-muted"}`}
             >
               From:
             </span>
@@ -976,7 +976,7 @@ function ThreadMessage({
           </div>
           <div className="flex group/addr">
             <span
-              className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}
+              className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-[var(--exo-text-muted)]" : "exo-text-muted"}`}
             >
               To:
             </span>
@@ -990,7 +990,7 @@ function ThreadMessage({
           {email.cc && (
             <div className="flex group/addr">
               <span
-                className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}
+                className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-[var(--exo-text-muted)]" : "exo-text-muted"}`}
               >
                 Cc:
               </span>
@@ -1005,7 +1005,7 @@ function ThreadMessage({
           {email.bcc && (
             <div className="flex group/addr">
               <span
-                className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}
+                className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-[var(--exo-text-muted)]" : "exo-text-muted"}`}
               >
                 Bcc:
               </span>
@@ -1019,12 +1019,12 @@ function ThreadMessage({
           )}
           <div className="flex">
             <span
-              className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-gray-500" : "text-gray-500 dark:text-gray-400"}`}
+              className={`w-12 flex-shrink-0 ${useWhiteCard ? "text-[var(--exo-text-muted)]" : "exo-text-muted"}`}
             >
               Date:
             </span>
             <span
-              className={`select-all ${useWhiteCard ? "text-gray-700" : "text-gray-700 dark:text-gray-300"}`}
+              className={`select-all ${useWhiteCard ? "text-[var(--exo-text-secondary)]" : "exo-text-secondary"}`}
             >
               {email.date}
             </span>
@@ -1035,7 +1035,7 @@ function ThreadMessage({
       {/* Email body - no inner scroll. Masked in session replays via global maskTextSelector:"*" in posthog.ts. */}
       <div className="px-2 pb-4" data-ph-no-capture>
         {lightBody === null ? (
-          <div className="animate-pulse text-gray-400 dark:text-gray-500 text-sm py-4 px-2">
+          <div className="animate-pulse exo-text-muted text-sm py-4 px-2">
             Loading…
           </div>
         ) : (
@@ -1053,7 +1053,7 @@ function ThreadMessage({
         {hasQuotedContent && (
           <button
             onClick={() => setShowQuotedBody(!showQuotedBody)}
-            className="px-2 py-0.5 mt-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded text-sm transition-colors"
+            className="px-2 py-0.5 mt-1 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded text-sm transition-colors"
             title={showQuotedBody ? "Hide quoted text" : "Show quoted text"}
           >
             ···
@@ -1529,7 +1529,7 @@ function InlineReply({
   return (
     <div
       ref={containerRef}
-      className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+      className="border-t exo-border-subtle exo-elevated"
       data-testid="inline-compose"
     >
       <div className="px-4 pt-2">
@@ -1538,21 +1538,21 @@ function InlineReply({
           {!showAddressFields ? (
             <button
               onClick={() => setShowAddressFields(true)}
-              className="text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded px-1 py-0.5 -mx-1 transition-colors"
+              className="text-sm text-left hover:bg-[var(--exo-bg-surface-hover)] rounded px-1 py-0.5 -mx-1 transition-colors"
               data-testid="inline-reply-summary"
             >
               <span className="text-green-600 dark:text-green-400 font-medium">
                 {isForward ? "Forward" : "Reply"}
               </span>
               {(form.to.length > 0 || form.cc.length > 0) && (
-                <span className="text-gray-700 dark:text-gray-300">
+                <span className="exo-text-secondary">
                   {" to "}
                   {summaryText}
                 </span>
               )}
             </button>
           ) : (
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            <span className="text-sm font-medium exo-text-primary">
               {isForward ? "Forward" : "Reply"}
             </span>
           )}
@@ -1562,7 +1562,7 @@ function InlineReply({
                 {!isForward && (
                   <button
                     onClick={() => setShowAddressFields(false)}
-                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                    className="exo-text-muted hover:text-[var(--exo-text-primary)] p-1"
                     title="Collapse address fields"
                   >
                     <svg
@@ -1583,7 +1583,7 @@ function InlineReply({
                 {!form.showCcBcc && (
                   <button
                     onClick={() => form.setShowCcBcc(true)}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-1"
+                    className="text-xs text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)] px-1"
                     data-testid="inline-reply-cc-bcc-toggle"
                   >
                     Cc / Bcc
@@ -1593,7 +1593,7 @@ function InlineReply({
             )}
             <button
               onClick={onDiscardDraft ?? onCancel}
-              className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 p-1"
+              className="exo-text-muted hover:text-red-500 dark:hover:text-red-400 p-1"
               data-testid="inline-compose-close"
               title="Discard draft"
             >
@@ -1629,7 +1629,7 @@ function InlineReply({
               </div>
               <button
                 onClick={() => form.setShowCcBcc(!form.showCcBcc)}
-                className="ml-2 flex-shrink-0 p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                className="ml-2 flex-shrink-0 p-1 exo-text-muted hover:text-[var(--exo-text-primary)] transition-colors"
                 title={form.showCcBcc ? "Hide Cc/Bcc/From" : "Show Cc/Bcc/From"}
               >
                 <svg
@@ -1696,7 +1696,7 @@ function InlineReply({
         />
         {/* Attachments */}
         {form.loadingForwardAttachments && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          <p className="text-xs exo-text-muted mt-1">
             Loading forwarded attachments...
           </p>
         )}
@@ -1710,14 +1710,14 @@ function InlineReply({
           <div className="mt-1">
             <button
               onClick={() => setShowQuotedContent(!showQuotedContent)}
-              className="px-2 py-0.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded text-sm transition-colors"
+              className="px-2 py-0.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded text-sm transition-colors"
               title={showQuotedContent ? "Hide original" : "Show original"}
             >
               ···
             </button>
             {showQuotedContent && (
               <div
-                className="mt-1 pl-3 border-l-2 border-gray-200 dark:border-gray-600 text-sm text-gray-500 dark:text-gray-400 overflow-auto max-h-80"
+                className="mt-1 pl-3 border-l-2 exo-border-subtle text-sm exo-text-muted overflow-auto max-h-80"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(replyInfo.quotedBody) }}
               />
             )}
@@ -1744,7 +1744,7 @@ function InlineReply({
                 }
               }}
               placeholder="Refine with AI... e.g. 'make it shorter' or 'more formal'"
-              className="flex-1 px-3 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-1.5 border exo-border-strong rounded text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
               disabled={isRefining}
             />
             <button
@@ -1778,7 +1778,7 @@ function InlineReply({
             {preRefineContent && (
               <button
                 onClick={handleRevertRefine}
-                className="px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="px-3 py-1.5 text-sm exo-text-muted hover:text-[var(--exo-text-primary)] border exo-border-strong rounded hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
               >
                 Revert
               </button>
@@ -1803,7 +1803,7 @@ function InlineReply({
                       }
                       setShowSaveMemory(false);
                     }}
-                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-xs"
+                    className="exo-text-muted hover:text-[var(--exo-text-primary)] text-xs"
                   >
                     dismiss
                   </button>
@@ -1827,7 +1827,7 @@ function InlineReply({
                       handleSaveMemory();
                     }
                   }}
-                  className="w-full px-2 py-1 mb-1.5 border border-purple-200 dark:border-purple-700 dark:bg-gray-700 dark:text-gray-100 rounded text-sm focus:ring-1 focus:ring-purple-400"
+                  className="w-full px-2 py-1 mb-1.5 border border-purple-200 dark:border-purple-700 rounded text-sm focus:ring-1 focus:ring-purple-400"
                   placeholder="Describe the preference to remember..."
                 />
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1837,9 +1837,9 @@ function InlineReply({
                     </span>
                   ) : (
                     <>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Apply to:</span>
+                      <span className="text-xs exo-text-muted">Apply to:</span>
                       {senderEmail && (
-                        <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 cursor-pointer">
+                        <label className="flex items-center gap-1 text-xs exo-text-secondary cursor-pointer">
                           <input
                             type="radio"
                             name="memory-scope"
@@ -1854,7 +1854,7 @@ function InlineReply({
                         </label>
                       )}
                       {senderDomain && (
-                        <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 cursor-pointer">
+                        <label className="flex items-center gap-1 text-xs exo-text-secondary cursor-pointer">
                           <input
                             type="radio"
                             name="memory-scope"
@@ -1868,7 +1868,7 @@ function InlineReply({
                           @{senderDomain}
                         </label>
                       )}
-                      <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs exo-text-secondary cursor-pointer">
                         <input
                           type="radio"
                           name="memory-scope"
@@ -1884,7 +1884,7 @@ function InlineReply({
                           ? `: ${memoryScopeValue}`
                           : ""}
                       </label>
-                      <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs exo-text-secondary cursor-pointer">
                         <input
                           type="radio"
                           name="memory-scope"
@@ -2060,14 +2060,14 @@ function NewEmailCompose({
   return (
     <div
       ref={containerRef}
-      className="flex-1 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+      className="flex-1 flex flex-col exo-surface overflow-hidden"
     >
       {/* Header */}
-      <div className="h-9 px-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700/50 flex items-center flex-shrink-0">
-        <span className="text-gray-900 dark:text-gray-100 font-medium text-sm">New Message</span>
+      <div className="h-9 px-4 exo-surface border-b exo-border-subtle flex items-center flex-shrink-0">
+        <span className="exo-text-primary font-medium text-sm exo-micro-label">New Message</span>
         <button
           onClick={onDiscard ?? (() => onCancel(getFormState()))}
-          className="ml-auto p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
+          className="ml-auto p-1.5 exo-text-muted hover:text-red-500 rounded transition-colors"
           title="Discard draft"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2108,7 +2108,7 @@ function NewEmailCompose({
             </div>
             <button
               onClick={() => form.setShowCcBcc(!form.showCcBcc)}
-              className="ml-2 flex-shrink-0 p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="ml-2 flex-shrink-0 p-1 exo-text-muted hover:text-[var(--exo-text-primary)] transition-colors"
               data-testid="compose-cc-bcc-toggle"
               title={form.showCcBcc ? "Hide Cc/Bcc/From" : "Show Cc/Bcc/From"}
             >
@@ -2169,8 +2169,8 @@ function NewEmailCompose({
             </>
           )}
 
-          <div className="flex items-baseline gap-2 py-1.5 border-b border-gray-200 dark:border-gray-700/50">
-            <label className="w-10 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+          <div className="flex items-baseline gap-2 py-1.5 border-b exo-border-subtle">
+            <label className="w-10 text-sm exo-text-secondary flex-shrink-0 exo-micro-label">
               Subject
             </label>
             <input
@@ -2185,7 +2185,7 @@ function NewEmailCompose({
                 }
               }}
               placeholder="Subject"
-              className="flex-1 outline-none border-none text-sm dark:text-gray-100 dark:placeholder-gray-400 bg-transparent"
+              className="flex-1 outline-none border-none text-sm text-[var(--exo-text-primary)] placeholder-[var(--exo-text-muted)] bg-transparent"
               style={{ outline: "none", boxShadow: "none" }}
             />
           </div>
@@ -2387,7 +2387,10 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
     setIsSuggestingSplit(true);
     setSplitSuggestionError(null);
     try {
-      const result = await window.api.splits.suggestThread(currentAccountId, selectedEmail.threadId);
+      const result = await window.api.splits.suggestThread(
+        currentAccountId,
+        selectedEmail.threadId,
+      );
       if (!result.success) {
         setSplitSuggestionError(result.error || "Failed to suggest a split");
         setSplitSuggestions([]);
@@ -3148,8 +3151,8 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
 
   if (!selectedEmail || !latestEmail) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50">
-        <p className="text-gray-400 dark:text-gray-500">Select an email to view</p>
+      <div className="flex-1 flex items-center justify-center exo-surface-soft">
+        <p className="exo-text-muted">Select an email to view</p>
       </div>
     );
   }
@@ -3328,13 +3331,13 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 overflow-hidden">
+    <div className="flex-1 flex flex-col exo-surface exo-scanline overflow-hidden">
       {/* Back button for full view */}
       {isFullView && (
-        <div className="h-10 px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center flex-shrink-0">
+        <div className="h-10 px-4 exo-surface border-b exo-border-subtle flex items-center flex-shrink-0">
           <button
             onClick={handleBackToSplit}
-            className="flex items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-sm"
+            className="flex items-center gap-1 exo-text-secondary hover:text-[var(--exo-text-primary)] transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -3352,14 +3355,14 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
       {/* Single scroll container for entire thread */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Thread header */}
-        <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700/50">
+        <div className="px-6 pt-6 pb-4 border-b exo-border-subtle">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+              <h1 className="text-xl font-semibold exo-text-primary leading-tight">
                 {cleanSubject}
               </h1>
               {threadEmails.length > 1 && (
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-sm exo-text-muted exo-micro-label mt-1">
                   {threadEmails.length} messages
                 </p>
               )}
@@ -3368,7 +3371,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
               <div className="flex items-center">
                 <button
                   onClick={handleArchive}
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
                   title="Archive"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3382,7 +3385,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                 </button>
                 <button
                   onClick={handleTrash}
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3396,7 +3399,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                 </button>
                 <button
                   onClick={handleMarkUnread}
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
                   title="Mark as unread"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3410,10 +3413,10 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                 </button>
                 <button
                   onClick={handleToggleStar}
-                  className={`p-1.5 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                  className={`p-1.5 rounded-md transition-colors hover:bg-[var(--exo-bg-surface-hover)] ${
                     isStarred
                       ? "text-yellow-400 hover:text-yellow-500"
-                      : "text-gray-400 dark:text-gray-500 hover:text-yellow-400"
+                      : "exo-text-muted hover:text-yellow-400"
                   }`}
                   title={isStarred ? "Unstar" : "Star"}
                 >
@@ -3434,10 +3437,10 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                 {/* Snooze button */}
                 <button
                   onClick={() => setShowSnoozeMenu(!showSnoozeMenu)}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`p-1.5 rounded-md transition-colors ${
                     snoozedThreads.has(latestEmail.threadId)
                       ? "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
                   }`}
                   title={snoozedThreads.has(latestEmail.threadId) ? "Snoozed" : "Snooze (h)"}
                 >
@@ -3451,7 +3454,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                   </svg>
                 </button>
               </div>
-              <div className="w-px h-4 bg-gray-200 dark:bg-gray-600 mx-1" />
+              <div className="w-px h-4 bg-[var(--exo-border-strong)] mx-1" />
               <div className="flex items-center">
                 <button
                   onClick={() =>
@@ -3460,7 +3463,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                       focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
                     )
                   }
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
                   title="Reply All"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3485,7 +3488,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                       focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
                     )
                   }
-                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
                   title="Forward"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3542,12 +3545,12 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
 
         {/* Action buttons (Track Package, Unsubscribe) */}
         {(trackingNumbers.length > 0 || unsubscribeUrl) && (
-          <div className="px-6 py-2.5 border-b border-gray-100 flex items-center gap-2 flex-wrap">
+          <div className="px-6 py-2.5 border-b exo-border-subtle flex items-center gap-2 flex-wrap">
             {trackingNumbers.map((t, i) => (
               <button
                 key={i}
                 onClick={() => window.open(t.url, "_blank")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--exo-accent)] bg-[var(--exo-accent-soft)] hover:bg-[var(--exo-bg-surface-hover)] border border-[var(--exo-border-strong)] rounded-md transition-colors exo-micro-label"
                 title={`Track ${t.carrier} package ${t.trackingNumber}`}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3564,7 +3567,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
             {unsubscribeUrl && (
               <button
                 onClick={() => window.open(unsubscribeUrl!, "_blank")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium exo-text-secondary exo-surface-soft hover:bg-[var(--exo-bg-surface-hover)] border exo-border-subtle rounded-md transition-colors exo-micro-label"
                 title="Unsubscribe from this mailing list"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3602,7 +3605,7 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
               />
               {/* Loading indicator for inline reply — stays inside map for positioning */}
               {inlineReplyToEmailId === email.id && isLoadingReplyInfo && (
-                <div className="py-4 text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+                <div className="py-4 text-sm exo-text-muted">Loading...</div>
               )}
               {/* Inline reply/forward — rendered inside the map right below the email being replied to.
                   When undo-send replaces an optimistic email ID, UndoSendToast atomically updates
@@ -3680,9 +3683,9 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
         )}
 
         {currentAccountId && selectedEmail && accountSplits.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+          <div className="px-6 py-3 border-t exo-border-subtle space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+              <span className="text-xs font-medium exo-text-secondary">
                 Split assignment
               </span>
               {assignedSplitId && (
@@ -3693,14 +3696,14 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
               <button
                 onClick={() => void handleSuggestSplit()}
                 disabled={isSuggestingSplit}
-                className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border exo-border-subtle exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)] disabled:opacity-50"
               >
                 {isSuggestingSplit ? "Suggesting..." : "Suggest Split"}
               </button>
               {assignedSplitId && (
                 <button
                   onClick={() => void handleClearSplitAssignment()}
-                  className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="inline-flex items-center px-2.5 py-1 text-xs rounded-md border exo-border-subtle exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                 >
                   Clear assignment
                 </button>
@@ -3708,7 +3711,9 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
             </div>
 
             {splitSuggestionError && (
-              <div className="text-xs text-amber-700 dark:text-amber-300">{splitSuggestionError}</div>
+              <div className="text-xs text-amber-700 dark:text-amber-300">
+                {splitSuggestionError}
+              </div>
             )}
 
             {splitSuggestions.length > 0 && (
@@ -3719,19 +3724,19 @@ export function EmailDetail({ isFullView = false }: EmailDetailProps) {
                   return (
                     <div
                       key={suggestion.splitId}
-                      className="flex items-center justify-between gap-2 text-xs bg-gray-50 dark:bg-gray-700/40 rounded-md px-2.5 py-1.5"
+                      className="flex items-center justify-between gap-2 text-xs bg-[var(--exo-bg-surface-soft)]/40 rounded-md px-2.5 py-1.5"
                     >
                       <div className="min-w-0">
-                        <div className="font-medium text-gray-800 dark:text-gray-100 truncate">
+                        <div className="font-medium exo-text-primary truncate">
                           {splitName} ({scorePct}%)
                         </div>
-                        <div className="text-gray-600 dark:text-gray-300 truncate">
+                        <div className="exo-text-secondary truncate">
                           {suggestion.reason}
                         </div>
                       </div>
                       <button
                         onClick={() => void handleApplySplitAssignment(suggestion.splitId)}
-                        className="inline-flex items-center px-2 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                        className="inline-flex items-center px-2 py-1 rounded-md bg-[var(--exo-accent)] text-white hover:bg-[var(--exo-accent-strong)]"
                       >
                         Apply
                       </button>

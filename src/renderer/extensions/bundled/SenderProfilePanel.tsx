@@ -49,19 +49,19 @@ export function SenderProfilePanel({
 
       {/* Sender Avatar & Name */}
       <div className="flex items-center space-x-3 mb-4">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-lg font-semibold text-white">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--exo-accent)] to-[var(--exo-accent-strong)] flex items-center justify-center text-lg font-semibold text-white">
           {senderName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{senderName}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{senderEmail}</p>
+          <p className="font-medium exo-text-primary truncate">{senderName}</p>
+          <p className="text-sm exo-text-muted truncate">{senderEmail}</p>
         </div>
       </div>
 
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
-          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center space-x-2 exo-text-muted">
             <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
@@ -87,24 +87,24 @@ export function SenderProfilePanel({
         <div className="space-y-4">
           {/* Company & Title */}
           {(profile.company || profile.title) && (
-            <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+            <div className="exo-surface-soft p-3 rounded-lg">
               {profile.title && (
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <p className="text-sm font-medium exo-text-primary">
                   {profile.title}
                 </p>
               )}
               {profile.company && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">{profile.company}</p>
+                <p className="text-sm exo-text-secondary">{profile.company}</p>
               )}
             </div>
           )}
 
           {/* Summary */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+            <h4 className="text-xs font-semibold exo-text-muted uppercase tracking-wide mb-2 exo-micro-label">
               About
             </h4>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="text-sm exo-text-secondary leading-relaxed">
               {profile.summary}
             </p>
           </div>
@@ -115,7 +115,7 @@ export function SenderProfilePanel({
               href={linkedInUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              className="inline-flex items-center space-x-2 text-sm text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
@@ -125,7 +125,7 @@ export function SenderProfilePanel({
           )}
 
           {/* Last updated */}
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs exo-text-muted">
             Last updated: {new Date(profile.lookupAt).toLocaleDateString()}
           </p>
         </div>
@@ -134,7 +134,7 @@ export function SenderProfilePanel({
       {/* No profile available */}
       {!isLoading && !profile && (
         <div className="text-center py-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm exo-text-muted">
             No profile information available
           </p>
         </div>

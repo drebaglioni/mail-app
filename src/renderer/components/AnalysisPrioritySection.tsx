@@ -21,9 +21,9 @@ function priorityColor(value: string): string {
     case "medium":
       return "text-yellow-600 dark:text-yellow-400";
     case "low":
-      return "text-blue-600 dark:text-blue-400";
+      return "text-[var(--exo-accent)]";
     default:
-      return "text-gray-500 dark:text-gray-400";
+      return "exo-text-muted";
   }
 }
 
@@ -77,26 +77,26 @@ export function AnalysisPrioritySection({
 
   if (!isEditing) {
     return (
-      <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50">
+      <div className="px-6 py-4 border-t exo-border-subtle exo-surface-soft">
         <div className="flex items-center gap-3 text-sm">
           <span
-            className={`font-medium ${analysis.needsReply ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"}`}
+            className={`font-medium ${analysis.needsReply ? "text-[var(--exo-accent)]" : "exo-text-muted"}`}
           >
             {analysis.needsReply ? "Needs Reply" : "No Reply Needed"}
           </span>
           {analysis.priority && (
             <>
-              <span className="text-gray-300 dark:text-gray-600">·</span>
+              <span className="text-[var(--exo-text-secondary)]">·</span>
               <span className={`capitalize ${priorityColor(analysis.priority)}`}>
                 {analysis.priority} priority
               </span>
             </>
           )}
-          <span className="text-gray-300 dark:text-gray-600">·</span>
-          <span className="text-gray-400 dark:text-gray-500 flex-1">{analysis.reason}</span>
+          <span className="text-[var(--exo-text-secondary)]">·</span>
+          <span className="exo-text-muted flex-1">{analysis.reason}</span>
           <button
             onClick={() => setIsEditing(true)}
-            className="text-xs text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+            className="text-xs text-[var(--exo-text-muted)] hover:text-[var(--exo-accent)] transition-colors"
           >
             Change
           </button>
@@ -106,10 +106,10 @@ export function AnalysisPrioritySection({
   }
 
   return (
-    <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-800/50">
+    <div className="px-6 py-4 border-t exo-border-subtle exo-surface-soft">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">Priority:</span>
+          <span className="exo-text-muted text-xs font-medium">Priority:</span>
           <div className="flex gap-1">
             {PRIORITY_OPTIONS.map((opt) => (
               <button
@@ -118,13 +118,13 @@ export function AnalysisPrioritySection({
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                   selectedValue === opt.value
                     ? opt.value === "skip"
-                      ? "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200"
+                      ? "bg-[var(--exo-border-subtle)] exo-text-secondary"
                       : opt.value === "high"
                         ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
                         : opt.value === "medium"
                           ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
-                          : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          : "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)]"
+                    : "bg-[var(--exo-bg-surface-soft)] exo-text-muted hover:bg-[var(--exo-bg-surface-hover)]"
                 }`}
               >
                 {opt.label}
@@ -147,7 +147,7 @@ export function AnalysisPrioritySection({
                 }
               }}
               placeholder="Reason (optional) — helps improve future classification"
-              className="w-full px-3 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full px-3 py-1.5 text-xs rounded border exo-border-subtle bg-[var(--exo-bg-elevated)] exo-text-secondary placeholder-[var(--exo-text-muted)] focus:outline-none focus:ring-1 focus:ring-blue-400"
               autoFocus
             />
             <div className="flex items-center gap-2 justify-end">
@@ -157,14 +157,14 @@ export function AnalysisPrioritySection({
                   setSelectedValue(current);
                   setReason("");
                 }}
-                className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                className="px-3 py-1 text-xs text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-3 py-1 text-xs font-medium rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
+                className="px-3 py-1 text-xs font-medium rounded bg-[var(--exo-accent)] text-white hover:bg-[var(--exo-accent)] disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save"}
               </button>
@@ -175,7 +175,7 @@ export function AnalysisPrioritySection({
           <div className="flex justify-end">
             <button
               onClick={() => setIsEditing(false)}
-              className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              className="px-3 py-1 text-xs text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)]"
             >
               Cancel
             </button>

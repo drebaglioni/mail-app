@@ -510,10 +510,10 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
   return (
     <div
       ref={menuRef}
-      className="w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden"
+      className="w-72 exo-elevated rounded-lg shadow-lg border exo-border-subtle z-50 overflow-hidden"
     >
       {/* Text input for flexible snooze */}
-      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+      <div className="px-3 py-2 border-b exo-border-subtle">
         <input
           ref={inputRef}
           type="text"
@@ -526,18 +526,18 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
             }
           }}
           placeholder='e.g. "2 hours", "tomorrow 3pm", "friday"'
-          className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-gray-400"
+          className="w-full px-2 py-1.5 text-sm border exo-border-strong rounded focus:outline-none focus:ring-1 focus:ring-[var(--exo-focus-ring)] placeholder:text-[var(--exo-text-muted)]"
         />
         {textInput.trim() && (
           <div className="mt-1.5 flex items-center justify-between">
             {parsedTime ? (
               <>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs exo-text-muted">
                   {formatSnoozeTime(parsedTime)}
                 </span>
                 <button
                   onClick={handleTextSubmit}
-                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                  className="text-xs font-medium text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
                 >
                   Snooze
                 </button>
@@ -562,23 +562,23 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
           <button
             key={option.label}
             onClick={() => handleSnooze(option.getTime())}
-            className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+            className="w-full px-3 py-2 text-left hover:bg-[var(--exo-bg-surface-hover)] transition-colors flex items-center justify-between"
           >
-            <span className="text-sm text-gray-900 dark:text-gray-100">{option.label}</span>
-            {option.sublabel && <span className="text-xs text-gray-400">{option.sublabel}</span>}
+            <span className="text-sm exo-text-primary">{option.label}</span>
+            {option.sublabel && <span className="text-xs text-[var(--exo-text-muted)]">{option.sublabel}</span>}
           </button>
         ))}
       </div>
 
       {/* Date picker fallback */}
-      <div className="border-t border-gray-100 dark:border-gray-700">
+      <div className="border-t exo-border-subtle">
         {!showDatePicker ? (
           <button
             onClick={() => setShowDatePicker(true)}
-            className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="w-full px-3 py-2 text-left hover:bg-[var(--exo-bg-surface-hover)] transition-colors flex items-center gap-2"
           >
             <svg
-              className="w-4 h-4 text-gray-400"
+              className="w-4 h-4 text-[var(--exo-text-muted)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -590,7 +590,7 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <span className="text-sm text-gray-900 dark:text-gray-100">Pick date & time</span>
+            <span className="text-sm exo-text-primary">Pick date & time</span>
           </button>
         ) : (
           <div className="px-3 py-2 space-y-2">
@@ -598,18 +598,18 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
               type="date"
               value={customDate}
               onChange={(e) => setCustomDate(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-2 py-1.5 text-sm border exo-border-strong rounded focus:outline-none focus:ring-1 focus:ring-[var(--exo-focus-ring)]"
             />
             <input
               type="time"
               value={customTime}
               onChange={(e) => setCustomTime(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full px-2 py-1.5 text-sm border exo-border-strong rounded focus:outline-none focus:ring-1 focus:ring-[var(--exo-focus-ring)]"
             />
             <button
               onClick={handleCustomDateSnooze}
               disabled={!customDate}
-              className="w-full px-3 py-1.5 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 rounded hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              className="w-full px-3 py-1.5 text-sm font-medium text-white bg-[var(--exo-accent)] rounded hover:bg-[var(--exo-accent-strong)] disabled:opacity-50 transition-colors"
             >
               Snooze
             </button>
