@@ -167,6 +167,21 @@ interface RuntimeAiConfig {
 }
 
 async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
+  // In test/demo mode, return safe defaults instead of reading config.
+  // This avoids loading electron-backed modules (data-dir, electron-store) on
+  // the test import chain, which fails under plain Node without Electron.
+  // Tests that exercise createMessage install a MockAnthropic client via
+  // _setClientForTesting, so the anthropic path is what they need anyway.
+  if (process.env.EXO_TEST_MODE === "true" || process.env.EXO_DEMO_MODE === "true") {
+    return {
+      aiProvider: "anthropic",
+      enableAnthropicFallback: false,
+      hasAnthropicAuth: true,
+      codexModel: "gpt-5.4",
+      codexModelOverrides: {},
+      codexCliPath: undefined,
+    };
+  }
   const { DEFAULT_CODEX_MODEL_OVERRIDES } = await import("../../shared/types");
   const settings = await import("../ipc/settings.ipc");
   const cfg = settings.getConfig();
