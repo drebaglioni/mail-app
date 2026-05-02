@@ -48,6 +48,22 @@ OUTPUT FORMAT:
 SENDER TYPE CLASSIFICATION:
 Classify the sender as "person" (a real human writing personally) or "automated" (a system, service, or bot).
 
+Anything that requires the user to do external work (e.g. update a document or send an invite) should remain in at least "low" priority and not be skipped.
+
+SKIP REPLIES FOR:
+- Newsletters, marketing emails, promotions, and advertising
+- Automated notifications (GitHub, CI/CD, build status, receipts, shipping updates, alerts)
+- Received calendar invites and event notifications (handled by calendar app) — but if the email asks the user to create/send an invite, that's action-required
+- CC'd emails where the user is not the primary recipient
+- FYI-only messages with no question or action required
+- Transactional emails (order confirmations, password resets, subscription confirmations)
+- Social media notifications (LinkedIn, Twitter, Facebook, etc.)
+- Mailing list digests and group announcements
+- Read receipts and delivery confirmations
+- Out-of-office auto-replies
+- Spam or suspicious emails
+- Replies that simply answer a question the user previously asked, without requesting further action
+
 "automated" includes:
 - Newsletters, marketing, promotions
 - GitHub, Jira, Linear, Slack, calendar notifications
@@ -139,6 +155,11 @@ Example 12 - Jira ticket assignment:
 Email Subject: "[PROJ-456] Bug assigned to you: Login timeout"
 Email Body: "A bug has been assigned to you by Sarah. Priority: High..."
 Output: {"needs_reply": false, "reason": "Automated Jira notification", "sender_type": "automated", "automated_category": "notifications"}
+
+Example 13 - Action-required task (low priority):
+Email Subject: "Please update the team roster spreadsheet"
+Email Body: "Hi, could you add the two new hires to the shared roster spreadsheet by end of week? The link is in the pinned message in our Slack channel. Thanks!"
+Output: {"needs_reply": true, "reason": "Action required - update external document by end of week", "priority": "low"}
 
 Now analyze the following email:`;
 

@@ -420,6 +420,7 @@ export const ConfigSchema = z.object({
   autoDraft: AutoDraftConfigSchema.optional(),
   agentDrafterPrompt: z.string().optional(),
   enableSenderLookup: z.boolean().default(false),
+  syncDraftsToGmail: z.boolean().default(false),
   theme: z.enum(["light", "dark", "system"]).default("system"),
   inboxDensity: z.enum(["default", "compact"]).default("compact"),
   undoSendDelay: z.number().min(0).max(30).default(5), // seconds; 0 = disabled
@@ -768,6 +769,7 @@ export type IpcChannels = {
 
   // Style operations
   "style:get-context": { toAddress: string };
+  "style:infer": void;
 
   // Settings operations
   "settings:get": void;
