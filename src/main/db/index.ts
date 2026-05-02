@@ -3108,29 +3108,60 @@ export function searchEmails(query: string, options: SearchOptions = {}): Search
     return [];
   }
 
-  // Try FTS5 first
+  // Try FTS5 first.
+  // Ranking: bm25 with column weights (subject 10, body 1, from 5, to 3) so
+  // subject/sender matches dominate over deep body matches, plus a small
+  // recency term and a contact-graph boost for senders the user receives a
+  // lot of mail from.
   let rows: Array<Record<string, unknown>> = [];
   try {
-    let sql = `
-      SELECT
-        e.id, e.thread_id as threadId, e.account_id as accountId,
-        e.subject, e.from_address as "from", e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc",
-        e.date, e.snippet,
-        rank
-      FROM emails_fts
-      JOIN emails e ON emails_fts.rowid = e.rowid
-      WHERE emails_fts MATCH ?
-    `;
-
-    const params: (string | number)[] = [finalQuery];
+    const params: (string | number)[] = [];
+    let sql: string;
 
     if (accountId) {
-      sql += ` AND e.account_id = ?`;
-      params.push(accountId);
+      sql = `
+        WITH contact_score AS (
+          SELECT
+            from_address,
+            CASE WHEN COUNT(*) >= 50 THEN 1.0 ELSE COUNT(*) / 50.0 END as score
+          FROM emails
+          WHERE account_id = ?
+          GROUP BY from_address
+        )
+        SELECT
+          e.id, e.thread_id as threadId, e.account_id as accountId,
+          e.subject, e.from_address as "from", e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc",
+          e.date,
+          COALESCE(NULLIF(snippet(emails_fts, 1, '<mark>', '</mark>', '...', 32), ''), e.snippet) as snippet,
+          bm25(emails_fts, 10.0, 1.0, 5.0, 3.0)
+            - COALESCE(cs.score, 0) * 0.5
+            + (julianday('now') - julianday(e.date)) * 0.0005 as rank
+        FROM emails_fts
+        JOIN emails e ON emails_fts.rowid = e.rowid
+        LEFT JOIN contact_score cs ON cs.from_address = e.from_address
+        WHERE emails_fts MATCH ?
+          AND e.account_id = ?
+        ORDER BY rank
+        LIMIT ? OFFSET ?
+      `;
+      params.push(accountId, finalQuery, accountId, limit, offset);
+    } else {
+      sql = `
+        SELECT
+          e.id, e.thread_id as threadId, e.account_id as accountId,
+          e.subject, e.from_address as "from", e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc",
+          e.date,
+          COALESCE(NULLIF(snippet(emails_fts, 1, '<mark>', '</mark>', '...', 32), ''), e.snippet) as snippet,
+          bm25(emails_fts, 10.0, 1.0, 5.0, 3.0)
+            + (julianday('now') - julianday(e.date)) * 0.0005 as rank
+        FROM emails_fts
+        JOIN emails e ON emails_fts.rowid = e.rowid
+        WHERE emails_fts MATCH ?
+        ORDER BY rank
+        LIMIT ? OFFSET ?
+      `;
+      params.push(finalQuery, limit, offset);
     }
-
-    sql += ` ORDER BY rank, e.date DESC LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
 
     const stmt = db.prepare(sql);
     rows = stmt.all(...params) as Array<Record<string, unknown>>;
