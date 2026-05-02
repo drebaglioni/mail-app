@@ -48,6 +48,27 @@ function decodeHtmlEntities(text: string): string {
   return textarea.value;
 }
 
+// Snippets from FTS5's snippet() come as plain text with literal <mark>...</mark>
+// markers around matched terms. body_text is HTML-stripped at ingest, so the
+// only tags present are the markers we asked FTS5 to insert.
+function renderSnippet(snippet: string): React.ReactNode {
+  const parts = snippet.split(/(<mark>[^<]*<\/mark>)/g);
+  return parts.map((part, i) => {
+    const m = part.match(/^<mark>([^<]*)<\/mark>$/);
+    if (m) {
+      return (
+        <mark
+          key={i}
+          className="bg-[var(--exo-accent-soft)] text-inherit rounded-sm px-0.5"
+        >
+          {decodeHtmlEntities(m[1])}
+        </mark>
+      );
+    }
+    return <span key={i}>{decodeHtmlEntities(part)}</span>;
+  });
+}
+
 interface SearchBarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -355,7 +376,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                       </div>
                       {result.snippet && (
                         <div className="text-sm exo-text-muted truncate mt-0.5">
-                          {decodeHtmlEntities(result.snippet)}
+                          {renderSnippet(result.snippet)}
                         </div>
                       )}
                     </div>
