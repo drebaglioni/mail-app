@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAppStore } from "../store";
 import type { IpcResponse, DashboardEmail } from "../../shared/types";
 import { trackEvent } from "../services/posthog";
@@ -14,6 +14,10 @@ type SearchResult = {
   snippet: string;
   rank: number;
 };
+
+// Result decorated with where it came from, so we can show an "Archive" badge
+// for hits that aren't in the local INBOX-only DB.
+type DisplayResult = SearchResult & { source: "local" | "remote" };
 
 declare global {
   interface Window {
@@ -77,9 +81,11 @@ interface SearchBarProps {
 export function SearchBar({ isOpen, onClose }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [remoteResults, setRemoteResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1); // -1 means no selection
   const [hasNavigated, setHasNavigated] = useState(false); // Track if user used arrow keys
   const [isSearching, setIsSearching] = useState(false);
+  const [isSearchingRemote, setIsSearchingRemote] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     setSelectedEmailId,
@@ -91,8 +97,20 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
     setRemoteSearchError,
   } = useAppStore();
 
-  // The "search all mail" affordance is at index === results.length
-  const searchAllMailIndex = results.length;
+  // Local results take precedence on dedupe (they have FTS5 ranking +
+  // <mark> highlighting); remote-only hits append below. Capped at 20 so
+  // the dropdown stays bounded.
+  const displayResults: DisplayResult[] = useMemo(() => {
+    const localIds = new Set(results.map((r) => r.id));
+    const local: DisplayResult[] = results.map((r) => ({ ...r, source: "local" }));
+    const remoteOnly: DisplayResult[] = remoteResults
+      .filter((r) => !localIds.has(r.id))
+      .map((r) => ({ ...r, source: "remote" }));
+    return [...local, ...remoteOnly].slice(0, 20);
+  }, [results, remoteResults]);
+
+  // The "search all mail" affordance is at index === displayResults.length
+  const searchAllMailIndex = displayResults.length;
 
   // Focus input when opened
   useEffect(() => {
@@ -106,12 +124,13 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
     if (!isOpen) {
       setQuery("");
       setResults([]);
+      setRemoteResults([]);
       setSelectedIndex(-1);
       setHasNavigated(false);
     }
   }, [isOpen]);
 
-  // Debounced search
+  // Debounced local FTS5 search (fast path)
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -140,6 +159,49 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
 
     return () => clearTimeout(timer);
   }, [query, currentAccountId]);
+
+  // Debounced Gmail remote search so the dropdown can surface archived /
+  // sent / all-mail hits the local INBOX-only DB doesn't have. Longer
+  // debounce than local since each call is a Gmail API roundtrip.
+  useEffect(() => {
+    if (!query.trim() || !currentAccountId || !isOnline) {
+      setRemoteResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setIsSearchingRemote(true);
+      try {
+        const response = await window.api.emails.searchRemote(query, currentAccountId, 20);
+        if (cancelled) return;
+        if (response.success && response.data) {
+          const converted: SearchResult[] = response.data.emails.map((e) => ({
+            id: e.id,
+            threadId: e.threadId,
+            accountId: e.accountId ?? currentAccountId,
+            subject: e.subject,
+            from: e.from,
+            to: e.to,
+            date: e.date,
+            snippet: e.snippet ?? "",
+            rank: 0,
+          }));
+          setRemoteResults(converted);
+        }
+      } catch (error) {
+        // Non-fatal: dropdown still shows local results
+        console.error("Remote search failed:", error);
+      } finally {
+        if (!cancelled) setIsSearchingRemote(false);
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, currentAccountId, isOnline]);
 
   // Perform full Gmail search and show results (local + remote in parallel)
   const performFullSearch = useCallback(() => {
@@ -224,11 +286,11 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
           if (
             hasNavigated &&
             selectedIndex >= 0 &&
-            selectedIndex < results.length &&
-            results[selectedIndex]
+            selectedIndex < displayResults.length &&
+            displayResults[selectedIndex]
           ) {
             // User explicitly navigated to a result, select it
-            setSelectedEmailId(results[selectedIndex].id);
+            setSelectedEmailId(displayResults[selectedIndex].id);
             setViewMode("full");
             onClose();
           } else {
@@ -241,7 +303,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
       }
     },
     [
-      results,
+      displayResults,
       selectedIndex,
       hasNavigated,
       searchAllMailIndex,
@@ -288,7 +350,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
 
   // Determine footer hint text
   const footerHint =
-    hasNavigated && selectedIndex >= 0 && selectedIndex < results.length
+    hasNavigated && selectedIndex >= 0 && selectedIndex < displayResults.length
       ? "Enter to open"
       : "Enter to search all mail";
 
@@ -325,7 +387,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
             placeholder="Search emails... (try from:, to:, subject:)"
             className="flex-1 text-lg outline-none placeholder-[var(--exo-text-muted)] bg-transparent"
           />
-          {isSearching && (
+          {(isSearching || isSearchingRemote) && (
             <svg className="w-5 h-5 text-[var(--exo-accent)] animate-spin" fill="none" viewBox="0 0 24 24">
               <circle
                 className="opacity-25"
@@ -349,9 +411,9 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
 
         {/* Results */}
         <div className="max-h-96 overflow-y-auto">
-          {results.length > 0 ? (
+          {displayResults.length > 0 ? (
             <div className="py-2">
-              {results.map((result, index) => (
+              {displayResults.map((result, index) => (
                 <button
                   key={result.id}
                   onClick={() => handleResultClick(result)}
@@ -370,6 +432,11 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                         <span className="text-sm exo-text-muted">
                           {formatDate(result.date)}
                         </span>
+                        {result.source === "remote" && (
+                          <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--exo-bg-surface-soft)] exo-text-muted">
+                            Archive
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm exo-text-secondary truncate mt-0.5">
                         {result.subject}
@@ -414,10 +481,10 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                 </button>
               )}
             </div>
-          ) : query.trim() && !isSearching ? (
+          ) : query.trim() && !isSearching && !isSearchingRemote ? (
             <div className="py-2">
               <div className="px-4 py-4 text-center exo-text-muted text-sm">
-                No local results for &quot;{query}&quot;
+                No results for &quot;{query}&quot;
               </div>
               {/* "Search all mail" affordance when no local results */}
               <button
