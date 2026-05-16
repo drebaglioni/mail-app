@@ -57,7 +57,7 @@ function getStore(): Store<{ config: Config }> {
           aiProvider: "codex" as const,
           enableAnthropicFallback: true,
           codex: {
-            model: "gpt-5.4",
+            model: "gpt-5.5",
           },
           analysisPrompt: DEFAULT_ANALYSIS_PROMPT,
           draftPrompt: DEFAULT_DRAFT_PROMPT,
@@ -133,15 +133,41 @@ export function getConfig(): Config {
     needsSave = true;
   }
   if (!config.codex) {
-    config.codex = { model: "gpt-5.4" };
+    config.codex = { model: "gpt-5.5" };
     needsSave = true;
   } else if (!config.codex.model) {
-    config.codex.model = "gpt-5.4";
+    config.codex.model = "gpt-5.5";
     needsSave = true;
   } else if (/^claude-/i.test(config.codex.model)) {
     // Codex cannot use Claude model IDs. Normalize legacy/misconfigured values.
-    config.codex.model = "gpt-5.4";
+    config.codex.model = "gpt-5.5";
     needsSave = true;
+  }
+
+  // Normalize stale "gpt-5.4"/"gpt-5.4-mini" values that codex rejects as unknown
+  // (these were defaults in earlier builds). Map them onto the real GPT-5 family.
+  if (config.codex) {
+    const remap = (id: string): string => {
+      if (/^gpt-5\.4-mini$/i.test(id)) return "gpt-5.5";
+      if (/^gpt-5\.4$/i.test(id)) return "gpt-5.5";
+      return id;
+    };
+    if (config.codex.model) {
+      const next = remap(config.codex.model);
+      if (next !== config.codex.model) {
+        config.codex.model = next;
+        needsSave = true;
+      }
+    }
+    if (config.codex.modelOverrides) {
+      for (const [feature, id] of Object.entries(config.codex.modelOverrides)) {
+        const next = remap(id);
+        if (next !== id) {
+          config.codex.modelOverrides[feature] = next;
+          needsSave = true;
+        }
+      }
+    }
   }
 
   if (needsSave) {
@@ -257,7 +283,7 @@ export function registerSettingsIpc(): void {
         agentCoordinator.updateConfig({
           aiProvider: newConfig.aiProvider ?? "codex",
           codex: {
-            model: newConfig.codex?.model || "gpt-5.4",
+            model: newConfig.codex?.model || "gpt-5.5",
             cliPath: newConfig.codex?.cliPath,
           },
         });
@@ -764,7 +790,7 @@ export function registerSettingsIpc(): void {
       const cfg = getConfig();
       await testCodexConnection({
         cliPath: cfg.codex?.cliPath || "codex",
-        model: cfg.codex?.model || "gpt-5.4",
+        model: cfg.codex?.model || "gpt-5.5",
       });
       return { success: true, data: undefined };
     } catch (error) {

@@ -521,6 +521,45 @@ const NUMBERED_MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    version: 6,
+    name: "drop_stale_person_analyses_for_reanalysis",
+    up: (db) => {
+      // Earlier builds defaulted Codex to "gpt-5.4" — an invalid model id. The
+      // codex CLI rejected it, the unsupported-model retry ran without --model
+      // and the fallback model returned prose instead of strict JSON. The
+      // analyzer's parse-error path then stamped sender_type = "person" on
+      // anything ambiguous (see email-analyzer.ts), leaving automated mail
+      // stuck in the People tab. Drop those rows so the prefetcher re-analyzes
+      // them with the corrected model. Skip rows the heuristic classifier
+      // confidently labels (v4 already handled "automated"; trust those).
+      const rows = db
+        .prepare(
+          `SELECT a.email_id, e.from_address
+           FROM analyses a
+           JOIN emails e ON e.id = a.email_id
+           WHERE a.sender_type = 'person' OR a.sender_type IS NULL`,
+        )
+        .all() as Array<{ email_id: string; from_address: string }>;
+
+      if (rows.length === 0) return;
+
+      const deleteStmt = db.prepare("DELETE FROM analyses WHERE email_id = ?");
+      let dropped = 0;
+      for (const row of rows) {
+        const result = classifySenderByHeuristics({ from: row.from_address });
+        if (result === null) {
+          deleteStmt.run(row.email_id);
+          dropped++;
+        }
+      }
+      if (dropped > 0) {
+        log.info(
+          `[Migration v6] Dropped ${dropped}/${rows.length} ambiguous 'person' analyses for re-analysis`,
+        );
+      }
+    },
+  },
 ];
 
 function runNumberedMigrations(db: DatabaseInstance): void {
