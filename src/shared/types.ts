@@ -334,13 +334,12 @@ export const ModelTierSchema = z.enum(["haiku", "sonnet", "opus"]);
 export type ModelTier = z.infer<typeof ModelTierSchema>;
 
 // Centralized mapping from tier to model ID. Update these when new model versions ship.
-// Note: sonnet maps to 4.5 (not the legacy 4.0 default) — this is an intentional upgrade.
-// Opus uses the non-date-stamped alias because no pinned snapshot is available yet for 4.6.
-// Pin to a date-stamped ID (e.g. "claude-opus-4-6-YYYYMMDD") once Anthropic publishes one.
+// Sonnet and Opus use non-date-stamped aliases because pinned snapshots for 4.6 / 4.7
+// are not yet published. Pin to date-stamped IDs once Anthropic releases them.
 export const MODEL_TIER_IDS: Record<ModelTier, string> = {
   haiku: "claude-haiku-4-5-20251001",
-  sonnet: "claude-sonnet-4-5-20250929",
-  opus: "claude-opus-4-6",
+  sonnet: "claude-sonnet-4-6",
+  opus: "claude-opus-4-7",
 };
 
 // Display labels for the UI
@@ -385,7 +384,7 @@ export type AiProvider = z.infer<typeof AiProviderSchema>;
 
 export const CodexConfigSchema = z.object({
   // Default model for all Codex-backed features.
-  model: z.string().default("gpt-5.4"),
+  model: z.string().default("gpt-5"),
   // Per-feature model overrides. Keys are feature names from ModelConfig.
   // Features not listed here use the default `model` above.
   modelOverrides: z.record(z.string(), z.string()).optional(),
@@ -394,8 +393,8 @@ export const CodexConfigSchema = z.object({
 });
 
 export const DEFAULT_CODEX_MODEL_OVERRIDES: Record<string, string> = {
-  calendaring: "gpt-5.4-mini",
-  agentChat: "gpt-5.4-mini",
+  calendaring: "gpt-5-mini",
+  agentChat: "gpt-5-mini",
 };
 
 export type CodexConfig = z.infer<typeof CodexConfigSchema>;

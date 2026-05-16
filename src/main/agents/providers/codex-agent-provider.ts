@@ -176,7 +176,7 @@ function resolveCodexModel(
   modelOverride: string | undefined,
   defaultModel: string | undefined,
 ): string {
-  const fallback = defaultModel || "gpt-5.4";
+  const fallback = defaultModel || "gpt-5";
   if (!modelOverride) return fallback;
 
   // Interactive agent runs may pass a model tier resolved for Claude (e.g. "claude-opus-4-6").

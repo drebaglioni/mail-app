@@ -177,7 +177,7 @@ async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
       aiProvider: "anthropic",
       enableAnthropicFallback: false,
       hasAnthropicAuth: true,
-      codexModel: "gpt-5.4",
+      codexModel: "gpt-5",
       codexModelOverrides: {},
       codexCliPath: undefined,
     };
@@ -189,7 +189,7 @@ async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
     aiProvider: cfg.aiProvider ?? "codex",
     enableAnthropicFallback: cfg.enableAnthropicFallback ?? true,
     hasAnthropicAuth: Boolean(cfg.anthropicApiKey || process.env.ANTHROPIC_API_KEY),
-    codexModel: cfg.codex?.model || "gpt-5.4",
+    codexModel: cfg.codex?.model || "gpt-5",
     codexModelOverrides: { ...DEFAULT_CODEX_MODEL_OVERRIDES, ...cfg.codex?.modelOverrides },
     codexCliPath: cfg.codex?.cliPath,
   };
