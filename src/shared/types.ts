@@ -384,7 +384,7 @@ export type AiProvider = z.infer<typeof AiProviderSchema>;
 
 export const CodexConfigSchema = z.object({
   // Default model for all Codex-backed features.
-  model: z.string().default("gpt-5"),
+  model: z.string().default("gpt-5.5"),
   // Per-feature model overrides. Keys are feature names from ModelConfig.
   // Features not listed here use the default `model` above.
   modelOverrides: z.record(z.string(), z.string()).optional(),
@@ -393,8 +393,8 @@ export const CodexConfigSchema = z.object({
 });
 
 export const DEFAULT_CODEX_MODEL_OVERRIDES: Record<string, string> = {
-  calendaring: "gpt-5-mini",
-  agentChat: "gpt-5-mini",
+  calendaring: "gpt-5.5",
+  agentChat: "gpt-5.5",
 };
 
 export type CodexConfig = z.infer<typeof CodexConfigSchema>;

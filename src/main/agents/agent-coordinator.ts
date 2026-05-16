@@ -248,7 +248,7 @@ export class AgentCoordinator {
       aiProvider: appConfig.aiProvider ?? "codex",
       anthropicApiKey: apiKey,
       codex: {
-        model: appConfig.codex?.model || "gpt-5",
+        model: appConfig.codex?.model || "gpt-5.5",
         cliPath: appConfig.codex?.cliPath,
       },
       browserConfig: browser
@@ -292,7 +292,7 @@ export class AgentCoordinator {
               anthropicApiKey:
                 getConfig().anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined,
               codex: {
-                model: getConfig().codex?.model || "gpt-5",
+                model: getConfig().codex?.model || "gpt-5.5",
                 cliPath: getConfig().codex?.cliPath,
               },
             },
@@ -535,7 +535,7 @@ export class AgentCoordinator {
       aiProvider: appConfig.aiProvider ?? "codex",
       anthropicApiKey: appConfig.anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined,
       codex: {
-        model: appConfig.codex?.model || "gpt-5",
+        model: appConfig.codex?.model || "gpt-5.5",
         cliPath: appConfig.codex?.cliPath,
       },
     };
