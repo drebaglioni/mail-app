@@ -87,16 +87,15 @@ test.describe("EmailSchema", () => {
 // ============================================================
 
 test.describe("AnalysisResultSchema", () => {
-  test("validates needs_reply=true with priority", () => {
+  test("validates needs_reply=true with reason", () => {
     const result = AnalysisResultSchema.safeParse({
       needs_reply: true,
       reason: "Direct question",
-      priority: "high",
     });
     expect(result.success).toBe(true);
   });
 
-  test("validates needs_reply=false without priority", () => {
+  test("validates needs_reply=false with reason", () => {
     const result = AnalysisResultSchema.safeParse({
       needs_reply: false,
       reason: "Newsletter",
@@ -115,13 +114,17 @@ test.describe("AnalysisResultSchema", () => {
     }
   });
 
-  test("rejects invalid priority", () => {
+  test("accepts optional priority alongside required fields", () => {
     const result = AnalysisResultSchema.safeParse({
       needs_reply: true,
-      reason: "test",
-      priority: "critical", // not a valid enum value
+      reason: "Direct question",
+      priority: "high",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.priority).toBe("high");
+      expect(result.data.reason).toBe("Direct question");
+    }
   });
 
   test("rejects missing needs_reply", () => {

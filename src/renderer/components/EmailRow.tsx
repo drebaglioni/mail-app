@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { InboxDensity, SnoozedEmail } from "../../shared/types";
-import type { EmailThread } from "../store";
+import { useAppStore, type EmailThread } from "../store";
 import { formatSnoozeTime } from "./SnoozeMenu";
 
 interface EmailRowProps {
@@ -78,8 +78,18 @@ function decodeHtmlEntities(text: string): string {
   return textarea.value;
 }
 
-// Get priority label info
-function getPriorityLabel(thread: EmailThread): { text: string; className: string } | null {
+// Get the row's status pill. Returns null when no pill should render.
+//
+// Pills only show in non-priority tabs (the Priority tab is implicitly all
+// priority emails, so the pill would just be visual noise there). When the tab
+// is mixed (All / custom splits / Drafts / Snoozed / Archive Ready / Other),
+// the pill helps the user spot priority emails vs. completed drafts.
+function getPriorityLabel(
+  thread: EmailThread,
+  inPriorityTab: boolean,
+): { text: string; className: string } | null {
+  if (inPriorityTab) return null;
+
   if (thread.draft?.status === "created") {
     return {
       text: "Done",
@@ -91,17 +101,23 @@ function getPriorityLabel(thread: EmailThread): { text: string; className: strin
   }
   // Note: the store's categorization uses effectiveUserReplied (with a grace period)
   // while we check userReplied directly. During the ~3 min grace window, the badge
-  // may show "Skip" while the thread still sits in Priority. This is acceptable:
-  // the user just replied so "Skip" is the correct eventual state.
+  // may show no badge while the thread still sits in Priority. This is acceptable.
   if (!thread.analysis.needsReply || thread.userReplied) {
     return null; // No badge for threads that don't need a reply
   }
-  const priority = thread.analysis.priority || "low";
-  const badges: Record<string, { text: string; className: string }> = {
-    high: { text: "High", className: "priority-high" },
-    low: { text: "Low", className: "priority-low" },
+  // Prefer the fork-specific priority hint when present; otherwise fall back
+  // to upstream's flat "Priority" badge.
+  if (thread.analysis.priority === "high") {
+    return { text: "High", className: "priority-high" };
+  }
+  if (thread.analysis.priority === "low") {
+    return { text: "Low", className: "priority-low" };
+  }
+  return {
+    text: "Priority",
+    className:
+      "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] dark:bg-[var(--exo-accent-soft)] dark:text-[var(--exo-accent)]",
   };
-  return badges[priority] ?? null;
 }
 
 // Memoized so that j/k navigation only re-renders the two rows whose
@@ -126,7 +142,8 @@ export const EmailRow = memo(
       : formatRelativeDate(thread.latestReceivedEmail.date);
     const rawSnippet = thread.latestEmail.snippet || "";
     const snippet = decodeHtmlEntities(rawSnippet);
-    const priorityLabel = getPriorityLabel(thread);
+    const currentSplitId = useAppStore((state) => state.currentSplitId);
+    const priorityLabel = getPriorityLabel(thread, currentSplitId === "__priority__");
     // Fallback to "default" if stored density is unrecognized (e.g. removed "comfortable")
     const ds = densityStyles[density] ?? densityStyles.default;
 
@@ -227,6 +244,7 @@ export const EmailRow = memo(
               {decodeHtmlEntities(thread.subject)}
             </span>
             <span
+              aria-hidden="true"
               className={`flex-shrink ${isSelected && !isChecked ? "text-white/40" : "text-[var(--exo-border-strong)]"}`}
             >
               —
@@ -346,7 +364,7 @@ export const EmailRow = memo(
           {/* Thread count badge */}
           {thread.hasMultipleEmails && (
             <span
-            className={`
+              className={`
           ${ds.threadBadge} rounded-full flex items-center justify-center flex-shrink-0 exo-micro-label
           ${
             isSelected && !isChecked
@@ -362,14 +380,45 @@ export const EmailRow = memo(
       </div>
     );
   },
-  (prev, next) =>
-    prev.thread === next.thread &&
-    prev.isSelected === next.isSelected &&
-    prev.isChecked === next.isChecked &&
-    prev.isMultiSelectActive === next.isMultiSelectActive &&
-    prev.density === next.density &&
-    prev.snoozeInfo === next.snoozeInfo &&
-    prev.returnTime === next.returnTime,
-  // onClick / onCheckboxChange / onKeepToggle intentionally omitted — they are stable
-  // in behavior but are new arrow function references on each parent render.
+  (prev, next) => {
+    if (
+      prev.isSelected !== next.isSelected ||
+      prev.isChecked !== next.isChecked ||
+      prev.isMultiSelectActive !== next.isMultiSelectActive ||
+      prev.density !== next.density ||
+      prev.snoozeInfo !== next.snoozeInfo ||
+      prev.returnTime !== next.returnTime
+    ) {
+      return false;
+    }
+    if (prev.thread === next.thread) return true;
+    // Thread object identity changes on every store mutation that touches
+    // `emails` because groupByThread rebuilds the objects. Compare rendered
+    // fields directly so unrelated state updates don't re-render every row.
+    //
+    // KEEP IN SYNC: if EmailRow's JSX reads a new EmailThread field, add it
+    // here too — otherwise rows render stale data. `archiveKept` is read by
+    // the Keep toggle (fork-specific) so it lives in this list.
+    const pt = prev.thread;
+    const nt = next.thread;
+    return (
+      pt.threadId === nt.threadId &&
+      pt.isUnread === nt.isUnread &&
+      pt.userReplied === nt.userReplied &&
+      pt.displaySender === nt.displaySender &&
+      pt.subject === nt.subject &&
+      pt.latestReceivedDate === nt.latestReceivedDate &&
+      pt.hasMultipleEmails === nt.hasMultipleEmails &&
+      pt.emails.length === nt.emails.length &&
+      pt.latestEmail.id === nt.latestEmail.id &&
+      pt.latestEmail.snippet === nt.latestEmail.snippet &&
+      pt.latestReceivedEmail.id === nt.latestReceivedEmail.id &&
+      pt.latestReceivedEmail.date === nt.latestReceivedEmail.date &&
+      pt.analysis === nt.analysis &&
+      pt.draft === nt.draft &&
+      pt.archiveKept === nt.archiveKept
+    );
+  },
+  // onClick / onCheckboxChange / onKeepToggle intentionally omitted — they are
+  // stable in behavior but are new arrow function references on each parent render.
 );

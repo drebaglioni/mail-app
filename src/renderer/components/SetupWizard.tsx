@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { IpcResponse } from "../../shared/types";
+import { type IpcResponse } from "../../shared/types";
 import { reconfigurePostHog } from "../services/posthog";
 
 interface SetupWizardProps {
@@ -27,6 +27,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const [googleClientId, setGoogleClientId] = useState("");
   const [googleClientSecret, setGoogleClientSecret] = useState("");
 
+  // Fork: upstream's apikey step is not exposed in the setup wizard.
+  // Users configure LLM provider keys later via Settings.
+
   // Extension auth state
   const [extensionAuths, setExtensionAuths] = useState<ExtensionAuthInfo[]>([]);
   const [authenticatingExtension, setAuthenticatingExtension] = useState<string | null>(null);
@@ -38,11 +41,13 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   useEffect(() => {
     (
       window.api.gmail.checkAuth() as Promise<
-        IpcResponse<{ hasCredentials: boolean; hasTokens: boolean }>
+        IpcResponse<{ hasCredentials: boolean; hasTokens: boolean; hasLlmProvider?: boolean }>
       >
     )
       .then((authResult) => {
         if (authResult.success) {
+          // Fork policy: don't gate the setup wizard on LLM provider config.
+          // The user can add Anthropic/Ollama/Exa keys later via Settings.
           const { hasCredentials, hasTokens } = authResult.data;
 
           const flow: Step[] = [];
@@ -99,6 +104,9 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       setIsLoading(false);
     }
   };
+
+  // Fork policy: API-key setup is deferred to the in-app Settings panel.
+  // Upstream's apikey wizard step is intentionally not exposed here.
 
   const handleStartOAuth = async () => {
     setIsLoading(true);
@@ -222,18 +230,14 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "credentials" && (
             <>
-              <h2 className="text-2xl font-bold exo-text-primary mb-4">
-                Google Cloud Credentials
-              </h2>
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">Google Cloud Credentials</h2>
               <p className="exo-text-secondary mb-6">
                 Exo needs Google OAuth credentials to access your Gmail account. You'll need to
                 create a Google Cloud project with the Gmail API enabled.
               </p>
 
               <div className="bg-[var(--exo-accent-soft)] p-4 rounded-lg mb-6">
-                <h3 className="font-semibold text-[var(--exo-accent-strong)] mb-2">
-                  Setup steps:
-                </h3>
+                <h3 className="font-semibold text-[var(--exo-accent-strong)] mb-2">Setup steps:</h3>
                 <ol className="text-sm text-[var(--exo-accent-strong)] space-y-2 list-decimal list-inside">
                   <li>
                     Go to the{" "}
@@ -304,9 +308,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "oauth" && (
             <>
-              <h2 className="text-2xl font-bold exo-text-primary mb-4">
-                Authorize Gmail Access
-              </h2>
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">Authorize Gmail Access</h2>
               <p className="exo-text-secondary mb-6">
                 Click the button below to authorize Exo to read your emails and create drafts. A
                 browser window will open for you to sign in with Google.
@@ -346,9 +348,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "extensions" && (
             <>
-              <h2 className="text-2xl font-bold exo-text-primary mb-4">
-                Connect Services
-              </h2>
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">Connect Services</h2>
               <p className="exo-text-secondary mb-6">
                 Some extensions need authentication to enrich your emails. You can connect them now
                 or later.
@@ -360,9 +360,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                     key={ext.extensionId}
                     className="flex items-center justify-between p-4 border exo-border-subtle rounded-lg"
                   >
-                    <span className="font-medium exo-text-primary">
-                      {ext.displayName}
-                    </span>
+                    <span className="font-medium exo-text-primary">{ext.displayName}</span>
                     {ext.needsAuth ? (
                       <button
                         onClick={() => handleExtensionAuth(ext.extensionId, ext.authType)}
@@ -414,9 +412,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
           {step === "analytics" && (
             <>
-              <h2 className="text-2xl font-bold exo-text-primary mb-4">
-                Help Improve Exo
-              </h2>
+              <h2 className="text-2xl font-bold exo-text-primary mb-4">Help Improve Exo</h2>
               <p className="exo-text-secondary mb-6">
                 We collect usage data and error reports to improve the app. No email content is ever
                 sent — only app interactions and crash diagnostics. Your email address is sent so we
@@ -425,9 +421,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
 
               <label className="flex items-center justify-between p-4 border exo-border-subtle rounded-lg cursor-pointer mb-6">
                 <div>
-                  <div className="font-medium exo-text-primary">
-                    Usage Analytics
-                  </div>
+                  <div className="font-medium exo-text-primary">Usage Analytics</div>
                   <div className="text-sm exo-text-muted">
                     Crash reports, app usage data, and session recordings for debugging
                   </div>
@@ -437,9 +431,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   aria-checked={analyticsEnabled}
                   onClick={() => setAnalyticsEnabled(!analyticsEnabled)}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
-                    analyticsEnabled
-                      ? "bg-[var(--exo-accent)]"
-                      : "bg-[var(--exo-border-subtle)]"
+                    analyticsEnabled ? "bg-[var(--exo-accent)]" : "bg-[var(--exo-border-subtle)]"
                   }`}
                 >
                   <span

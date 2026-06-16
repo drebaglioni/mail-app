@@ -57,9 +57,7 @@ export function ShortcutHelp({ isOpen, onClose }: ShortcutHelpProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="exo-elevated rounded-lg shadow-xl dark:shadow-black/40 w-full max-w-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold exo-text-primary">
-            Keyboard Shortcuts
-          </h2>
+          <h2 className="text-lg font-semibold exo-text-primary">Keyboard Shortcuts</h2>
           <span className="text-xs exo-text-muted ml-2">
             {keyboardBindings === "gmail" ? "Gmail" : "Superhuman"} bindings
           </span>

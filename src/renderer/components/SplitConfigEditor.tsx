@@ -24,6 +24,7 @@ function ConditionEditor({ condition, onChange, onRemove }: ConditionEditorProps
       <select
         value={condition.type}
         onChange={(e) => onChange({ ...condition, type: e.target.value as SplitCondition["type"] })}
+        aria-label="Condition type"
         className="text-sm border rounded px-2 py-1 w-24"
       >
         {CONDITION_TYPES.map((t) => (
@@ -55,6 +56,7 @@ function ConditionEditor({ condition, onChange, onRemove }: ConditionEditorProps
         onClick={onRemove}
         className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-400 p-1 shrink-0"
         title="Remove condition"
+        aria-label="Remove condition"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -127,9 +129,7 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
       <div className="space-y-4">
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="block text-sm font-medium exo-text-secondary mb-1">
-              Name
-            </label>
+            <label className="block text-sm font-medium exo-text-secondary mb-1">Name</label>
             <input
               type="text"
               value={name}
@@ -139,9 +139,7 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
             />
           </div>
           <div className="w-20">
-            <label className="block text-sm font-medium exo-text-secondary mb-1">
-              Icon
-            </label>
+            <label className="block text-sm font-medium exo-text-secondary mb-1">Icon</label>
             <input
               type="text"
               value={icon}
@@ -155,12 +153,11 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium exo-text-secondary">
-              Conditions
-            </label>
+            <label className="block text-sm font-medium exo-text-secondary">Conditions</label>
             <select
               value={conditionLogic}
               onChange={(e) => setConditionLogic(e.target.value as "and" | "or")}
+              aria-label="Condition match logic"
               className="text-xs border rounded px-2 py-1"
             >
               <option value="or">Match ANY</option>
@@ -201,9 +198,7 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
               className="rounded"
             />
             <div>
-              <span className="text-sm font-medium exo-text-secondary">
-                Exclusive
-              </span>
+              <span className="text-sm font-medium exo-text-secondary">Exclusive</span>
               <p className="text-xs exo-text-muted">
                 Hide matching emails from "All" inbox and "Archive Ready"
               </p>
@@ -405,7 +400,8 @@ export function SplitConfigEditor() {
   if (!currentAccountId) {
     return (
       <div className="text-sm exo-text-muted">
-        Select an account to manage splits.
+        Switch from <span className="font-medium">All Inboxes</span> to a single account in the
+        title bar to manage that account's splits.
       </div>
     );
   }
@@ -558,6 +554,7 @@ export function SplitConfigEditor() {
                   disabled={index === 0 || isSaving}
                   className="p-1 exo-text-muted hover:text-[var(--exo-text-primary)] disabled:opacity-30"
                   title="Move up"
+                  aria-label={`Move "${split.name}" up`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -573,6 +570,7 @@ export function SplitConfigEditor() {
                   disabled={index === sortedSplits.length - 1 || isSaving}
                   className="p-1 exo-text-muted hover:text-[var(--exo-text-primary)] disabled:opacity-30"
                   title="Move down"
+                  aria-label={`Move "${split.name}" down`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -588,6 +586,7 @@ export function SplitConfigEditor() {
                   disabled={isSaving || !!editingSplit}
                   className="p-1 exo-text-muted hover:text-[var(--exo-accent)] disabled:opacity-30"
                   title="Edit"
+                  aria-label={`Edit split "${split.name}"`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -603,6 +602,7 @@ export function SplitConfigEditor() {
                   disabled={isSaving}
                   className="p-1 exo-text-muted hover:text-red-600 dark:hover:text-red-400 disabled:opacity-30"
                   title="Delete"
+                  aria-label={`Delete split "${split.name}"`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

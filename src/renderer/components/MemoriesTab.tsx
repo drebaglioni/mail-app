@@ -274,15 +274,11 @@ export function MemoriesTab({
   }, {});
 
   if (isLoading) {
-    return (
-      <div className="max-w-3xl p-4 text-sm exo-text-muted">
-        Loading memories...
-      </div>
-    );
+    return <div className="max-w-3xl mx-auto p-4 text-sm exo-text-muted">Loading memories...</div>;
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <div className="flex items-center justify-between mb-2">
           <div>
@@ -307,15 +303,14 @@ export function MemoriesTab({
           <div className="p-4 mb-4 exo-surface-soft border exo-border-subtle rounded-lg space-y-3">
             <div className="flex gap-3">
               <div>
-                <label className="block text-xs font-medium exo-text-secondary mb-1">
-                  Scope
-                </label>
+                <label className="block text-xs font-medium exo-text-secondary mb-1">Scope</label>
                 <select
                   value={newScope}
                   onChange={(e) => {
                     setNewScope(e.target.value as MemoryScope);
                     setNewScopeValue("");
                   }}
+                  aria-label="Memory scope"
                   className="px-2 py-1.5 border exo-border-strong rounded text-sm"
                 >
                   {(Object.keys(SCOPE_LABELS) as MemoryScope[]).map((s) => (
@@ -358,13 +353,9 @@ export function MemoriesTab({
                 </div>
               )}
             </div>
-            <p className="text-xs exo-text-muted">
-              {SCOPE_DESCRIPTIONS[newScope]}
-            </p>
+            <p className="text-xs exo-text-muted">{SCOPE_DESCRIPTIONS[newScope]}</p>
             <div>
-              <label className="block text-xs font-medium exo-text-secondary mb-1">
-                Memory
-              </label>
+              <label className="block text-xs font-medium exo-text-secondary mb-1">Memory</label>
               <textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
@@ -485,9 +476,7 @@ export function MemoriesTab({
                             </button>
                           </div>
                         ) : (
-                          <p className="text-sm exo-text-primary">
-                            {memory.content}
-                          </p>
+                          <p className="text-sm exo-text-primary">{memory.content}</p>
                         )}
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs exo-text-muted">
@@ -596,15 +585,8 @@ export function MemoriesTab({
                       {dm.senderEmail && (
                         <p className="text-xs exo-text-muted mt-0.5">
                           Observed in conversation with{" "}
-                          <span className="font-medium exo-text-secondary">
-                            {dm.senderEmail}
-                          </span>
-                          {dm.subject && (
-                            <span className="exo-text-muted">
-                              {" "}
-                              — {dm.subject}
-                            </span>
-                          )}
+                          <span className="font-medium exo-text-secondary">{dm.senderEmail}</span>
+                          {dm.subject && <span className="exo-text-muted"> — {dm.subject}</span>}
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-0.5">
@@ -628,9 +610,7 @@ export function MemoriesTab({
                         {dm.emailContext && (
                           <>
                             <span className="text-xs text-[var(--exo-text-secondary)]">·</span>
-                            <span className="text-xs exo-text-muted">
-                              {dm.emailContext}
-                            </span>
+                            <span className="text-xs exo-text-muted">{dm.emailContext}</span>
                           </>
                         )}
                         <span className="text-xs text-[var(--exo-text-secondary)]">·</span>

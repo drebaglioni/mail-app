@@ -157,12 +157,8 @@ export function EmailAttachmentList({
               className="flex-1 min-w-0 text-left cursor-pointer"
               title={canPreview ? "Click to preview" : att.filename}
             >
-              <div className="text-sm exo-text-secondary truncate">
-                {att.filename}
-              </div>
-              <div className="text-xs exo-text-muted">
-                {formatFileSize(att.size)}
-              </div>
+              <div className="text-sm exo-text-secondary truncate">{att.filename}</div>
+              <div className="text-xs exo-text-muted">{formatFileSize(att.size)}</div>
             </button>
             <div className="flex items-center gap-1 flex-shrink-0">
               {canPreview && (
@@ -283,15 +279,10 @@ export function ComposeAttachmentList({
           >
             <FileIcon type={iconType} />
             <div className="flex-1 min-w-0">
-              <div
-                className="text-sm exo-text-secondary truncate"
-                title={att.filename}
-              >
+              <div className="text-sm exo-text-secondary truncate" title={att.filename}>
                 {att.filename}
               </div>
-              <div className="text-xs exo-text-muted">
-                {formatFileSize(att.size)}
-              </div>
+              <div className="text-xs exo-text-muted">{formatFileSize(att.size)}</div>
             </div>
             <button
               onClick={() => onRemove(att.id)}
@@ -350,9 +341,7 @@ export function AttachmentPreviewModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b exo-border-subtle">
-          <h3 className="text-sm font-medium exo-text-primary truncate">
-            {attachment.filename}
-          </h3>
+          <h3 className="text-sm font-medium exo-text-primary truncate">{attachment.filename}</h3>
           <button
             onClick={onClose}
             className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] transition-colors"
@@ -385,9 +374,7 @@ export function AttachmentPreviewModal({
             />
           )}
           {!isImage && !isPdf && (
-            <p className="exo-text-muted">
-              Preview not available for this file type
-            </p>
+            <p className="exo-text-muted">Preview not available for this file type</p>
           )}
         </div>
       </div>

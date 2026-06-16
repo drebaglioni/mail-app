@@ -139,6 +139,7 @@ export function useComposeForm({
 
   // Account display name acts as the fallback for aliases without their own
   // (common for Workspace primaries, where the name lives on the OAuth profile).
+  // Subscribed so derivedFrom and FromSelector dropdown labels stay current.
   const accountDisplayName = useAppStore(
     (state) => state.accounts.find((a) => a.id === accountId)?.displayName,
   );

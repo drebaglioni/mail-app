@@ -15,6 +15,7 @@ import { AgentProviderRegistry } from "./providers/registry";
 import { ClaudeAgentProvider } from "./providers/claude-agent-provider";
 import { CodexAgentProvider } from "./providers/codex-agent-provider";
 import { OpenClawAgentProvider } from "./providers/openclaw/openclaw-agent-provider";
+import { OpenCodeAgentProvider } from "./providers/opencode/opencode-agent-provider";
 import { PermissionGate } from "./permission-gate";
 import type { ToolRegistry } from "./tools/registry";
 import type { ProxyContext } from "./tools/types";
@@ -70,6 +71,11 @@ export class AgentOrchestrator {
         gatewayToken: ocSettings?.gatewayToken ?? "",
       }),
     );
+
+    // Register the OpenCode provider — multi-provider open-source agent
+    // harness alternative to Claude Agent SDK. Off by default; user enables
+    // in Settings → AI / Agents.
+    this.providerRegistry.register(new OpenCodeAgentProvider(deps.config));
 
     // Register any auto-discovered private providers
     for (const provider of discoverPrivateProviders(deps.config)) {
@@ -229,6 +235,7 @@ export class AgentOrchestrator {
               tools,
               toolExecutor,
               netFetch: this.deps.netFetchProxy,
+              recordSessionStart: this.deps.recordAgentSessionStart,
               signal: abortController.signal,
               modelOverride,
             });

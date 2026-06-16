@@ -42,6 +42,7 @@ export function ComposeToolbar({
         onClick={onPickFiles}
         className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded transition-colors"
         title="Attach file"
+        aria-label="Attach file"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -52,10 +53,12 @@ export function ComposeToolbar({
           />
         </svg>
       </button>
+      <span className="text-xs exo-text-muted">Cmd+Enter to send</span>
       {availableSignatures.length > 0 && (
         <select
           value={activeSignatureId ?? ""}
           onChange={(e) => onSignatureChange(e.target.value || null)}
+          aria-label="Signature"
           className="ml-auto text-sm exo-text-secondary bg-transparent cursor-pointer"
         >
           <option value="">No signature</option>

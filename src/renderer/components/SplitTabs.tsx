@@ -1,15 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { useAppStore, useThreadedEmails, type EmailThread } from "../store";
+import { threadMatchesSplit as threadMatchesSplitShared } from "../utils/split-conditions";
 import type { InboxSplit } from "../../shared/types";
-import { emailMatchesSplit } from "../utils/split-conditions";
 
+// Thin wrapper around the shared util so the rest of the file can pass
+// EmailThread objects directly. Preserves our fork's per-thread split
+// assignment override (assignedSplitId).
 function threadMatchesSplit(
   thread: EmailThread,
   split: InboxSplit,
   assignedSplitId?: string,
 ): boolean {
   if (assignedSplitId === split.id) return true;
-  return emailMatchesSplit(thread.latestEmail, split);
+  return threadMatchesSplitShared(thread.latestEmail, split);
 }
 
 interface TabProps {
@@ -35,7 +38,9 @@ function Tab({ active, onClick, count, children }: TabProps) {
     >
       {children}
       {count !== undefined && (
-        <span className={`ml-1.5 text-xs ${active ? "text-[var(--exo-accent)]" : "exo-text-muted"}`}>
+        <span
+          className={`ml-1.5 text-xs ${active ? "text-[var(--exo-accent)]" : "exo-text-muted"}`}
+        >
           {count}
         </span>
       )}
@@ -78,7 +83,13 @@ const AUTOMATED_CATEGORIES = [
   { id: "other", label: "Other" },
 ] as const;
 
-export function SplitTabs() {
+// memo: SplitTabs takes no props, so parent-triggered renders are wasted
+// work. EmailList is the parent; under bursts (sync events, prefetch
+// progress) it re-renders frequently, and SplitTabs's counts useMemo
+// recomputes a regex test per (700 threads × N splits) on each render.
+export const SplitTabs = memo(SplitTabsImpl);
+
+function SplitTabsImpl() {
   const allSplits = useAppStore((state) => state.splits);
   const currentAccountId = useAppStore((state) => state.currentAccountId);
   const currentSplitId = useAppStore((state) => state.currentSplitId);
@@ -87,11 +98,19 @@ export function SplitTabs() {
   const setCurrentAutomatedCategory = useAppStore((state) => state.setCurrentAutomatedCategory);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const splitAssignments = useAppStore((state) => state.splitAssignments);
-  const { peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
+  const archiveReadyThreadIds = useAppStore((state) => state.archiveReadyThreadIds);
+  const localDrafts = useAppStore((state) => state.localDrafts);
+  const { threads, needsReply, done, peopleThreads, automatedThreads, snoozedCount } =
+    useThreadedEmails();
 
-  // Filter splits for current account
+  // Filter splits for current account. In unified mode (currentAccountId
+  // === null) include every account's splits — threadMatchesSplit enforces
+  // per-account scoping so they don't cross-pollinate.
   const splits = useMemo(
-    () => allSplits.filter((s) => s.accountId === currentAccountId),
+    () =>
+      currentAccountId === null
+        ? allSplits
+        : allSplits.filter((s) => s.accountId === currentAccountId),
     [allSplits, currentAccountId],
   );
 
@@ -103,7 +122,7 @@ export function SplitTabs() {
       !exclusiveSplits.some((s) => threadMatchesSplit(t, s, splitAssignments.get(t.threadId)));
   }, [splits, recentlyUnsnoozedThreadIds, splitAssignments]);
 
-  // Counts for People and Automated tabs
+  // Counts for People and Automated tabs (fork-specific).
   const peopleCount = useMemo(
     () => peopleThreads.filter(isNonExclusive).length,
     [peopleThreads, isNonExclusive],
@@ -113,18 +132,103 @@ export function SplitTabs() {
     [automatedThreads, isNonExclusive],
   );
 
-  // Sort splits by order (for custom split chips in Automated tab)
-  const sortedSplits = useMemo(() => [...splits].sort((a, b) => a.order - b.order), [splits]);
+  // Count both local drafts (compose sessions) and AI-generated drafts (on emails)
+  const emailDraftsCount = useMemo(
+    () => threads.filter((t) => t.draft && t.draft.body).length,
+    [threads],
+  );
+  const localDraftsCount = useMemo(
+    () => localDrafts.filter((d) => !currentAccountId || d.accountId === currentAccountId).length,
+    [localDrafts, currentAccountId],
+  );
+  const draftsCount = emailDraftsCount + localDraftsCount;
+
+  // Calculate thread counts for each split + binary Priority/Other tabs.
+  const counts = useMemo(() => {
+    const map = new Map<string | null, number>();
+
+    const inboxCount = threads.filter(isNonExclusive).length;
+    map.set(null, inboxCount); // "All" tab
+    // "Priority" tab: emails classified as Priority (needsReply + done)
+    const priorityThreads = [...needsReply, ...done].filter(isNonExclusive);
+    map.set("__priority__", priorityThreads.length);
+    // "Other" tab: everything in All minus Priority
+    const priorityThreadIds = new Set(priorityThreads.map((t) => t.threadId));
+    const otherCount = threads
+      .filter(isNonExclusive)
+      .filter((t) => !priorityThreadIds.has(t.threadId)).length;
+    map.set("__other__", otherCount);
+
+    for (const split of splits) {
+      const matchingThreads = threads.filter((t) =>
+        threadMatchesSplit(t, split, splitAssignments.get(t.threadId)),
+      );
+      map.set(split.id, matchingThreads.length);
+    }
+
+    return map;
+  }, [threads, needsReply, done, splits, isNonExclusive, splitAssignments]);
+
+  // Sort splits by order. In unified mode, two accounts may have splits with
+  // the same name (e.g. both have "Newsletter") — disambiguate with a "(2)",
+  // "(3)" suffix on subsequent occurrences (sort order is preserved).
+  const sortedSplits = useMemo(() => {
+    const sorted = [...splits].sort((a, b) => a.order - b.order);
+    if (currentAccountId !== null) return sorted.map((s) => ({ split: s, displayName: s.name }));
+    const seen = new Map<string, number>();
+    return sorted.map((s) => {
+      const n = (seen.get(s.name) ?? 0) + 1;
+      seen.set(s.name, n);
+      return { split: s, displayName: n === 1 ? s.name : `${s.name} (${n})` };
+    });
+  }, [splits, currentAccountId]);
 
   const customSplitIds = useMemo(() => new Set(splits.map((s) => s.id)), [splits]);
   const isAutomatedView =
     currentSplitId === "__automated__" || customSplitIds.has(currentSplitId ?? "");
 
+  const archiveReadyCount = archiveReadyThreadIds.size;
+
   return (
     <div className="flex flex-col border-b exo-border-subtle">
       {/* Primary tabs row */}
       <div className="flex h-10 px-2 overflow-x-auto">
-        {/* People tab */}
+        {/* Upstream's binary triage tabs */}
+        <Tab
+          active={currentSplitId === "__priority__"}
+          onClick={() => setCurrentSplitId("__priority__")}
+          count={counts.get("__priority__")}
+        >
+          Priority
+        </Tab>
+        <Tab
+          active={currentSplitId === "__other__"}
+          onClick={() => setCurrentSplitId("__other__")}
+          count={counts.get("__other__")}
+        >
+          Other
+        </Tab>
+
+        {/* Archive Ready */}
+        <Tab
+          active={currentSplitId === "__archive-ready__"}
+          onClick={() => setCurrentSplitId("__archive-ready__")}
+          count={archiveReadyCount}
+        >
+          <span className="inline-flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+              />
+            </svg>
+            Archive Ready
+          </span>
+        </Tab>
+
+        {/* Fork-specific: People / Automated tabs (commit 7a1b7d2). */}
         <Tab
           active={currentSplitId === "__people__"}
           onClick={() => setCurrentSplitId("__people__")}
@@ -132,8 +236,6 @@ export function SplitTabs() {
         >
           People
         </Tab>
-
-        {/* Automated tab */}
         <Tab
           active={isAutomatedView}
           onClick={() => setCurrentSplitId("__automated__")}
@@ -142,7 +244,29 @@ export function SplitTabs() {
           Automated
         </Tab>
 
+        {/* Custom splits at the end so the binary triage tabs stay leftmost. */}
+        {sortedSplits.map(({ split, displayName }) => (
+          <Tab
+            key={split.id}
+            active={currentSplitId === split.id}
+            onClick={() => setCurrentSplitId(split.id)}
+            count={counts.get(split.id)}
+          >
+            {split.icon && <span className="mr-1">{split.icon}</span>}
+            {displayName}
+          </Tab>
+        ))}
+
         {/* Conditional virtual tabs */}
+        {draftsCount > 0 && (
+          <Tab
+            active={currentSplitId === "__drafts__"}
+            onClick={() => setCurrentSplitId("__drafts__")}
+            count={draftsCount}
+          >
+            Drafts
+          </Tab>
+        )}
         {snoozedCount > 0 && (
           <Tab
             active={currentSplitId === "__snoozed__"}
@@ -177,14 +301,14 @@ export function SplitTabs() {
             </Chip>
           ))}
           {/* Custom splits as additional filter chips */}
-          {sortedSplits.map((split) => (
+          {sortedSplits.map(({ split, displayName }) => (
             <Chip
               key={split.id}
               active={currentSplitId === split.id}
               onClick={() => setCurrentSplitId(split.id)}
             >
               {split.icon && <span className="mr-0.5">{split.icon}</span>}
-              {split.name}
+              {displayName}
             </Chip>
           ))}
         </div>

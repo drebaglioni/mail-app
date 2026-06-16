@@ -195,8 +195,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           return;
         }
         if (viewMode === "full") {
+          // Preserve selectedThreadId/selectedEmailId so the row the user was
+          // just viewing stays highlighted in the list and j/k resume from there.
+          // focusedThreadEmailId is full-view-only (which message inside a thread
+          // is focused), so it's still correct to clear that.
           e.preventDefault();
-          setViewMode("split");
+          useAppStore.setState({
+            viewMode: "split",
+            focusedThreadEmailId: null,
+          });
           return;
         }
         if (activeSearchQuery) {
@@ -471,11 +478,14 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
 
       // --- Helper: archive selected thread (all messages) ---
       const archiveSelected = () => {
-        if (!selectedEmailId || !selectedThreadId || !currentAccountId) return;
+        if (!selectedEmailId || !selectedThreadId) return;
 
         // Collect ALL emails in the thread for optimistic removal
         const threadEmails = getThreadEmails(selectedThreadId);
         const threadEmailIds = threadEmails.map((item) => item.id);
+        // Per-thread account — works in single-account and unified inbox modes.
+        const threadAccountId = threadEmails[0]?.accountId ?? currentAccountId;
+        if (!threadAccountId) return;
 
         const isArchiveReady = false; // Archive-ready is now handled within the Automated tab
 
@@ -525,7 +535,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           id: `archive-${selectedThreadId}-${Date.now()}`,
           type: "archive",
           threadCount: 1,
-          accountId: currentAccountId,
+          accountId: threadAccountId,
           emails: [...threadEmails],
           scheduledAt: Date.now(),
           delayMs: 5000,
@@ -538,10 +548,12 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
 
       // --- Helper: trash selected thread ---
       const trashSelected = () => {
-        if (!selectedEmailId || !selectedThreadId || !currentAccountId) return;
+        if (!selectedEmailId || !selectedThreadId) return;
 
         const threadEmails = getThreadEmails(selectedThreadId);
         const threadEmailIds = threadEmails.map((item) => item.id);
+        const threadAccountId = threadEmails[0]?.accountId ?? currentAccountId;
+        if (!threadAccountId) return;
 
         // Atomically remove + advance in one render to prevent flicker
         if (activeSearchQuery) {
@@ -589,7 +601,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           id: `trash-${selectedThreadId}-${Date.now()}`,
           type: "trash",
           threadCount: 1,
-          accountId: currentAccountId,
+          accountId: threadAccountId,
           emails: [...threadEmails],
           scheduledAt: Date.now(),
           delayMs: 5000,
@@ -600,10 +612,13 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
 
       // --- Helper: mark selected thread as unread ---
       const markSelectedUnread = () => {
-        if (!selectedThreadId || !currentAccountId) return;
+        if (!selectedThreadId) return;
 
         const threadEmails = emails.filter((item) => item.threadId === selectedThreadId);
         if (threadEmails.length === 0) return;
+
+        const threadAccountId = threadEmails[0]?.accountId ?? currentAccountId;
+        if (!threadAccountId) return;
 
         const latestEmail = threadEmails.reduce((a, b) =>
           new Date(a.date).getTime() >= new Date(b.date).getTime() ? a : b,
@@ -619,7 +634,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
             id: `mark-unread-${selectedThreadId}-${Date.now()}`,
             type: "mark-unread",
             threadCount: 1,
-            accountId: currentAccountId,
+            accountId: threadAccountId,
             emails: [latestEmail],
             scheduledAt: Date.now(),
             delayMs: 5000,
@@ -691,7 +706,39 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       // view that hides the tab bar entirely.
       // Custom splits are filter chips within Automated, not top-level tabs.
       const getOrderedSplitIds = (): string[] => {
-        const ids: string[] = ["__people__", "__automated__"];
+        // Upstream's binary triage tabs (#143/#144) plus our fork's People/
+        // Automated chips (commit 7a1b7d2). SplitTabs renders both so the
+        // keyboard cycle includes everything visible.
+        const ids: string[] = [
+          "__priority__",
+          "__other__",
+          "__archive-ready__",
+          "__people__",
+          "__automated__",
+        ];
+        // Custom splits sorted by order. In unified ("All Inboxes") mode
+        // include EVERY account's custom splits — SplitTabs renders them all
+        // so this keyboard cycle must match, or backtick/tilde would skip
+        // tabs that are visibly present.
+        const visibleSplits =
+          currentAccountId === null
+            ? state.splits
+            : state.splits.filter((s) => s.accountId === currentAccountId);
+        const customSplits = [...visibleSplits].sort((a, b) => a.order - b.order);
+        for (const s of customSplits) ids.push(s.id);
+        // Conditional virtual tabs (only when visible in SplitTabs)
+        const hasLocalDrafts = state.localDrafts.some(
+          (d) => !currentAccountId || d.accountId === currentAccountId,
+        );
+        const hasAiDrafts = state.emails.some(
+          (e) =>
+            e.draft &&
+            e.draft.body &&
+            (!currentAccountId || e.accountId === currentAccountId) &&
+            (e.labelIds?.includes("INBOX") ?? true) &&
+            !state.snoozedThreadIds.has(e.threadId),
+        );
+        if (hasLocalDrafts || hasAiDrafts) ids.push("__drafts__");
         // Only include snoozed when there are snoozed threads with loaded email data
         // for the current account (matches SplitTabs.tsx snoozedCount from useThreadedEmails)
         const hasSnoozed = state.emails.some(
@@ -936,7 +983,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
         // Shift+I: mark as read and return to list (Gmail only)
         case "I":
           if (isGmail && e.shiftKey) {
-            if (selectedThreadId && currentAccountId) {
+            if (selectedThreadId) {
               e.preventDefault();
               markThreadAsRead(selectedThreadId);
               if (viewMode === "full") {
@@ -951,10 +998,12 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           if (isMultiSelect) {
             e.preventDefault();
             batchToggleStar();
-          } else if (isGmail && selectedThreadId && currentAccountId) {
+          } else if (isGmail && selectedThreadId) {
             e.preventDefault();
             const threadEmails = emails.filter((item) => item.threadId === selectedThreadId);
             if (threadEmails.length === 0) break;
+            const threadAccountId = threadEmails[0]?.accountId ?? currentAccountId;
+            if (!threadAccountId) break;
             const latestEmail = threadEmails.reduce((a, b) =>
               new Date(a.date).getTime() >= new Date(b.date).getTime() ? a : b,
             );
@@ -977,7 +1026,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
                 id: `unstar-${selectedThreadId}-${Date.now()}`,
                 type: "unstar",
                 threadCount: 1,
-                accountId: currentAccountId,
+                accountId: threadAccountId,
                 emails: starredEmails,
                 scheduledAt: Date.now(),
                 delayMs: 5000,
@@ -993,7 +1042,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
                 id: `star-${selectedThreadId}-${Date.now()}`,
                 type: "star",
                 threadCount: 1,
-                accountId: currentAccountId,
+                accountId: threadAccountId,
                 emails: [latestEmail],
                 scheduledAt: Date.now(),
                 delayMs: 5000,
@@ -1052,11 +1101,15 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           }
           break;
 
-        // Shift+N: force refresh/sync current account (Gmail only)
+        // Shift+N: force refresh/sync current account (Gmail only). In
+        // unified mode (currentAccountId === null) sync every account.
         case "N":
-          if (isGmail && e.shiftKey && currentAccountId) {
+          if (isGmail && e.shiftKey) {
             e.preventDefault();
-            window.api.sync.now(currentAccountId).catch(console.error);
+            const syncTargets = currentAccountId ? [currentAccountId] : accounts.map((a) => a.id);
+            for (const aid of syncTargets) {
+              window.api.sync.now(aid).catch(console.error);
+            }
           }
           break;
 

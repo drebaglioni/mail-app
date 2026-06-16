@@ -341,7 +341,9 @@ export function AddressInput({
             <div
               key={suggestion.email}
               className={`px-4 py-2.5 cursor-pointer text-sm flex items-center justify-between gap-4 ${
-                index === selectedIndex ? "bg-[var(--exo-bg-surface-hover)]" : "hover:bg-[var(--exo-bg-surface-hover)]"
+                index === selectedIndex
+                  ? "bg-[var(--exo-bg-surface-hover)]"
+                  : "hover:bg-[var(--exo-bg-surface-hover)]"
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -350,7 +352,9 @@ export function AddressInput({
               onMouseEnter={() => setSelectedIndex(index)}
               data-testid="autocomplete-suggestion"
             >
-              <span className="text-[var(--exo-text-primary)] truncate">{suggestion.name || suggestion.email}</span>
+              <span className="text-[var(--exo-text-primary)] truncate">
+                {suggestion.name || suggestion.email}
+              </span>
               {suggestion.name && (
                 <span className="text-[var(--exo-text-muted)] text-sm truncate flex-shrink-0">
                   {suggestion.email}

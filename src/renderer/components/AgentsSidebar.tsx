@@ -82,9 +82,7 @@ function ProviderRow({ provider }: { provider: AgentProviderConfig }) {
           {provider.icon && <span className="text-sm">{provider.icon}</span>}
           <span className="font-medium truncate">{provider.name}</span>
         </div>
-        <div className="text-xs exo-text-muted truncate mt-0.5">
-          {provider.description}
-        </div>
+        <div className="text-xs exo-text-muted truncate mt-0.5">{provider.description}</div>
       </div>
 
       {/* Status indicator */}
@@ -125,14 +123,10 @@ function TaskHistoryRow({ entry }: { entry: AgentTaskHistoryEntry }) {
           )}
         </svg>
         <span className="truncate flex-1">{entry.prompt}</span>
-        <span className="exo-text-muted flex-shrink-0">
-          {relativeTime(entry.timestamp)}
-        </span>
+        <span className="exo-text-muted flex-shrink-0">{relativeTime(entry.timestamp)}</span>
       </div>
       {entry.summary && (
-        <div className="ml-4.5 mt-0.5 exo-text-muted truncate">
-          {entry.summary}
-        </div>
+        <div className="ml-4.5 mt-0.5 exo-text-muted truncate">{entry.summary}</div>
       )}
     </div>
   );
@@ -177,9 +171,7 @@ export function AgentsSidebar() {
       {/* Provider list */}
       <div className="p-2 space-y-1">
         {availableProviders.length === 0 ? (
-          <div className="px-3 py-4 text-center text-sm exo-text-muted">
-            No agents available.
-          </div>
+          <div className="px-3 py-4 text-center text-sm exo-text-muted">No agents available.</div>
         ) : (
           availableProviders.map((provider) => (
             <ProviderRow key={provider.id} provider={provider} />

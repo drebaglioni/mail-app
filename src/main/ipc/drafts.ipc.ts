@@ -13,7 +13,7 @@ import {
   deleteGmailDraftById,
   deleteGmailDraftsBatch,
 } from "../services/gmail-draft-sync";
-import { getConfig, getModelIdForFeature } from "./settings.ipc";
+import { getConfig, getFeatureModelConfig } from "./settings.ipc";
 import { buildMemoryContext } from "../services/memory-context";
 import { prefetchService } from "../services/prefetch-service";
 import { agentCoordinator } from "../agents/agent-coordinator";
@@ -122,9 +122,10 @@ export function registerDraftsIpc(): void {
           : "";
         const memorySection = memoryContext ? `\n${memoryContext}\n---\n` : "";
 
+        const refinementConfig = getFeatureModelConfig("refinement");
         const response = await createMessage(
           {
-            model: getModelIdForFeature("refinement"),
+            model: refinementConfig.model,
             max_tokens: 1024,
             system: [{ type: "text", text: UNTRUSTED_DATA_INSTRUCTION }],
             messages: [
@@ -150,7 +151,13 @@ FORMATTING: Write plain text paragraphs separated by blank lines. Do NOT use HTM
               },
             ],
           },
-          { caller: "drafts-refine", feature: "refinement", emailId, accountId: email.accountId },
+          {
+            caller: "drafts-refine",
+            feature: "refinement",
+            emailId,
+            accountId: email.accountId,
+            provider: refinementConfig.provider,
+          },
         );
 
         const textBlock = response.content.find((block) => block.type === "text");

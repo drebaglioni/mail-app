@@ -57,7 +57,10 @@ CREATE TABLE IF NOT EXISTS emails (
   label_ids TEXT,
   attachments TEXT,
   message_id TEXT,
-  in_reply_to TEXT
+  in_reply_to TEXT,
+  -- archive_kept: per-thread toggle that pins a Priority/Other classification
+  -- so the user's override survives re-analysis. Fork-specific (see migration v8).
+  archive_kept INTEGER DEFAULT 0
 );
 
 -- Analysis results from Claude
@@ -65,8 +68,11 @@ CREATE TABLE IF NOT EXISTS analyses (
   email_id TEXT PRIMARY KEY REFERENCES emails(id),
   needs_reply INTEGER NOT NULL,
   reason TEXT NOT NULL,
-  priority TEXT,
-  analyzed_at INTEGER NOT NULL
+  analyzed_at INTEGER NOT NULL,
+  -- Fork-specific sender classification (see migration v8). Optional —
+  -- the analyzer may leave these NULL for legacy rows.
+  sender_type TEXT,
+  automated_category TEXT
 );
 
 -- Generated drafts
@@ -306,6 +312,32 @@ CREATE TABLE IF NOT EXISTS agent_conversation_mirror (
 -- Index for looking up agent traces by local_task_id
 CREATE INDEX IF NOT EXISTS idx_agent_conversation_mirror_task ON agent_conversation_mirror(local_task_id);
 
+-- Blocked senders (mirror of Gmail filters that route a sender to Spam).
+-- One row per (account, lowercased sender email). gmail_filter_id is the filter
+-- created via users.settings.filters API so we can delete it on unblock.
+CREATE TABLE IF NOT EXISTS blocked_senders (
+  sender_email TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  gmail_filter_id TEXT,
+  blocked_at INTEGER NOT NULL,
+  PRIMARY KEY (sender_email, account_id),
+  FOREIGN KEY (account_id) REFERENCES accounts(id)
+);
+CREATE INDEX IF NOT EXISTS idx_blocked_senders_account ON blocked_senders(account_id);
+
+-- Fork-specific: user corrections to sender_type classification, captured so we
+-- can iterate on the heuristic / model. See migration v8.
+CREATE TABLE IF NOT EXISTS classification_overrides (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  thread_id TEXT NOT NULL,
+  field TEXT NOT NULL,
+  original_value TEXT,
+  corrected_value TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_classification_overrides_thread
+  ON classification_overrides(thread_id);
+
 -- Agent memories (persistent preferences for draft generation and analysis)
 CREATE TABLE IF NOT EXISTS memories (
   id TEXT PRIMARY KEY,
@@ -345,6 +377,9 @@ CREATE INDEX IF NOT EXISTS idx_draft_memories_last_voted ON draft_memories(last_
 CREATE INDEX IF NOT EXISTS idx_emails_thread ON emails(thread_id);
 CREATE INDEX IF NOT EXISTS idx_emails_date ON emails(date);
 CREATE INDEX IF NOT EXISTS idx_emails_account ON emails(account_id);
+-- Covering index for buildMergeCache (see db/index.ts) — keeps the per-account
+-- merge cache rebuild served from index pages instead of row lookups.
+CREATE INDEX IF NOT EXISTS idx_emails_merge_cover ON emails(account_id, thread_id, message_id, in_reply_to);
 CREATE INDEX IF NOT EXISTS idx_analyses_needs_reply ON analyses(needs_reply);
 CREATE INDEX IF NOT EXISTS idx_drafts_status ON drafts(status);
 CREATE INDEX IF NOT EXISTS idx_sent_to_address ON sent_emails(to_address);
