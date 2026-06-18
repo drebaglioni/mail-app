@@ -100,8 +100,7 @@ function SplitTabsImpl() {
   const splitAssignments = useAppStore((state) => state.splitAssignments);
   const archiveReadyThreadIds = useAppStore((state) => state.archiveReadyThreadIds);
   const localDrafts = useAppStore((state) => state.localDrafts);
-  const { threads, needsReply, done, peopleThreads, automatedThreads, snoozedCount } =
-    useThreadedEmails();
+  const { threads, peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
 
   // Filter splits for current account. In unified mode (currentAccountId
   // === null) include every account's splits — threadMatchesSplit enforces
@@ -143,21 +142,11 @@ function SplitTabsImpl() {
   );
   const draftsCount = emailDraftsCount + localDraftsCount;
 
-  // Calculate thread counts for each split + binary Priority/Other tabs.
   const counts = useMemo(() => {
     const map = new Map<string | null, number>();
 
     const inboxCount = threads.filter(isNonExclusive).length;
-    map.set(null, inboxCount); // "All" tab
-    // "Priority" tab: emails classified as Priority (needsReply + done)
-    const priorityThreads = [...needsReply, ...done].filter(isNonExclusive);
-    map.set("__priority__", priorityThreads.length);
-    // "Other" tab: everything in All minus Priority
-    const priorityThreadIds = new Set(priorityThreads.map((t) => t.threadId));
-    const otherCount = threads
-      .filter(isNonExclusive)
-      .filter((t) => !priorityThreadIds.has(t.threadId)).length;
-    map.set("__other__", otherCount);
+    map.set(null, inboxCount);
 
     for (const split of splits) {
       const matchingThreads = threads.filter((t) =>
@@ -167,7 +156,7 @@ function SplitTabsImpl() {
     }
 
     return map;
-  }, [threads, needsReply, done, splits, isNonExclusive, splitAssignments]);
+  }, [threads, splits, isNonExclusive, splitAssignments]);
 
   // Sort splits by order. In unified mode, two accounts may have splits with
   // the same name (e.g. both have "Newsletter") — disambiguate with a "(2)",
@@ -193,22 +182,6 @@ function SplitTabsImpl() {
     <div className="flex flex-col border-b exo-border-subtle">
       {/* Primary tabs row */}
       <div className="flex h-10 px-2 overflow-x-auto">
-        {/* Upstream's binary triage tabs */}
-        <Tab
-          active={currentSplitId === "__priority__"}
-          onClick={() => setCurrentSplitId("__priority__")}
-          count={counts.get("__priority__")}
-        >
-          Priority
-        </Tab>
-        <Tab
-          active={currentSplitId === "__other__"}
-          onClick={() => setCurrentSplitId("__other__")}
-          count={counts.get("__other__")}
-        >
-          Other
-        </Tab>
-
         {/* Archive Ready */}
         <Tab
           active={currentSplitId === "__archive-ready__"}
@@ -228,7 +201,6 @@ function SplitTabsImpl() {
           </span>
         </Tab>
 
-        {/* Fork-specific: People / Automated tabs (commit 7a1b7d2). */}
         <Tab
           active={currentSplitId === "__people__"}
           onClick={() => setCurrentSplitId("__people__")}
@@ -244,7 +216,6 @@ function SplitTabsImpl() {
           Automated
         </Tab>
 
-        {/* Custom splits at the end so the binary triage tabs stay leftmost. */}
         {sortedSplits.map(({ split, displayName }) => (
           <Tab
             key={split.id}

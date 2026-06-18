@@ -544,11 +544,6 @@ function EmailListImpl() {
     isSnoozedView,
     snoozedThreads,
     currentSplit,
-    // currentSplitId is read inside (the `=== "__other__"` branch). Previously
-    // `threads` was always recomputed synchronously alongside currentSplitId, so
-    // this was masked — but with `useDeferredValue(_sft.threads)` there's a
-    // 1-frame window where currentSplitId has changed but threads hasn't, and
-    // without this dep the memo returns the cached (wrong-split) draft list.
     currentSplitId,
   ]);
 

@@ -706,16 +706,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       // view that hides the tab bar entirely.
       // Custom splits are filter chips within Automated, not top-level tabs.
       const getOrderedSplitIds = (): string[] => {
-        // Upstream's binary triage tabs (#143/#144) plus our fork's People/
-        // Automated chips (commit 7a1b7d2). SplitTabs renders both so the
-        // keyboard cycle includes everything visible.
-        const ids: string[] = [
-          "__priority__",
-          "__other__",
-          "__archive-ready__",
-          "__people__",
-          "__automated__",
-        ];
+        const ids: string[] = ["__archive-ready__", "__people__", "__automated__"];
         // Custom splits sorted by order. In unified ("All Inboxes") mode
         // include EVERY account's custom splits — SplitTabs renders them all
         // so this keyboard cycle must match, or backtick/tilde would skip

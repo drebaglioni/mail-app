@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { InboxDensity, SnoozedEmail } from "../../shared/types";
-import { useAppStore, type EmailThread } from "../store";
+import { type EmailThread } from "../store";
 import { formatSnoozeTime } from "./SnoozeMenu";
 
 interface EmailRowProps {
@@ -142,8 +142,7 @@ export const EmailRow = memo(
       : formatRelativeDate(thread.latestReceivedEmail.date);
     const rawSnippet = thread.latestEmail.snippet || "";
     const snippet = decodeHtmlEntities(rawSnippet);
-    const currentSplitId = useAppStore((state) => state.currentSplitId);
-    const priorityLabel = getPriorityLabel(thread, currentSplitId === "__priority__");
+    const priorityLabel = getPriorityLabel(thread, false);
     // Fallback to "default" if stored density is unrecognized (e.g. removed "comfortable")
     const ds = densityStyles[density] ?? densityStyles.default;
 
