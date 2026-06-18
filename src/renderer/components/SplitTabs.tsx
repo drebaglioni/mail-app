@@ -98,8 +98,6 @@ function SplitTabsImpl() {
   const setCurrentAutomatedCategory = useAppStore((state) => state.setCurrentAutomatedCategory);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const splitAssignments = useAppStore((state) => state.splitAssignments);
-  const archiveReadyThreadIds = useAppStore((state) => state.archiveReadyThreadIds);
-  const localDrafts = useAppStore((state) => state.localDrafts);
   const { threads, peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
 
   // Filter splits for current account. In unified mode (currentAccountId
@@ -130,17 +128,6 @@ function SplitTabsImpl() {
     () => automatedThreads.filter(isNonExclusive).length,
     [automatedThreads, isNonExclusive],
   );
-
-  // Count both local drafts (compose sessions) and AI-generated drafts (on emails)
-  const emailDraftsCount = useMemo(
-    () => threads.filter((t) => t.draft && t.draft.body).length,
-    [threads],
-  );
-  const localDraftsCount = useMemo(
-    () => localDrafts.filter((d) => !currentAccountId || d.accountId === currentAccountId).length,
-    [localDrafts, currentAccountId],
-  );
-  const draftsCount = emailDraftsCount + localDraftsCount;
 
   const counts = useMemo(() => {
     const map = new Map<string | null, number>();
@@ -176,31 +163,10 @@ function SplitTabsImpl() {
   const isAutomatedView =
     currentSplitId === "__automated__" || customSplitIds.has(currentSplitId ?? "");
 
-  const archiveReadyCount = archiveReadyThreadIds.size;
-
   return (
     <div className="flex flex-col border-b exo-border-subtle">
       {/* Primary tabs row */}
       <div className="flex h-10 px-2 overflow-x-auto">
-        {/* Archive Ready */}
-        <Tab
-          active={currentSplitId === "__archive-ready__"}
-          onClick={() => setCurrentSplitId("__archive-ready__")}
-          count={archiveReadyCount}
-        >
-          <span className="inline-flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-              />
-            </svg>
-            Archive Ready
-          </span>
-        </Tab>
-
         <Tab
           active={currentSplitId === "__people__"}
           onClick={() => setCurrentSplitId("__people__")}
@@ -229,15 +195,6 @@ function SplitTabsImpl() {
         ))}
 
         {/* Conditional virtual tabs */}
-        {draftsCount > 0 && (
-          <Tab
-            active={currentSplitId === "__drafts__"}
-            onClick={() => setCurrentSplitId("__drafts__")}
-            count={draftsCount}
-          >
-            Drafts
-          </Tab>
-        )}
         {snoozedCount > 0 && (
           <Tab
             active={currentSplitId === "__snoozed__"}

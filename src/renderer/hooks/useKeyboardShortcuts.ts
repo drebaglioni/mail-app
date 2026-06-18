@@ -706,7 +706,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       // view that hides the tab bar entirely.
       // Custom splits are filter chips within Automated, not top-level tabs.
       const getOrderedSplitIds = (): string[] => {
-        const ids: string[] = ["__archive-ready__", "__people__", "__automated__"];
+        const ids: string[] = ["__people__", "__automated__"];
         // Custom splits sorted by order. In unified ("All Inboxes") mode
         // include EVERY account's custom splits — SplitTabs renders them all
         // so this keyboard cycle must match, or backtick/tilde would skip
@@ -717,19 +717,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
             : state.splits.filter((s) => s.accountId === currentAccountId);
         const customSplits = [...visibleSplits].sort((a, b) => a.order - b.order);
         for (const s of customSplits) ids.push(s.id);
-        // Conditional virtual tabs (only when visible in SplitTabs)
-        const hasLocalDrafts = state.localDrafts.some(
-          (d) => !currentAccountId || d.accountId === currentAccountId,
-        );
-        const hasAiDrafts = state.emails.some(
-          (e) =>
-            e.draft &&
-            e.draft.body &&
-            (!currentAccountId || e.accountId === currentAccountId) &&
-            (e.labelIds?.includes("INBOX") ?? true) &&
-            !state.snoozedThreadIds.has(e.threadId),
-        );
-        if (hasLocalDrafts || hasAiDrafts) ids.push("__drafts__");
         // Only include snoozed when there are snoozed threads with loaded email data
         // for the current account (matches SplitTabs.tsx snoozedCount from useThreadedEmails)
         const hasSnoozed = state.emails.some(
