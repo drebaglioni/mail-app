@@ -18,6 +18,7 @@ import type {
   AutomatedCategory,
 } from "../../shared/types";
 import { createLogger } from "../services/logger";
+import { classifySenderByHeuristics } from "../services/sender-classifier";
 import { parseAutoDraftTaskId, AUTO_DRAFT_TASK_ID_LIKE_PATTERN } from "../agents/task-id";
 import { runMigrations } from "./migrations";
 
@@ -353,6 +354,24 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
   // New email may create new In-Reply-To links that change thread merge groups
   if (email.inReplyTo || email.messageIdHeader) {
     invalidateThreadMergeCache(accountId);
+  }
+
+  // Heuristic sender classification at ingest time. The LLM analyzer is
+  // expensive and runs lazily via prefetch; until then, obvious automated
+  // senders (noreply@, GitHub notifications, marketing newsletters, ...) sit
+  // in the People tab because the filter treats "no analysis" as person.
+  // Insert a lightweight analysis row for the obvious cases so the UI is
+  // correct from the moment the email lands. Skip if an analysis already
+  // exists (e.g. label-only re-save of an already-analyzed email).
+  const existing = db.prepare("SELECT 1 FROM analyses WHERE email_id = ?").get(email.id);
+  if (!existing) {
+    const heuristic = classifySenderByHeuristics({ from: email.from });
+    if (heuristic === "automated") {
+      db.prepare(
+        `INSERT INTO analyses (email_id, needs_reply, reason, sender_type, analyzed_at)
+         VALUES (?, 0, ?, 'automated', ?)`,
+      ).run(email.id, "Auto-classified by sender pattern", Date.now());
+    }
   }
 }
 

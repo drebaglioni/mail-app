@@ -10,6 +10,7 @@
  */
 import type BetterSqlite3 from "better-sqlite3";
 import { createLogger } from "../services/logger";
+import { classifySenderByHeuristics } from "../services/sender-classifier";
 
 const log = createLogger("db-migrations");
 
@@ -442,6 +443,48 @@ export const NUMBERED_MIGRATIONS: Migration[] = [
       if (reclassified > 0) {
         log.info(
           `[Migration v9] Reclassified ${reclassified}/${rows.length} emails as automated via heuristics`,
+        );
+      }
+    },
+  },
+  {
+    version: 10,
+    name: "backfill_heuristic_analysis_for_unanalyzed",
+    up: (db) => {
+      // Inbox emails that arrived before the merge but were never analyzed by
+      // the LLM land in the People tab because the filter treats "no analysis"
+      // as person. Insert a lightweight analysis for the obvious automated
+      // senders using the same heuristic that saveEmail() now runs at ingest.
+      const tableExists = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'")
+        .get();
+      if (!tableExists) return;
+
+      const rows = db
+        .prepare(
+          `SELECT e.id, e.from_address
+           FROM emails e
+           LEFT JOIN analyses a ON a.email_id = e.id
+           WHERE a.email_id IS NULL`,
+        )
+        .all() as Array<{ id: string; from_address: string }>;
+      if (rows.length === 0) return;
+
+      const insertStmt = db.prepare(
+        `INSERT INTO analyses (email_id, needs_reply, reason, sender_type, analyzed_at)
+         VALUES (?, 0, 'Auto-classified by sender pattern', 'automated', ?)`,
+      );
+      const now = Date.now();
+      let classified = 0;
+      for (const row of rows) {
+        if (classifySenderByHeuristics({ from: row.from_address }) === "automated") {
+          insertStmt.run(row.id, now);
+          classified++;
+        }
+      }
+      if (classified > 0) {
+        log.info(
+          `[Migration v10] Heuristically classified ${classified}/${rows.length} unanalyzed emails as automated`,
         );
       }
     },
