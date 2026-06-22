@@ -147,6 +147,8 @@ function printReport(report: EvalReport): void {
 // --- Main ---
 
 async function main(): Promise<void> {
+  process.env.EXO_EVAL_MODE ??= "true";
+
   const updateBaseline = process.argv.includes("--update-baseline");
 
   const fixtures = loadFixtures();

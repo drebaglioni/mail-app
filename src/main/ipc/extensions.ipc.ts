@@ -361,7 +361,7 @@ export function registerExtensionsIpc(): void {
           aiProvider: appConfig.aiProvider ?? "codex",
           anthropicApiKey: appConfig.anthropicApiKey || process.env.ANTHROPIC_API_KEY || undefined,
           codex: {
-            model: appConfig.codex?.model || "gpt-5.4",
+            model: appConfig.codex?.model || "gpt-5.5",
             cliPath: appConfig.codex?.cliPath,
           },
           ollamaCloud: ollamaConfig,

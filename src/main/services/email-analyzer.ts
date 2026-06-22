@@ -183,7 +183,7 @@ export class EmailAnalyzer {
   private customPrompt: string | null;
   private provider?: LlmProvider;
 
-  constructor(model: string = "claude-sonnet-4-20250514", prompt?: string, provider?: LlmProvider) {
+  constructor(model: string = "claude-sonnet-4-6", prompt?: string, provider?: LlmProvider) {
     this.model = model;
     // Only use custom prompt if it differs from default
     this.customPrompt = prompt && prompt !== DEFAULT_ANALYSIS_PROMPT ? prompt : null;

@@ -8,12 +8,15 @@ import {
   AnalysisResultSchema,
   DraftResultSchema,
   ConfigSchema,
+  CodexConfigSchema,
   ModelConfigSchema,
   EAConfigSchema,
   CliToolConfigSchema,
   resolveModelId,
+  normalizeCodexModelId,
   MODEL_TIER_IDS,
   DEFAULT_MODEL_CONFIG,
+  DEFAULT_CODEX_MODEL_OVERRIDES,
   DEFAULT_ANALYSIS_PROMPT,
   DEFAULT_DRAFT_PROMPT,
   type ModelTier,
@@ -217,6 +220,28 @@ test.describe("resolveModelId", () => {
     for (const tier of tiers) {
       expect(resolveModelId(tier)).toBeTruthy();
     }
+  });
+});
+
+test.describe("Codex model defaults", () => {
+  test("uses the supported Codex default model", () => {
+    const result = CodexConfigSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.model).toBe("gpt-5.5");
+    }
+    expect(DEFAULT_CODEX_MODEL_OVERRIDES).toEqual({
+      calendaring: "gpt-5.5",
+      agentChat: "gpt-5.5",
+    });
+  });
+
+  test("normalizes stale or invalid Codex model IDs", () => {
+    expect(normalizeCodexModelId("gpt-5.4")).toBe("gpt-5.5");
+    expect(normalizeCodexModelId("gpt-5.4-mini")).toBe("gpt-5.5");
+    expect(normalizeCodexModelId("claude-sonnet-4-6")).toBe("gpt-5.5");
+    expect(normalizeCodexModelId("gpt-5.5")).toBe("gpt-5.5");
+    expect(normalizeCodexModelId("gpt-5.5-codex")).toBe("gpt-5.5-codex");
   });
 });
 

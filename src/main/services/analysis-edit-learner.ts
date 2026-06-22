@@ -300,7 +300,7 @@ async function analyzeOverride(override: AnalysisOverride): Promise<AnalysisObse
 
   const response = await createMessage(
     {
-      model: isOllama ? ollamaModel : "claude-sonnet-4-20250514",
+      model: isOllama ? ollamaModel : "claude-sonnet-4-6",
       max_tokens: 2048,
       messages: [
         {

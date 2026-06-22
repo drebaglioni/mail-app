@@ -489,6 +489,44 @@ export const NUMBERED_MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    version: 11,
+    name: "drop_stale_person_analyses_for_reanalysis",
+    up: (db) => {
+      // Earlier Codex defaults used unsupported model IDs. Some retry paths
+      // could produce non-JSON replies, causing ambiguous automated senders to
+      // be stamped as person. Drop only ambiguous person rows so the prefetcher
+      // can re-run them with the corrected model; keep heuristic automated rows.
+      const tableExists = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analyses'")
+        .get();
+      if (!tableExists) return;
+
+      const rows = db
+        .prepare(
+          `SELECT a.email_id, e.from_address
+           FROM analyses a
+           JOIN emails e ON e.id = a.email_id
+           WHERE a.sender_type = 'person' OR a.sender_type IS NULL`,
+        )
+        .all() as Array<{ email_id: string; from_address: string }>;
+      if (rows.length === 0) return;
+
+      const deleteStmt = db.prepare("DELETE FROM analyses WHERE email_id = ?");
+      let dropped = 0;
+      for (const row of rows) {
+        if (classifySenderByHeuristics({ from: row.from_address }) === null) {
+          deleteStmt.run(row.email_id);
+          dropped++;
+        }
+      }
+      if (dropped > 0) {
+        log.info(
+          `[Migration v11] Dropped ${dropped}/${rows.length} ambiguous 'person' analyses for re-analysis`,
+        );
+      }
+    },
+  },
 ];
 
 // Migration-local copy of the heuristic classifier so this file can run in

@@ -173,6 +173,17 @@ interface RuntimeAiConfig {
 }
 
 async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
+  if (process.env.EXO_EVAL_MODE === "true") {
+    return {
+      aiProvider: "codex",
+      enableAnthropicFallback: false,
+      hasAnthropicAuth: false,
+      codexModel: process.env.EXO_EVAL_CODEX_MODEL || "gpt-5.5",
+      codexModelOverrides: {},
+      codexCliPath: undefined,
+    };
+  }
+
   // In test/demo mode, return safe defaults instead of reading config.
   // This avoids loading electron-backed modules (data-dir, electron-store) on
   // the test import chain, which fails under plain Node without Electron.
@@ -183,7 +194,7 @@ async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
       aiProvider: "anthropic",
       enableAnthropicFallback: false,
       hasAnthropicAuth: true,
-      codexModel: "gpt-5.4",
+      codexModel: "gpt-5.5",
       codexModelOverrides: {},
       codexCliPath: undefined,
     };
@@ -195,7 +206,7 @@ async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
     aiProvider: cfg.aiProvider ?? "codex",
     enableAnthropicFallback: cfg.enableAnthropicFallback ?? true,
     hasAnthropicAuth: Boolean(cfg.anthropicApiKey || process.env.ANTHROPIC_API_KEY),
-    codexModel: cfg.codex?.model || "gpt-5.4",
+    codexModel: cfg.codex?.model || "gpt-5.5",
     codexModelOverrides: { ...DEFAULT_CODEX_MODEL_OVERRIDES, ...cfg.codex?.modelOverrides },
     codexCliPath: cfg.codex?.cliPath,
   };

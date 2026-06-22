@@ -19,7 +19,7 @@ export class ArchiveReadyAnalyzer {
   private customPrompt: string | null;
   private provider?: LlmProvider;
 
-  constructor(model: string = "claude-sonnet-4-20250514", prompt?: string, provider?: LlmProvider) {
+  constructor(model: string = "claude-sonnet-4-6", prompt?: string, provider?: LlmProvider) {
     this.model = model;
     this.customPrompt = prompt && prompt !== DEFAULT_ARCHIVE_READY_PROMPT ? prompt : null;
     this.provider = provider;
