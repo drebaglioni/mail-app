@@ -5,6 +5,7 @@ import {
   DEFAULT_ANALYSIS_PROMPT,
   type AnalysisResult,
   type Email,
+  type LlmProvider,
 } from "../../shared/types";
 import { stripQuotedContent } from "./strip-quoted-content";
 import { stripJsonFences } from "../../shared/strip-json-fences";
@@ -25,8 +26,11 @@ async function getBuildAnalysisMemoryContext() {
   return _buildAnalysisMemoryContext;
 }
 
-// Extended system prompt with examples to enable prompt caching (requires 1024+ tokens)
-const ANALYSIS_SYSTEM_PROMPT = `You are an email triage assistant. Your job is to analyze emails, classify the sender, and determine if a reply is needed.
+// Extended system prompt with examples to enable prompt caching (requires 1024+ tokens).
+// Fork keeps the richer "classify the sender too" prompt — sender_type and
+// automated_category are still surfaced in the UI (Automated tab) even after
+// upstream collapsed the priority axis to a needs_reply binary.
+const ANALYSIS_SYSTEM_PROMPT = `You are an email triage assistant. Your job is to analyze emails, classify the sender, and determine if a reply is needed (PRIORITY vs OTHER).
 
 The user's email address may be provided. If given, use it to understand the user's role in the conversation:
 - If the "From" address matches the user's email, the user SENT this email. It almost never needs a reply from the user.
@@ -48,9 +52,9 @@ OUTPUT FORMAT:
 SENDER TYPE CLASSIFICATION:
 Classify the sender as "person" (a real human writing personally) or "automated" (a system, service, or bot).
 
-Anything that requires the user to do external work (e.g. update a document or send an invite) should remain in at least "low" priority and not be skipped.
+Anything that requires the user to do external work (e.g. update a document or send an invite) is PRIORITY and should not be skipped.
 
-SKIP REPLIES FOR:
+OTHER (needs_reply = false):
 - Newsletters, marketing emails, promotions, and advertising
 - Automated notifications (GitHub, CI/CD, build status, receipts, shipping updates, alerts)
 - Received calendar invites and event notifications (handled by calendar app) — but if the email asks the user to create/send an invite, that's action-required
@@ -63,6 +67,17 @@ SKIP REPLIES FOR:
 - Out-of-office auto-replies
 - Spam or suspicious emails
 - Replies that simply answer a question the user previously asked, without requesting further action
+
+PRIORITY (needs_reply = true):
+- Direct questions addressed to the user
+- Requests requiring the user's response or decision
+- Meeting coordination needing the user's input
+- Business or personal emails expecting a reply
+- Action items assigned to the user
+- Follow-ups on previous conversations
+- Introductions that warrant a response
+- Time-sensitive matters requiring acknowledgement
+- Anything that requires the user to do external work (update a document, send an invite, etc.)
 
 "automated" includes:
 - Newsletters, marketing, promotions
@@ -90,87 +105,89 @@ When sender_type is "automated", classify into one of:
 - "notifications": GitHub, Jira, Slack, calendar, social media, CI/CD, monitoring
 - "other": Any automated email that doesn't fit the above
 
-REPLY PRIORITY:
+REPLY PRIORITY (optional, retained for fork compat):
 - high: Urgent requests, time-sensitive matters, important business decisions, requests from executives/VIPs
 - low: Everything else that needs a reply (standard requests, networking, non-urgent coordination)
 
 EXAMPLES:
 
-Example 1 - Newsletter:
+Example 1 - Newsletter (other):
 Email Subject: "Weekly Tech Digest: Top 10 AI Stories This Week"
 Email Body: "Welcome to your weekly tech newsletter!..."
 Output: {"needs_reply": false, "reason": "Newsletter/marketing content", "sender_type": "automated", "automated_category": "newsletters"}
 
-Example 2 - Direct question from a person:
+Example 2 - Direct question (priority):
 Email Subject: "Q3 Budget Proposal Review"
 Email Body: "Hi, I've attached the Q3 budget proposal for your review. Could you please take a look?..."
 Output: {"needs_reply": true, "reason": "Direct request for document review", "priority": "low", "sender_type": "person"}
 
-Example 3 - GitHub notification:
+Example 3 - GitHub notification (other):
 Email Subject: "[company/repo] Pull request #123: Fix authentication bug was merged"
 Email Body: "Merged #123 into main..."
 Output: {"needs_reply": false, "reason": "Automated GitHub notification", "sender_type": "automated", "automated_category": "notifications"}
 
-Example 4 - Meeting request from a person:
+Example 4 - Meeting request (priority):
 Email Subject: "Sync on project timeline?"
 Email Body: "Hey! Would you be available for a quick 30-min call tomorrow?..."
 Output: {"needs_reply": true, "reason": "Meeting coordination request", "priority": "low", "sender_type": "person"}
 
-Example 5 - Urgent escalation:
+Example 5 - Urgent escalation (priority):
 Email Subject: "URGENT: Production database issue"
 Email Body: "I need your approval to scale up the database instance. Please respond ASAP..."
 Output: {"needs_reply": true, "reason": "Urgent production issue requiring immediate decision", "priority": "high", "sender_type": "person"}
 
-Example 6 - Shipping notification:
+Example 6 - Shipping notification (other):
 Email Subject: "Your Amazon order has shipped!"
 Email Body: "Great news! Your order is on its way. Track your package..."
 Output: {"needs_reply": false, "reason": "Automated shipping notification", "sender_type": "automated", "automated_category": "orders"}
 
-Example 7 - Personal introduction:
+Example 7 - Personal introduction (priority):
 Email Subject: "Introduction from Jared Friedman"
 Email Body: "Hi! Jared mentioned you're working on interesting AI tools. Would you be open to a brief call?..."
 Output: {"needs_reply": true, "reason": "Personal introduction requesting networking call", "priority": "low", "sender_type": "person"}
 
-Example 8 - Travel confirmation:
+Example 8 - Travel confirmation (other):
 Email Subject: "Your flight confirmation - SFO to JFK"
 Email Body: "Your booking is confirmed. Flight UA123, departing Jan 30..."
 Output: {"needs_reply": false, "reason": "Flight booking confirmation", "sender_type": "automated", "automated_category": "travel"}
 
-Example 9 - Payment receipt:
+Example 9 - Payment receipt (other):
 Email Subject: "Payment receipt for your subscription"
 Email Body: "Thank you for your payment of $29.99. Your subscription has been renewed..."
 Output: {"needs_reply": false, "reason": "Payment receipt", "sender_type": "automated", "automated_category": "receipts"}
 
-Example 10 - Calendar invite notification:
+Example 10 - Calendar invite notification (other):
 Email Subject: "Invitation: Team standup @ Mon Jan 27"
 Email Body: "You have been invited to a meeting..."
 Output: {"needs_reply": false, "reason": "Calendar invite notification", "sender_type": "automated", "automated_category": "notifications"}
 
-Example 11 - Contract sign-off (high priority):
+Example 11 - Contract sign-off (priority, high):
 Email Subject: "Need your sign-off on vendor contract"
 Email Body: "We need your signature by EOD today to lock in current pricing..."
 Output: {"needs_reply": true, "reason": "Time-sensitive contract requiring sign-off", "priority": "high", "sender_type": "person"}
 
-Example 12 - Jira ticket assignment:
+Example 12 - Jira ticket assignment (other):
 Email Subject: "[PROJ-456] Bug assigned to you: Login timeout"
 Email Body: "A bug has been assigned to you by Sarah. Priority: High..."
 Output: {"needs_reply": false, "reason": "Automated Jira notification", "sender_type": "automated", "automated_category": "notifications"}
 
-Example 13 - Action-required task (low priority):
+Example 13 - Action-required task (priority):
 Email Subject: "Please update the team roster spreadsheet"
 Email Body: "Hi, could you add the two new hires to the shared roster spreadsheet by end of week? The link is in the pinned message in our Slack channel. Thanks!"
-Output: {"needs_reply": true, "reason": "Action required - update external document by end of week", "priority": "low"}
+Output: {"needs_reply": true, "reason": "Action required - update external document by end of week"}
 
 Now analyze the following email:`;
 
 export class EmailAnalyzer {
   private model: string;
   private customPrompt: string | null;
+  private provider?: LlmProvider;
 
-  constructor(model: string = "claude-sonnet-4-6", prompt?: string) {
+  constructor(model: string = "claude-sonnet-4-6", prompt?: string, provider?: LlmProvider) {
     this.model = model;
     // Only use custom prompt if it differs from default
     this.customPrompt = prompt && prompt !== DEFAULT_ANALYSIS_PROMPT ? prompt : null;
+    this.provider = provider;
   }
 
   async analyze(email: Email, userEmail?: string, accountId?: string): Promise<AnalysisResult> {
@@ -215,7 +232,13 @@ ${userIdentityLine}${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nS
           },
         ],
       },
-      { caller: "email-analyzer", feature: "analysis", emailId: email.id, accountId },
+      {
+        caller: "email-analyzer",
+        feature: "analysis",
+        emailId: email.id,
+        accountId,
+        provider: this.provider,
+      },
     );
 
     // Log cache performance

@@ -378,12 +378,11 @@ export const EmailPreviewSidebar = memo(function EmailPreviewSidebar() {
       {latestReceivedEmail?.analysis && (
         <AnalysisPrioritySection
           email={latestReceivedEmail}
-          onAnalysisUpdated={(newNeedsReply, newPriority) => {
+          onAnalysisUpdated={(newNeedsReply) => {
             updateEmail(latestReceivedEmail.id, {
               analysis: {
                 ...latestReceivedEmail.analysis!,
                 needsReply: newNeedsReply,
-                priority: (newPriority as "high" | "medium" | "low" | "skip" | null) ?? undefined,
               },
             });
           }}

@@ -20,6 +20,7 @@ import type {
 import { createLogger } from "../services/logger";
 import { classifySenderByHeuristics } from "../services/sender-classifier";
 import { parseAutoDraftTaskId, AUTO_DRAFT_TASK_ID_LIKE_PATTERN } from "../agents/task-id";
+import { runMigrations } from "./migrations";
 
 const log = createLogger("db");
 
@@ -170,428 +171,6 @@ function backfillBodyText(db: DatabaseInstance): void {
   });
   runAll();
   log.info("[DB] body_text backfill complete");
-}
-
-function runMigrations(db: DatabaseInstance): void {
-  // Check if emails table exists and has account_id column
-  const tableInfo = db.prepare("PRAGMA table_info(emails)").all() as Array<{ name: string }>;
-  const hasAccountId = tableInfo.some((col) => col.name === "account_id");
-
-  if (tableInfo.length > 0 && !hasAccountId) {
-    // Migration: Add account_id column to existing emails table
-    log.info("[DB] Running migration: Adding account_id column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN account_id TEXT DEFAULT 'default'");
-  }
-
-  // Create index for account_id if it doesn't exist (will be created by schema too, but this ensures it's there)
-  try {
-    db.exec("CREATE INDEX IF NOT EXISTS idx_emails_account ON emails(account_id)");
-  } catch {
-    // Index might already exist, ignore
-  }
-
-  // Check if extension_enrichments table exists and has sender_email column
-  const enrichmentsTableInfo = db
-    .prepare("PRAGMA table_info(extension_enrichments)")
-    .all() as Array<{ name: string }>;
-  const hasSenderEmail = enrichmentsTableInfo.some((col) => col.name === "sender_email");
-
-  if (enrichmentsTableInfo.length > 0 && !hasSenderEmail) {
-    // Migration: Add sender_email column to existing extension_enrichments table
-    log.info("[DB] Running migration: Adding sender_email column to extension_enrichments table");
-    db.exec("ALTER TABLE extension_enrichments ADD COLUMN sender_email TEXT");
-  }
-
-  // Create index for sender_email lookups
-  try {
-    db.exec(
-      "CREATE INDEX IF NOT EXISTS idx_extension_enrichments_sender ON extension_enrichments(sender_email, extension_id)",
-    );
-  } catch {
-    // Index might already exist, ignore
-  }
-
-  // Check if emails table has label_ids column
-  const hasLabelIds = tableInfo.some((col) => col.name === "label_ids");
-  if (tableInfo.length > 0 && !hasLabelIds) {
-    // Migration: Add label_ids column to existing emails table
-    log.info("[DB] Running migration: Adding label_ids column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN label_ids TEXT");
-  }
-
-  // Check if emails table has cc_address column
-  const hasCcAddress = tableInfo.some((col) => col.name === "cc_address");
-  if (tableInfo.length > 0 && !hasCcAddress) {
-    log.info("[DB] Running migration: Adding cc_address column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN cc_address TEXT");
-  }
-
-  const hasBccAddress = tableInfo.some((col) => col.name === "bcc_address");
-  if (tableInfo.length > 0 && !hasBccAddress) {
-    log.info("[DB] Running migration: Adding bcc_address column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN bcc_address TEXT");
-  }
-
-  // Check if calendar_sync_state table has visible column
-  const calSyncTableInfo = db.prepare("PRAGMA table_info(calendar_sync_state)").all() as Array<{
-    name: string;
-  }>;
-  const hasCalSyncVisible = calSyncTableInfo.some((col) => col.name === "visible");
-  if (calSyncTableInfo.length > 0 && !hasCalSyncVisible) {
-    log.info("[DB] Running migration: Adding visible column to calendar_sync_state table");
-    db.exec("ALTER TABLE calendar_sync_state ADD COLUMN visible INTEGER DEFAULT 1");
-  }
-
-  // Check if emails table has body_text column
-  // Re-read tableInfo since we may have added columns above
-  const tableInfoRefresh = db.prepare("PRAGMA table_info(emails)").all() as Array<{ name: string }>;
-  const hasBodyText = tableInfoRefresh.some((col) => col.name === "body_text");
-  if (tableInfoRefresh.length > 0 && !hasBodyText) {
-    log.info("[DB] Running migration: Adding body_text column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN body_text TEXT");
-  }
-
-  // Check if emails table has attachments column
-  const tableInfoForAttachments = db.prepare("PRAGMA table_info(emails)").all() as Array<{
-    name: string;
-  }>;
-  const hasAttachments = tableInfoForAttachments.some((col) => col.name === "attachments");
-  if (tableInfoForAttachments.length > 0 && !hasAttachments) {
-    log.info("[DB] Running migration: Adding attachments column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN attachments TEXT");
-  }
-
-  // Check if outbox table has attachments column
-  const outboxTableInfo = db.prepare("PRAGMA table_info(outbox)").all() as Array<{ name: string }>;
-  const outboxHasAttachments = outboxTableInfo.some((col) => col.name === "attachments");
-  if (outboxTableInfo.length > 0 && !outboxHasAttachments) {
-    log.info("[DB] Running migration: Adding attachments column to outbox table");
-    db.exec("ALTER TABLE outbox ADD COLUMN attachments TEXT");
-  }
-
-  // Check if drafts table has agent_task_id column (for linking drafts to agent traces)
-  const draftsTableInfo = db.prepare("PRAGMA table_info(drafts)").all() as Array<{ name: string }>;
-  const hasAgentTaskId = draftsTableInfo.some((col) => col.name === "agent_task_id");
-  if (draftsTableInfo.length > 0 && !hasAgentTaskId) {
-    log.info("[DB] Running migration: Adding agent_task_id column to drafts table");
-    db.exec("ALTER TABLE drafts ADD COLUMN agent_task_id TEXT");
-  }
-
-  // Check if drafts table has cc/bcc columns
-  const draftsTableInfoRefresh = db.prepare("PRAGMA table_info(drafts)").all() as Array<{
-    name: string;
-  }>;
-  const hasDraftCc = draftsTableInfoRefresh.some((col) => col.name === "cc");
-  if (draftsTableInfoRefresh.length > 0 && !hasDraftCc) {
-    log.info("[DB] Running migration: Adding cc column to drafts table");
-    db.exec("ALTER TABLE drafts ADD COLUMN cc TEXT");
-  }
-  const hasDraftBcc = draftsTableInfoRefresh.some((col) => col.name === "bcc");
-  if (draftsTableInfoRefresh.length > 0 && !hasDraftBcc) {
-    log.info("[DB] Running migration: Adding bcc column to drafts table");
-    db.exec("ALTER TABLE drafts ADD COLUMN bcc TEXT");
-  }
-
-  // Check if drafts table has compose_mode column (to remember forward vs reply on Esc)
-  const draftsTableInfoForMode = db.prepare("PRAGMA table_info(drafts)").all() as Array<{
-    name: string;
-  }>;
-  const hasDraftComposeMode = draftsTableInfoForMode.some((col) => col.name === "compose_mode");
-  if (draftsTableInfoForMode.length > 0 && !hasDraftComposeMode) {
-    log.info("[DB] Running migration: Adding compose_mode column to drafts table");
-    db.exec("ALTER TABLE drafts ADD COLUMN compose_mode TEXT");
-  }
-
-  // Check if drafts table has to_recipients column (for forward recipient persistence)
-  const draftsTableInfoForTo = db.prepare("PRAGMA table_info(drafts)").all() as Array<{
-    name: string;
-  }>;
-  const hasDraftToRecipients = draftsTableInfoForTo.some((col) => col.name === "to_recipients");
-  if (draftsTableInfoForTo.length > 0 && !hasDraftToRecipients) {
-    log.info("[DB] Running migration: Adding to_recipients column to drafts table");
-    db.exec("ALTER TABLE drafts ADD COLUMN to_recipients TEXT");
-  }
-
-  // Check if emails table has message_id column (RFC 5322 Message-ID for draft cleanup)
-  const tableInfoForMessageId = db.prepare("PRAGMA table_info(emails)").all() as Array<{
-    name: string;
-  }>;
-  const hasMessageId = tableInfoForMessageId.some((col) => col.name === "message_id");
-  if (tableInfoForMessageId.length > 0 && !hasMessageId) {
-    log.info("[DB] Running migration: Adding message_id column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN message_id TEXT");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_emails_message_id ON emails(message_id)");
-  }
-
-  // Check if emails table has in_reply_to column (RFC 5322 In-Reply-To for thread merging)
-  const tableInfoForInReplyTo = db.prepare("PRAGMA table_info(emails)").all() as Array<{
-    name: string;
-  }>;
-  const hasInReplyTo = tableInfoForInReplyTo.some((col) => col.name === "in_reply_to");
-  if (tableInfoForInReplyTo.length > 0 && !hasInReplyTo) {
-    log.info("[DB] Running migration: Adding in_reply_to column to emails table");
-    db.exec("ALTER TABLE emails ADD COLUMN in_reply_to TEXT");
-    db.exec("CREATE INDEX IF NOT EXISTS idx_emails_in_reply_to ON emails(in_reply_to)");
-  }
-
-  // Check if memories table has memory_type column (for distinguishing drafting vs analysis memories)
-  const memoriesTableInfo = db.prepare("PRAGMA table_info(memories)").all() as Array<{
-    name: string;
-  }>;
-  const hasMemoryType = memoriesTableInfo.some((col) => col.name === "memory_type");
-  if (memoriesTableInfo.length > 0 && !hasMemoryType) {
-    log.info("[DB] Running migration: Adding memory_type column to memories table");
-    db.exec("ALTER TABLE memories ADD COLUMN memory_type TEXT NOT NULL DEFAULT 'drafting'");
-  }
-
-  // Check if draft_memories table has memory_type column
-  const draftMemoriesTableInfo = db.prepare("PRAGMA table_info(draft_memories)").all() as Array<{
-    name: string;
-  }>;
-  const hasDraftMemoryType = draftMemoriesTableInfo.some((col) => col.name === "memory_type");
-  if (draftMemoriesTableInfo.length > 0 && !hasDraftMemoryType) {
-    log.info("[DB] Running migration: Adding memory_type column to draft_memories table");
-    db.exec("ALTER TABLE draft_memories ADD COLUMN memory_type TEXT NOT NULL DEFAULT 'drafting'");
-  }
-
-  // === Forward-only numbered migration system ===
-  // Existing ad-hoc migrations above are the "baseline" (version 0).
-  // All NEW migrations go through the numbered system below.
-  runNumberedMigrations(db);
-}
-
-// --- Numbered migration system (forward-only, bootstrap baseline) ---
-
-interface Migration {
-  version: number;
-  name: string;
-  up: (db: DatabaseInstance) => void;
-}
-
-// Add new migrations here. Version numbers must be sequential.
-// Existing databases get version 0 (baseline) on first run.
-const NUMBERED_MIGRATIONS: Migration[] = [
-  {
-    version: 1,
-    name: "add_llm_calls_table",
-    up: (db) => {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS llm_calls (
-          id TEXT PRIMARY KEY,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          model TEXT NOT NULL,
-          caller TEXT NOT NULL,
-          email_id TEXT,
-          account_id TEXT,
-          input_tokens INTEGER NOT NULL,
-          output_tokens INTEGER NOT NULL,
-          cache_read_tokens INTEGER DEFAULT 0,
-          cache_create_tokens INTEGER DEFAULT 0,
-          cost_cents REAL NOT NULL,
-          duration_ms INTEGER NOT NULL,
-          success INTEGER NOT NULL DEFAULT 1,
-          error_message TEXT
-        );
-        CREATE INDEX IF NOT EXISTS idx_llm_calls_created ON llm_calls(created_at);
-        CREATE INDEX IF NOT EXISTS idx_llm_calls_caller ON llm_calls(caller);
-      `);
-    },
-  },
-  {
-    version: 2,
-    name: "add_send_as_aliases_and_from_address",
-    up: (db) => {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS send_as_aliases (
-          email TEXT NOT NULL,
-          account_id TEXT NOT NULL,
-          display_name TEXT,
-          is_default INTEGER DEFAULT 0,
-          reply_to_address TEXT,
-          verification_status TEXT,
-          fetched_at INTEGER NOT NULL,
-          PRIMARY KEY (email, account_id),
-          FOREIGN KEY (account_id) REFERENCES accounts(id)
-        );
-        CREATE INDEX IF NOT EXISTS idx_send_as_account ON send_as_aliases(account_id);
-      `);
-
-      // ALTER TABLE only for existing databases — fresh DBs get the column from SCHEMA
-      const tables = ["local_drafts", "outbox", "scheduled_messages"];
-      for (const table of tables) {
-        const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-        if (cols.length > 0 && !cols.some((c) => c.name === "from_address")) {
-          db.exec(`ALTER TABLE ${table} ADD COLUMN from_address TEXT`);
-        }
-      }
-    },
-  },
-  {
-    version: 3,
-    name: "add_sender_type_and_archive_kept",
-    up: (db) => {
-      // Add sender classification columns to analyses
-      const analysisCols = db.prepare("PRAGMA table_info(analyses)").all() as Array<{
-        name: string;
-      }>;
-      if (!analysisCols.some((c) => c.name === "sender_type")) {
-        db.exec("ALTER TABLE analyses ADD COLUMN sender_type TEXT");
-      }
-      if (!analysisCols.some((c) => c.name === "automated_category")) {
-        db.exec("ALTER TABLE analyses ADD COLUMN automated_category TEXT");
-      }
-
-      // Add per-thread archive keep toggle to emails table
-      const emailCols = db.prepare("PRAGMA table_info(emails)").all() as Array<{ name: string }>;
-      if (!emailCols.some((c) => c.name === "archive_kept")) {
-        db.exec("ALTER TABLE emails ADD COLUMN archive_kept INTEGER DEFAULT 0");
-      }
-
-      // Table for tracking user corrections (future training data)
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS classification_overrides (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          thread_id TEXT NOT NULL,
-          field TEXT NOT NULL,
-          original_value TEXT,
-          corrected_value TEXT NOT NULL,
-          created_at TEXT DEFAULT (datetime('now'))
-        );
-        CREATE INDEX IF NOT EXISTS idx_classification_overrides_thread
-          ON classification_overrides(thread_id);
-      `);
-
-      // Backfill: existing analyses default to "person" (conservative — avoids hiding real people)
-      db.exec("UPDATE analyses SET sender_type = 'person' WHERE sender_type IS NULL");
-    },
-  },
-  {
-    version: 4,
-    name: "reclassify_senders_with_heuristics",
-    up: (db) => {
-      // Re-run heuristic sender classification on all analyzed emails.
-      // Migration v3 conservatively set everything to "person" — now apply
-      // the heuristic classifier to catch obvious automated senders.
-      const rows = db
-        .prepare(
-          `SELECT a.email_id, e.from_address
-           FROM analyses a
-           JOIN emails e ON e.id = a.email_id
-           WHERE a.sender_type = 'person' OR a.sender_type IS NULL`,
-        )
-        .all() as Array<{ email_id: string; from_address: string }>;
-
-      if (rows.length === 0) return;
-
-      const updateStmt = db.prepare(
-        "UPDATE analyses SET sender_type = ?, automated_category = COALESCE(automated_category, ?) WHERE email_id = ?",
-      );
-      let reclassified = 0;
-      for (const row of rows) {
-        const result = classifySenderByHeuristics({ from: row.from_address });
-        if (result === "automated") {
-          updateStmt.run("automated", "other", row.email_id);
-          reclassified++;
-        }
-      }
-      if (reclassified > 0) {
-        log.info(
-          `[Migration v4] Reclassified ${reclassified}/${rows.length} emails as automated via heuristics`,
-        );
-      }
-    },
-  },
-  {
-    version: 5,
-    name: "index_agent_conversation_mirror_local_task_id",
-    up: (db) => {
-      // Guard: migrations run before SCHEMA (see initDatabase order), so on a
-      // fresh DB the table doesn't exist yet. CREATE INDEX IF NOT EXISTS only
-      // guards the index, not the table — skip here and let SCHEMA + the index
-      // in the schema file handle fresh DBs.
-      const tableExists = db
-        .prepare(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='agent_conversation_mirror'",
-        )
-        .get();
-      if (!tableExists) return;
-      db.exec(
-        `CREATE INDEX IF NOT EXISTS idx_agent_conversation_mirror_task_status
-         ON agent_conversation_mirror(local_task_id, status)`,
-      );
-    },
-  },
-  {
-    version: 6,
-    name: "drop_stale_person_analyses_for_reanalysis",
-    up: (db) => {
-      // Earlier builds defaulted Codex to "gpt-5.4" — an invalid model id. The
-      // codex CLI rejected it, the unsupported-model retry ran without --model
-      // and the fallback model returned prose instead of strict JSON. The
-      // analyzer's parse-error path then stamped sender_type = "person" on
-      // anything ambiguous (see email-analyzer.ts), leaving automated mail
-      // stuck in the People tab. Drop those rows so the prefetcher re-analyzes
-      // them with the corrected model. Skip rows the heuristic classifier
-      // confidently labels (v4 already handled "automated"; trust those).
-      const rows = db
-        .prepare(
-          `SELECT a.email_id, e.from_address
-           FROM analyses a
-           JOIN emails e ON e.id = a.email_id
-           WHERE a.sender_type = 'person' OR a.sender_type IS NULL`,
-        )
-        .all() as Array<{ email_id: string; from_address: string }>;
-
-      if (rows.length === 0) return;
-
-      const deleteStmt = db.prepare("DELETE FROM analyses WHERE email_id = ?");
-      let dropped = 0;
-      for (const row of rows) {
-        const result = classifySenderByHeuristics({ from: row.from_address });
-        if (result === null) {
-          deleteStmt.run(row.email_id);
-          dropped++;
-        }
-      }
-      if (dropped > 0) {
-        log.info(
-          `[Migration v6] Dropped ${dropped}/${rows.length} ambiguous 'person' analyses for re-analysis`,
-        );
-      }
-    },
-  },
-];
-
-function runNumberedMigrations(db: DatabaseInstance): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS schema_version (
-      version INTEGER NOT NULL UNIQUE,
-      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  const currentRow = db.prepare("SELECT MAX(version) as version FROM schema_version").get() as
-    | { version: number | null }
-    | undefined;
-  let currentVersion = currentRow?.version ?? -1;
-
-  if (currentVersion === -1) {
-    db.prepare("INSERT INTO schema_version (version) VALUES (?)").run(0);
-    currentVersion = 0;
-    log.info({ version: 0 }, "Migration system initialized at baseline");
-  }
-
-  for (const migration of NUMBERED_MIGRATIONS) {
-    if (migration.version > currentVersion) {
-      log.info({ version: migration.version, name: migration.name }, "Running numbered migration");
-      const runInTransaction = db.transaction(() => {
-        migration.up(db);
-        db.prepare("INSERT INTO schema_version (version) VALUES (?)").run(migration.version);
-      });
-      runInTransaction();
-      currentVersion = migration.version;
-    }
-  }
 }
 
 export function getDatabase(): DatabaseInstance {
@@ -776,6 +355,24 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
   if (email.inReplyTo || email.messageIdHeader) {
     invalidateThreadMergeCache(accountId);
   }
+
+  // Heuristic sender classification at ingest time. The LLM analyzer is
+  // expensive and runs lazily via prefetch; until then, obvious automated
+  // senders (noreply@, GitHub notifications, marketing newsletters, ...) sit
+  // in the People tab because the filter treats "no analysis" as person.
+  // Insert a lightweight analysis row for the obvious cases so the UI is
+  // correct from the moment the email lands. Skip if an analysis already
+  // exists (e.g. label-only re-save of an already-analyzed email).
+  const existing = db.prepare("SELECT 1 FROM analyses WHERE email_id = ?").get(email.id);
+  if (!existing) {
+    const heuristic = classifySenderByHeuristics({ from: email.from });
+    if (heuristic === "automated") {
+      db.prepare(
+        `INSERT INTO analyses (email_id, needs_reply, reason, sender_type, analyzed_at)
+         VALUES (?, 0, ?, 'automated', ?)`,
+      ).run(email.id, "Auto-classified by sender pattern", Date.now());
+    }
+  }
 }
 
 export function updateEmailLabelIds(emailId: string, labelIds: string[]): void {
@@ -798,7 +395,7 @@ export function getEmail(emailId: string): DashboardEmail | null {
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", e.body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
       e.message_id as messageId, e.in_reply_to as inReplyTo,
-      a.needs_reply as needsReply, a.reason, a.priority, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
+      a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
     LEFT JOIN analyses a ON e.id = a.email_id
@@ -823,7 +420,7 @@ export function getAllEmails(accountId?: string): DashboardEmail[] {
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", '' as body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
       e.message_id as messageId, e.in_reply_to as inReplyTo,
-      a.needs_reply as needsReply, a.reason, a.priority, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
+      a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
     LEFT JOIN analyses a ON e.id = a.email_id
@@ -870,7 +467,7 @@ export function getInboxEmails(accountId?: string): DashboardEmail[] {
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", '' as body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
       e.message_id as messageId, e.in_reply_to as inReplyTo,
-      a.needs_reply as needsReply, a.reason, a.priority, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
+      a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode`;
   const fromJoins = `
     FROM emails e
@@ -1008,7 +605,7 @@ export function getSentEmails(accountId: string): DashboardEmail[] {
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", '' as body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
       e.message_id as messageId, e.in_reply_to as inReplyTo,
-      a.needs_reply as needsReply, a.reason, a.priority, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
+      a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
     LEFT JOIN analyses a ON e.id = a.email_id
@@ -1040,7 +637,7 @@ export function getEmailsByThread(threadId: string, accountId?: string): Dashboa
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", e.body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
       e.message_id as messageId, e.in_reply_to as inReplyTo,
-      a.needs_reply as needsReply, a.reason, a.priority, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
+      a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
     LEFT JOIN analyses a ON e.id = a.email_id
@@ -1073,7 +670,7 @@ export function getEmailsByIds(ids: string[]): DashboardEmail[] {
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", e.body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
       e.message_id as messageId, e.in_reply_to as inReplyTo,
-      a.needs_reply as needsReply, a.reason, a.priority, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
+      a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
     LEFT JOIN analyses a ON e.id = a.email_id
@@ -1586,7 +1183,6 @@ function rowToDashboardEmail(row: Record<string, unknown>): DashboardEmail {
     email.analysis = {
       needsReply: Boolean(row.needsReply),
       reason: row.reason as string,
-      priority: row.priority as "high" | "low" | undefined,
       senderType: (row.senderType as "person" | "automated") || undefined,
       automatedCategory: (row.automatedCategory as AutomatedCategory) || undefined,
       analyzedAt: row.analyzedAt as number,
@@ -1643,24 +1239,27 @@ function rowToDashboardEmail(row: Record<string, unknown>): DashboardEmail {
 }
 
 // Analysis operations
+// Fork-specific: persist sender_type + automated_category alongside the upstream
+// (needs_reply, reason) fields. Priority column was dropped upstream so we no
+// longer write to it; the optional priority arg is preserved in our callers for
+// backwards compat but ignored here.
 export function saveAnalysis(
   emailId: string,
   needsReply: boolean,
   reason: string,
-  priority?: string,
+  _priority?: string,
   senderType?: string,
   automatedCategory?: string,
 ): void {
   const db = getDatabase();
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO analyses (email_id, needs_reply, reason, priority, sender_type, automated_category, analyzed_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO analyses (email_id, needs_reply, reason, sender_type, automated_category, analyzed_at)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
   stmt.run(
     emailId,
     needsReply ? 1 : 0,
     reason,
-    priority || null,
     senderType || null,
     automatedCategory || null,
     Date.now(),
@@ -2460,6 +2059,70 @@ export function getSenderProfiles(): SenderProfile[] {
     title: row.title || undefined,
     lookupAt: row.lookupAt,
   }));
+}
+
+// ============================================
+// Blocked senders (mirrors Gmail filter that routes a sender to Spam)
+// ============================================
+
+export type BlockedSenderRow = {
+  senderEmail: string;
+  accountId: string;
+  gmailFilterId: string | null;
+  blockedAt: number;
+};
+
+export function addBlockedSender(
+  senderEmail: string,
+  accountId: string,
+  gmailFilterId: string | null,
+): void {
+  const db = getDatabase();
+  db.prepare(
+    `INSERT OR REPLACE INTO blocked_senders (sender_email, account_id, gmail_filter_id, blocked_at)
+     VALUES (?, ?, ?, ?)`,
+  ).run(senderEmail.toLowerCase(), accountId, gmailFilterId, Date.now());
+}
+
+export function removeBlockedSender(senderEmail: string, accountId: string): void {
+  const db = getDatabase();
+  db.prepare(`DELETE FROM blocked_senders WHERE sender_email = ? AND account_id = ?`).run(
+    senderEmail.toLowerCase(),
+    accountId,
+  );
+}
+
+export function getBlockedSender(senderEmail: string, accountId: string): BlockedSenderRow | null {
+  const db = getDatabase();
+  const row = db
+    .prepare(
+      `SELECT sender_email as senderEmail, account_id as accountId,
+              gmail_filter_id as gmailFilterId, blocked_at as blockedAt
+       FROM blocked_senders WHERE sender_email = ? AND account_id = ?`,
+    )
+    .get(senderEmail.toLowerCase(), accountId) as BlockedSenderRow | undefined;
+  return row ?? null;
+}
+
+export function isSenderBlocked(senderEmail: string, accountId: string): boolean {
+  const db = getDatabase();
+  const row = db
+    .prepare(
+      `SELECT 1 as found FROM blocked_senders WHERE sender_email = ? AND account_id = ? LIMIT 1`,
+    )
+    .get(senderEmail.toLowerCase(), accountId);
+  return row !== undefined;
+}
+
+export function getBlockedSenders(accountId?: string): BlockedSenderRow[] {
+  const db = getDatabase();
+  const sql = `SELECT sender_email as senderEmail, account_id as accountId,
+                      gmail_filter_id as gmailFilterId, blocked_at as blockedAt
+               FROM blocked_senders
+               ${accountId ? "WHERE account_id = ?" : ""}
+               ORDER BY blocked_at DESC`;
+  const stmt = db.prepare(sql);
+  return (accountId ? stmt.all(accountId) : stmt.all()) as BlockedSenderRow[];
 }
 
 // ============================================
@@ -3707,9 +3370,9 @@ export function saveArchiveReady(
 
 /**
  * Batch-mark emails as skipped during onboarding.
- * Inserts analysis rows (needs_reply=false, priority='skip') and
- * archive_ready rows (is_ready=true) so these emails are treated as
- * already-processed by the prefetch pipeline.
+ * Inserts analysis rows (needs_reply=false) and archive_ready rows
+ * (is_ready=true) so these emails are treated as already-processed by
+ * the prefetch pipeline.
  */
 export function batchInsertOnboardingSkips(
   emailIds: string[],
@@ -3723,8 +3386,8 @@ export function batchInsertOnboardingSkips(
   const reason = "Pre-existing email before app setup";
 
   const insertAnalysis = db.prepare(`
-    INSERT OR IGNORE INTO analyses (email_id, needs_reply, reason, priority, sender_type, analyzed_at)
-    VALUES (?, 0, ?, 'low', 'automated', ?)
+    INSERT OR IGNORE INTO analyses (email_id, needs_reply, reason, sender_type, analyzed_at)
+    VALUES (?, 0, ?, 'automated', ?)
   `);
   const insertArchiveReady = db.prepare(`
     INSERT INTO archive_ready (thread_id, account_id, is_ready, reason, analyzed_at, dismissed)

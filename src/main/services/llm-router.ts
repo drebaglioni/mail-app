@@ -15,6 +15,12 @@ interface CreateOptions {
   emailId?: string;
   accountId?: string;
   timeoutMs?: number;
+  /**
+   * Optional per-call provider override propagated by upstream's multi-provider
+   * routing. The router itself still decides Codex vs Anthropic; this is
+   * forwarded to anthropic-service so it can pick Anthropic vs Ollama.
+   */
+  provider?: "anthropic" | "ollama-cloud";
 }
 
 type AiProvider = "codex" | "anthropic";

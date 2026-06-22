@@ -1,13 +1,11 @@
 import { app, BrowserWindow, ipcMain, session, nativeTheme } from "electron";
 import { join } from "path";
 import { readFileSync, existsSync, readdirSync } from "fs";
-import { electronApp, optimizer } from "@electron-toolkit/utils";
+import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import Store from "electron-store";
 
-import { getDataDir, initDevData } from "./data-dir";
+import { getDataDir } from "./data-dir";
 import { createLogger, closeLogs } from "./services/logger";
-
-initDevData();
 
 const log = createLogger("app");
 
@@ -19,7 +17,7 @@ ipcMain.on("debug:log", (_, msg: string) => {
 import { ExtensionManifestSchema } from "../shared/extension-types";
 import webSearchPackageJson from "../extensions/mail-ext-web-search/package.json";
 import calendarPackageJson from "../extensions/mail-ext-calendar/package.json";
-import { createWindow } from "./window";
+import { createWindow, getIconPath } from "./window";
 import { registerGmailIpc } from "./ipc/gmail.ipc";
 import { registerAnalysisIpc } from "./ipc/analysis.ipc";
 import { registerDraftsIpc } from "./ipc/drafts.ipc";
@@ -55,6 +53,16 @@ import { calendarSyncService } from "./services/calendar-sync";
 import { emailSyncService } from "./services/email-sync";
 import * as webSearchExtension from "../extensions/mail-ext-web-search/src/index";
 import * as calendarExtension from "../extensions/mail-ext-calendar/src/index";
+
+// Anchor Electron's framework userData (SingletonLock, sessions, cache, IDB,
+// LocalStorage, ServiceWorkers, GPUCache) to the per-worktree `.dev-data/` in
+// dev. Without this, Electron defaults to `~/Library/Application Support/exo/`
+// — the same dir the packaged app uses — so dev runs both pollute real user
+// data and collide on the singleton lock across parallel worktrees. Must run
+// before any `app.getPath("userData")` call below.
+if (is.dev) {
+  app.setPath("userData", getDataDir());
+}
 
 // Skip Keychain for Chromium's internal cookie/localStorage encryption.
 // Without this, macOS prompts "wants to access data from other apps" on first launch
@@ -389,8 +397,8 @@ ipcMain.handle("default-mail-app:get-pending", () => {
 // Initialize database on startup
 const _db = initDatabase();
 
-// Wire up AnthropicService cost tracking
-import { setAnthropicServiceDb } from "./services/anthropic-service";
+// Wire up LLM service cost tracking
+import { setAnthropicServiceDb, setOllamaConfig } from "./services/llm-service";
 setAnthropicServiceDb(_db);
 
 // If no ANTHROPIC_API_KEY in env (e.g. packaged app with no .env), read from stored config
@@ -399,6 +407,10 @@ setAnthropicServiceDb(_db);
   const config = getConfig();
   if (!process.env.ANTHROPIC_API_KEY && config.anthropicApiKey) {
     process.env.ANTHROPIC_API_KEY = config.anthropicApiKey;
+  }
+  // Initialize Ollama Cloud client if configured
+  if (config.ollamaCloud?.apiKey) {
+    setOllamaConfig(config.ollamaCloud.apiKey);
   }
 }
 
@@ -419,6 +431,17 @@ app.whenReady().then(async () => {
 
   // Set app user model id for windows
   electronApp.setAppUserModelId("com.exo.app");
+
+  // Set dock icon on macOS (especially for dev mode where packaged icon isn't used).
+  // In headless mode, hide the dock icon entirely so launching the app for CDP-based
+  // testing doesn't pop a dock icon or steal focus from the user.
+  if (process.platform === "darwin" && app.dock) {
+    if (process.env.EXO_HEADLESS === "true" || process.env.NODE_ENV === "test") {
+      app.dock.hide();
+    } else {
+      app.dock.setIcon(getIconPath());
+    }
+  }
 
   // Initialize network monitor
   networkMonitor.init();

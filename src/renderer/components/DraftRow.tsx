@@ -92,11 +92,7 @@ export const DraftRow = React.memo(
         className={`
         w-full ${ds.row} flex items-center text-left
         exo-list-row group
-        ${
-          isSelected
-            ? "exo-list-row-selected text-white"
-            : "exo-text-primary"
-        }
+        ${isSelected ? "exo-list-row-selected text-white" : "exo-text-primary"}
       `}
       >
         {/* Draft indicator dot area */}

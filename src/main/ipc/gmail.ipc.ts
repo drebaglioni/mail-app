@@ -61,6 +61,7 @@ export function registerGmailIpc(): void {
         hasAnthropicKey: boolean;
         hasCodexAuth: boolean;
         hasAiAuth: boolean;
+        hasLlmProvider: boolean;
       }>
     > => {
       // In demo/test mode, always return authenticated
@@ -73,15 +74,17 @@ export function registerGmailIpc(): void {
             hasAnthropicKey: true,
             hasCodexAuth: true,
             hasAiAuth: true,
+            hasLlmProvider: true,
           },
         };
       }
 
       try {
         const client = new GmailClient();
-        const cfg = getConfig();
-        const hasAnthropicKey = !!(process.env.ANTHROPIC_API_KEY || getConfig().anthropicApiKey);
-        const codexAuth = await getCodexAuthStatus(cfg.codex?.cliPath || "codex");
+        const config = getConfig();
+        const hasAnthropicKey = !!(process.env.ANTHROPIC_API_KEY || config.anthropicApiKey);
+        const hasOllamaCloudKey = !!config.ollamaCloud?.apiKey;
+        const codexAuth = await getCodexAuthStatus(config.codex?.cliPath || "codex");
         const hasCodexAuth = codexAuth.cliAvailable && codexAuth.authenticated;
         const hasAiAuth = hasCodexAuth || hasAnthropicKey;
         return {
@@ -92,6 +95,7 @@ export function registerGmailIpc(): void {
             hasAnthropicKey,
             hasCodexAuth,
             hasAiAuth,
+            hasLlmProvider: hasAnthropicKey || hasOllamaCloudKey || hasCodexAuth,
           },
         };
       } catch (error) {
@@ -204,7 +208,6 @@ export function registerGmailIpc(): void {
                   ? {
                       needsReply: expectedAnalysis.needsReply,
                       reason: expectedAnalysis.reason,
-                      priority: expectedAnalysis.priority,
                       analyzedAt: Date.now(),
                     }
                   : undefined),
@@ -272,7 +275,6 @@ export function registerGmailIpc(): void {
               ? {
                   needsReply: expectedAnalysis.needsReply,
                   reason: expectedAnalysis.reason,
-                  priority: expectedAnalysis.priority,
                   analyzedAt: Date.now(),
                 }
               : undefined,

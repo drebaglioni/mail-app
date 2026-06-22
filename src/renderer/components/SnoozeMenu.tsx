@@ -532,9 +532,7 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
           <div className="mt-1.5 flex items-center justify-between">
             {parsedTime ? (
               <>
-                <span className="text-xs exo-text-muted">
-                  {formatSnoozeTime(parsedTime)}
-                </span>
+                <span className="text-xs exo-text-muted">{formatSnoozeTime(parsedTime)}</span>
                 <button
                   onClick={handleTextSubmit}
                   className="text-xs font-medium text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)]"
@@ -565,7 +563,9 @@ export function SnoozeMenu({ emailId, threadId, accountId, onSnooze, onClose }: 
             className="w-full px-3 py-2 text-left hover:bg-[var(--exo-bg-surface-hover)] transition-colors flex items-center justify-between"
           >
             <span className="text-sm exo-text-primary">{option.label}</span>
-            {option.sublabel && <span className="text-xs text-[var(--exo-text-muted)]">{option.sublabel}</span>}
+            {option.sublabel && (
+              <span className="text-xs text-[var(--exo-text-muted)]">{option.sublabel}</span>
+            )}
           </button>
         ))}
       </div>

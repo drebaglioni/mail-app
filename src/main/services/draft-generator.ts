@@ -1,7 +1,6 @@
 import { createMessage } from "./llm-router";
 import type { GmailClient } from "./gmail-client";
 import { CalendaringAgent } from "./calendaring-agent";
-import { getEnrichmentBySender } from "../extensions/enrichment-store";
 import { quoteDisplayName } from "../utils/address-formatting";
 import {
   DEFAULT_DRAFT_PROMPT,
@@ -11,11 +10,31 @@ import {
   type Email,
   type EAConfig,
   type GeneratedDraftResponse,
+  type LlmProvider,
 } from "../../shared/types";
 import { UNTRUSTED_DATA_INSTRUCTION, wrapUntrustedEmail } from "../../shared/prompt-safety";
 import { createLogger } from "./logger";
 
 const log = createLogger("draft-generator");
+
+// Lazy-imported to avoid pulling in ../extensions/enrichment-store → ../db
+// → electron at module load. The eval / unit runner imports DraftGenerator
+// outside Electron context; touching the enrichment cache before sender
+// lookup is actually invoked would crash with
+// `'electron' does not provide an export named 'BrowserWindow'`.
+// Mirrors the pattern in email-analyzer.ts.
+import type * as EnrichmentStoreModule from "../extensions/enrichment-store";
+type GetEnrichmentBySenderFn = typeof EnrichmentStoreModule.getEnrichmentBySender;
+let _getEnrichmentBySender: GetEnrichmentBySenderFn | null = null;
+async function getEnrichmentBySenderLazy(
+  ...args: Parameters<GetEnrichmentBySenderFn>
+): Promise<ReturnType<GetEnrichmentBySenderFn>> {
+  if (!_getEnrichmentBySender) {
+    const mod = await import("../extensions/enrichment-store");
+    _getEnrichmentBySender = mod.getEnrichmentBySender;
+  }
+  return _getEnrichmentBySender(...args);
+}
 
 /**
  * Extract reply-all CC recipients from an email's To/CC fields,
@@ -45,16 +64,22 @@ export class DraftGenerator {
   private model: string;
   private calendaringModel: string;
   private prompt: string;
+  private provider?: LlmProvider;
+  private calendaringProvider?: LlmProvider;
 
   constructor(
     model: string = "claude-sonnet-4-6",
     prompt: string = DEFAULT_DRAFT_PROMPT,
     calendaringModel?: string,
+    provider?: LlmProvider,
+    calendaringProvider?: LlmProvider,
   ) {
     this.model = model;
     this.calendaringModel = calendaringModel ?? model;
     // Always append format suffix so the user can't accidentally remove it
     this.prompt = prompt + DRAFT_FORMAT_SUFFIX;
+    this.provider = provider;
+    this.calendaringProvider = calendaringProvider;
   }
 
   async generateDraft(
@@ -77,7 +102,7 @@ export class DraftGenerator {
     const enableSenderLookup = options?.enableSenderLookup ?? true;
     if (enableSenderLookup) {
       const senderEmail = this.extractSenderEmail(email.from);
-      const cached = getEnrichmentBySender(senderEmail, "web-search");
+      const cached = await getEnrichmentBySenderLazy(senderEmail, "web-search");
       if (cached?.data) {
         const profile = cached.data as { summary: string; name: string; email: string };
         if (profile.summary) {
@@ -92,7 +117,11 @@ ${profile.summary}
 
     // Check for scheduling if EA is enabled
     if (eaConfig?.enabled && eaConfig.email) {
-      const calAgent = new CalendaringAgent(this.calendaringModel);
+      const calAgent = new CalendaringAgent(
+        this.calendaringModel,
+        undefined,
+        this.calendaringProvider,
+      );
       calendaringResult = await calAgent.analyze(email);
 
       if (calendaringResult.hasSchedulingContext && calendaringResult.action === "defer_to_ea") {
@@ -133,7 +162,7 @@ ${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nSubject: ${email.sub
           },
         ],
       },
-      { caller: "draft-generator", feature: "drafts", emailId: email.id },
+      { caller: "draft-generator", feature: "drafts", emailId: email.id, provider: this.provider },
     );
 
     const textBlock = response.content.find((block) => block.type === "text");
@@ -161,7 +190,7 @@ ${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nSubject: ${email.sub
     if (enableSenderLookup) {
       for (const recipient of to) {
         const recipientEmail = this.extractSenderEmail(recipient);
-        const cached = getEnrichmentBySender(recipientEmail, "web-search");
+        const cached = await getEnrichmentBySenderLazy(recipientEmail, "web-search");
         if (cached?.data) {
           const profile = cached.data as { summary: string; name: string; email: string };
           if (profile.summary) {
@@ -179,11 +208,11 @@ ${profile.summary}
       {
         model: this.model,
         max_tokens: 1024,
+        system: [{ type: "text", text: `${this.prompt}\n\n${UNTRUSTED_DATA_INSTRUCTION}` }],
         messages: [
           {
             role: "user",
-            content: `${this.prompt}
-${recipientContext}
+            content: `${recipientContext}
 ---
 Compose a new email (not a reply to an existing thread).
 
@@ -195,7 +224,7 @@ ${instructions}`,
           },
         ],
       },
-      { caller: "draft-generator-compose", feature: "drafts" },
+      { caller: "draft-generator-compose", feature: "drafts", provider: this.provider },
     );
 
     const textBlock = response.content.find((block) => block.type === "text");
@@ -217,7 +246,7 @@ ${instructions}`,
     const enableSenderLookup = options?.enableSenderLookup ?? true;
     if (enableSenderLookup) {
       const senderEmail = this.extractSenderEmail(email.from);
-      const cached = getEnrichmentBySender(senderEmail, "web-search");
+      const cached = await getEnrichmentBySenderLazy(senderEmail, "web-search");
       if (cached?.data) {
         const profile = cached.data as { summary: string; name: string; email: string };
         if (profile.summary) {
@@ -258,7 +287,12 @@ ${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nSubject: ${email.sub
           },
         ],
       },
-      { caller: "draft-generator-forward", feature: "drafts", emailId: email.id },
+      {
+        caller: "draft-generator-forward",
+        feature: "drafts",
+        emailId: email.id,
+        provider: this.provider,
+      },
     );
 
     const textBlock = response.content.find((block) => block.type === "text");

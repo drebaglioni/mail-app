@@ -264,7 +264,9 @@ function ToolCallEvent({
                   <>
                     <pre className="mt-0.5 text-xs bg-[var(--exo-bg-app)] text-[var(--exo-text-secondary)] rounded p-2 overflow-x-auto font-mono">
                       <SqlHighlight code={displayValue} />
-                      {isTruncated && !inputExpanded && <span className="text-[var(--exo-text-muted)]">...</span>}
+                      {isTruncated && !inputExpanded && (
+                        <span className="text-[var(--exo-text-muted)]">...</span>
+                      )}
                     </pre>
                     {isTruncated && (
                       <button

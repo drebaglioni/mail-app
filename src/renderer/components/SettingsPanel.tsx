@@ -19,6 +19,12 @@ import {
   type ModelTier,
   type CliToolConfig,
   type AiProvider,
+  LLM_PROVIDERS,
+  type LlmProvider,
+  SENDER_LOOKUP_PROVIDERS,
+  type SenderLookupProvider,
+  DEFAULT_OLLAMA_MODEL,
+  type BlockedSender,
 } from "../../shared/types";
 import { useAppStore, type Account, type SettingsTab } from "../store";
 import { reconfigurePostHog, trackEvent } from "../services/posthog";
@@ -51,6 +57,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
     setKeyboardBindings,
     undoSendDelaySeconds,
     setUndoSendDelay,
+    sendAndArchive,
+    setSendAndArchive,
     currentAccountId,
     highlightMemoryIds,
   } = useAppStore();
@@ -86,8 +94,13 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
   // General settings state
   const [enableSenderLookup, setEnableSenderLookup] = useState(true);
+  const [senderLookupProvider, setSenderLookupProvider] =
+    useState<SenderLookupProvider>("anthropic");
+  const [exaApiKey, setExaApiKey] = useState("");
   const [syncDraftsToGmail, setSyncDraftsToGmail] = useState(false);
   const [modelConfig, setModelConfig] = useState<ModelConfig>(DEFAULT_MODEL_CONFIG);
+  const [featureProviders, setFeatureProviders] = useState<Record<string, LlmProvider>>({});
+  const [ollamaModels, setOllamaModels] = useState<Record<string, string>>({});
   const [isSavingGeneral, setIsSavingGeneral] = useState(false);
   const [isExportingLogs, setIsExportingLogs] = useState(false);
   const [exportLogsError, setExportLogsError] = useState<string | null>(null);
@@ -243,8 +256,15 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
   useEffect(() => {
     if (generalConfig) {
       setEnableSenderLookup(generalConfig.enableSenderLookup ?? true);
+      setSenderLookupProvider(generalConfig.senderLookupProvider ?? "anthropic");
+      setExaApiKey(generalConfig.exaApiKey ?? "");
       setSyncDraftsToGmail(generalConfig.syncDraftsToGmail ?? false);
       setModelConfig({ ...DEFAULT_MODEL_CONFIG, ...generalConfig.modelConfig });
+      setFeatureProviders(generalConfig.featureProviders ?? {});
+      const ollamaFeatureModels = generalConfig.ollamaCloud?.featureModels;
+      if (ollamaFeatureModels) {
+        setOllamaModels(ollamaFeatureModels);
+      }
       setGithubToken(generalConfig.githubToken ?? "");
       setAllowPrereleaseUpdates(generalConfig.allowPrereleaseUpdates ?? false);
       setAiProvider(generalConfig.aiProvider ?? "codex");
@@ -417,6 +437,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
     await window.api.settings.set({ undoSendDelay: seconds });
   };
 
+  const handleSendAndArchiveToggle = async (enabled: boolean) => {
+    setSendAndArchive(enabled);
+    await window.api.settings.set({ sendAndArchive: enabled });
+  };
+
   const handleKeyboardBindingsChange = async (bindings: "superhuman" | "gmail") => {
     setKeyboardBindings(bindings);
     await window.api.settings.set({ keyboardBindings: bindings });
@@ -427,6 +452,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
     try {
       await window.api.settings.set({
         enableSenderLookup,
+        senderLookupProvider,
+        exaApiKey: exaApiKey || undefined,
         syncDraftsToGmail,
         modelConfig,
         aiProvider,
@@ -434,6 +461,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
           model: codexModel || undefined,
         },
         enableAnthropicFallback,
+        featureProviders,
+        // Only send featureModels here — apiKey and defaultModel are owned by
+        // the ExtensionsTab. Spreading the cached ollamaCloud here can carry
+        // a stale empty apiKey from before the user saved one in ExtensionsTab.
+        ollamaCloud: { featureModels: ollamaModels },
         githubToken: githubToken || undefined,
         allowPrereleaseUpdates,
       });
@@ -800,6 +832,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         </div>
         <button
           onClick={onClose}
+          aria-label="Close settings"
           className="titlebar-no-drag p-2 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -815,7 +848,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
       {/* Tabs */}
       <div className="exo-elevated border-b exo-border-subtle">
-        <div className="flex space-x-1 p-2">
+        <div className="flex space-x-1 p-2 overflow-x-auto whitespace-nowrap">
           <button
             onClick={() => setActiveTab("general")}
             data-active={activeTab === "general" ? "true" : undefined}
@@ -829,6 +862,17 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             className="px-4 py-2 text-sm font-medium transition-colors exo-segment-btn"
           >
             Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab("blocked")}
+            data-active={activeTab === "blocked" ? "true" : undefined}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              activeTab === "blocked"
+                ? "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+            }`}
+          >
+            Blocked
           </button>
           <button
             onClick={() => setActiveTab("calendar")}
@@ -929,14 +973,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 exo-app-bg">
         {activeTab === "general" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h2 className="text-lg font-semibold exo-text-primary mb-2">
-                General Settings
-              </h2>
-              <p className="exo-text-secondary mb-4">
-                Configure how Exo generates draft replies.
-              </p>
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">General Settings</h2>
+              <p className="exo-text-secondary mb-4">Configure how Exo generates draft replies.</p>
 
               {/* Appearance / Theme Toggle */}
               <div className="exo-settings-card p-4 mb-6">
@@ -1055,20 +1095,52 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 </div>
               </div>
 
+              {/* Send & Archive */}
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="pr-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                      Send &amp; Archive
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      When replying, sending also archives the conversation. New emails and forwards
+                      are unaffected.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleSendAndArchiveToggle(!sendAndArchive)}
+                    aria-label="Toggle Send and Archive"
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                      sendAndArchive
+                        ? "bg-blue-600 dark:bg-blue-500"
+                        : "bg-gray-200 dark:bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        sendAndArchive ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
               {/* Default Mail App */}
               <div className="exo-settings-card p-4 mb-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold exo-text-primary">
-                      Default Mail App
-                    </h3>
+                    <h3 className="font-semibold exo-text-primary">Default Mail App</h3>
                     <p className="text-sm exo-text-secondary mt-1">
                       Register Exo as the default handler for mailto: links. Clicking email links in
                       other apps will open a compose window here.
                     </p>
                   </div>
                   <button
-                    disabled={isDefaultMailAppLoading}
+                    role="switch"
+                    aria-checked={isDefaultMailApp}
+                    aria-label="Set as default mail app"
+                    aria-disabled={isDefaultMailAppLoading}
+                    aria-busy={isDefaultMailAppLoading}
                     onClick={async () => {
                       if (isDefaultMailAppLoading) return;
                       setIsDefaultMailAppLoading(true);
@@ -1093,9 +1165,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       isDefaultMailAppLoading ? "opacity-50 cursor-not-allowed" : ""
                     } ${
-                      isDefaultMailApp
-                        ? "bg-[var(--exo-accent)]"
-                        : "bg-[var(--exo-border-subtle)]"
+                      isDefaultMailApp ? "bg-[var(--exo-accent)]" : "bg-[var(--exo-border-subtle)]"
                     }`}
                   >
                     <span
@@ -1110,6 +1180,87 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     {defaultMailAppError}
                   </p>
                 )}
+              </div>
+
+              {/* Sender Lookup */}
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 mb-6">
+                <div className="mb-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    Sender Lookup Search
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Which search backend to use when looking up info about email senders. The model
+                    used to parse the results is set below under <em>Sender Lookup</em> in AI
+                    Models.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor="sender-lookup-provider"
+                      className="text-sm font-medium text-gray-700 dark:text-gray-300 w-24"
+                    >
+                      Backend
+                    </label>
+                    <select
+                      id="sender-lookup-provider"
+                      value={senderLookupProvider}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if ((SENDER_LOOKUP_PROVIDERS as readonly string[]).includes(v)) {
+                          setSenderLookupProvider(v as SenderLookupProvider);
+                          // Switching away from Exa hides the Ollama Cloud option
+                          // in the senderLookup model dropdown — reset to anthropic
+                          // so a stale "ollama-cloud" value isn't silently persisted
+                          // and then re-activated when the user switches back to Exa.
+                          if (v !== "exa" && featureProviders.senderLookup === "ollama-cloud") {
+                            setFeatureProviders((prev) => ({
+                              ...prev,
+                              senderLookup: "anthropic",
+                            }));
+                          }
+                        }
+                      }}
+                      className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="anthropic">
+                        Anthropic (Claude web_search — single call, no extra key)
+                      </option>
+                      <option value="exa">Exa (search API + configurable parsing model)</option>
+                    </select>
+                  </div>
+                  {senderLookupProvider === "exa" && (
+                    <div className="flex items-center gap-3">
+                      <label
+                        htmlFor="exa-api-key"
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300 w-24"
+                      >
+                        Exa API key
+                      </label>
+                      <input
+                        id="exa-api-key"
+                        type="password"
+                        value={exaApiKey}
+                        onChange={(e) => setExaApiKey(e.target.value)}
+                        placeholder="Get one at dashboard.exa.ai"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  )}
+                  {senderLookupProvider === "exa" && !exaApiKey && anthropicApiKey && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      No Exa key configured — sender lookups will fall back to Anthropic web_search
+                      until you add one.
+                    </p>
+                  )}
+                  {senderLookupProvider === "exa" && !exaApiKey && !anthropicApiKey && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      No Exa key configured. You also haven&apos;t set an Anthropic key, so there is
+                      no fallback — sender lookup will be skipped until you add an Exa key above (or
+                      an Anthropic key under AI Provider).
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* AI Models */}
@@ -1164,35 +1315,78 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                       label: "Agent Chat",
                       description: "Interactive agent sidebar conversations",
                     },
-                  ].map(({ key, label, description }) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between py-2 border-b exo-border-subtle last:border-0"
-                    >
-                      <div className="flex-1 min-w-0 mr-4">
-                        <p className="text-sm font-medium exo-text-primary">
-                          {label}
-                        </p>
-                        <p className="text-xs exo-text-muted">{description}</p>
-                      </div>
-                      <select
-                        value={modelConfig[key]}
-                        onChange={(e) => {
-                          const tier = e.target.value;
-                          if ((MODEL_TIERS as readonly string[]).includes(tier)) {
-                            setModelConfig((prev) => ({ ...prev, [key]: tier as ModelTier }));
-                          }
-                        }}
-                        className="px-3 py-1.5 text-sm border border-[var(--exo-border-strong)] rounded-lg bg-[var(--exo-bg-elevated)] exo-text-primary focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
+                  ].map(({ key, label, description }) => {
+                    const provider = featureProviders[key] ?? "anthropic";
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between py-2 border-b exo-border-subtle last:border-0"
                       >
-                        {MODEL_TIERS.map((tier) => (
-                          <option key={tier} value={tier}>
-                            {MODEL_TIER_LABELS[tier]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0 mr-4">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {label}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={provider}
+                            onChange={(e) => {
+                              const p = e.target.value;
+                              if ((LLM_PROVIDERS as readonly string[]).includes(p)) {
+                                setFeatureProviders((prev) => ({
+                                  ...prev,
+                                  [key]: p as LlmProvider,
+                                }));
+                              }
+                            }}
+                            aria-label={`Provider for ${label}`}
+                            className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="anthropic">Anthropic</option>
+                            {/* For senderLookup, the Ollama option is only honored when
+                                the search backend is Exa — the Anthropic backend bundles
+                                search + parse into one web_search tool call, which doesn't
+                                exist on Ollama. Hide it on the Anthropic backend to avoid
+                                saving a route that can't be honored at call time. */}
+                            {(key !== "senderLookup" || senderLookupProvider === "exa") && (
+                              <option value="ollama-cloud">Ollama Cloud</option>
+                            )}
+                          </select>
+                          {provider === "anthropic" ? (
+                            <select
+                              value={modelConfig[key]}
+                              onChange={(e) => {
+                                const tier = e.target.value;
+                                if ((MODEL_TIERS as readonly string[]).includes(tier)) {
+                                  setModelConfig((prev) => ({ ...prev, [key]: tier as ModelTier }));
+                                }
+                              }}
+                              aria-label={`Model tier for ${label}`}
+                              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              {MODEL_TIERS.map((tier) => (
+                                <option key={tier} value={tier}>
+                                  {MODEL_TIER_LABELS[tier]}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={ollamaModels[key] ?? DEFAULT_OLLAMA_MODEL}
+                              onChange={(e) =>
+                                setOllamaModels((prev) => ({ ...prev, [key]: e.target.value }))
+                              }
+                              placeholder={DEFAULT_OLLAMA_MODEL}
+                              aria-label={`Ollama model for ${label}`}
+                              className="w-48 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1201,9 +1395,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <div className="mb-3">
                   <h3 className="font-semibold exo-text-primary">Updates</h3>
                   {appVersion && (
-                    <p className="text-sm exo-text-secondary mt-1">
-                      Current version: {appVersion}
-                    </p>
+                    <p className="text-sm exo-text-secondary mt-1">Current version: {appVersion}</p>
                   )}
                 </div>
 
@@ -1323,9 +1515,11 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   />
                   <p className="text-xs exo-text-muted mt-1">
                     Required for auto-updates from a private repo. Needs{" "}
-                    <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">repo</code> scope or
-                    fine-grained{" "}
-                    <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">contents:read</code>{" "}
+                    <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">repo</code> scope
+                    or fine-grained{" "}
+                    <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">
+                      contents:read
+                    </code>{" "}
                     permission. Also used for private extension downloads.
                   </p>
                 </div>
@@ -1342,6 +1536,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   <button
                     role="switch"
                     aria-checked={allowPrereleaseUpdates}
+                    aria-label="Pre-release updates"
                     onClick={() => setAllowPrereleaseUpdates(!allowPrereleaseUpdates)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       allowPrereleaseUpdates
@@ -1362,15 +1557,16 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               <div className="exo-settings-card p-4 mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold exo-text-primary">
-                      Sender Lookup
-                    </h3>
+                    <h3 className="font-semibold exo-text-primary">Sender Lookup</h3>
                     <p className="text-sm exo-text-secondary mt-1">
                       When generating a draft, search the web for information about the sender to
                       provide better context.
                     </p>
                   </div>
                   <button
+                    role="switch"
+                    aria-checked={enableSenderLookup}
+                    aria-label="Enable sender lookup"
                     onClick={() => setEnableSenderLookup(!enableSenderLookup)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       enableSenderLookup
@@ -1410,6 +1606,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     </p>
                   </div>
                   <button
+                    role="switch"
+                    aria-checked={syncDraftsToGmail}
+                    aria-label="Sync drafts to Gmail"
                     onClick={() => setSyncDraftsToGmail(!syncDraftsToGmail)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       syncDraftsToGmail
@@ -1427,10 +1626,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               </div>
 
               {/* Troubleshooting */}
-              <div className="exo-elevated p-4 rounded-lg border exo-border-subtle">
-                <h3 className="font-semibold exo-text-primary mb-1">
-                  Troubleshooting
-                </h3>
+              <div className="exo-elevated p-4 rounded-lg border exo-border-subtle mb-6">
+                <h3 className="font-semibold exo-text-primary mb-1">Troubleshooting</h3>
                 <p className="text-sm exo-text-secondary mb-3">
                   Export log files to share with support. Email content is automatically redacted.
                 </p>
@@ -1475,11 +1672,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "accounts" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h2 className="text-lg font-semibold exo-text-primary mb-2">
-                Connected Accounts
-              </h2>
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">Connected Accounts</h2>
               <p className="exo-text-secondary mb-4">
                 Manage your connected Gmail accounts. You can add multiple accounts and switch
                 between them.
@@ -1505,9 +1700,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                           className={`w-3 h-3 rounded-full ${account.isConnected ? "bg-green-500" : "bg-[var(--exo-text-muted)]"}`}
                         />
                         <div>
-                          <div className="font-medium exo-text-primary">
-                            {account.email}
-                          </div>
+                          <div className="font-medium exo-text-primary">{account.email}</div>
                           <div className="text-sm exo-text-muted">
                             {account.isPrimary && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--exo-accent-soft)] text-[var(--exo-accent-strong)] mr-2">
@@ -1589,12 +1782,16 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
           </div>
         )}
 
+        {activeTab === "blocked" && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <BlockedSendersSection />
+          </div>
+        )}
+
         {activeTab === "calendar" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h2 className="text-lg font-semibold exo-text-primary mb-2">
-                Calendar Visibility
-              </h2>
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">Calendar Visibility</h2>
               <p className="exo-text-secondary mb-4">
                 Choose which calendars to show in the sidebar. Only visible calendars will have
                 their events displayed.
@@ -1668,23 +1865,21 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "splits" && (
-          <div className="max-w-3xl">
+          <div className="max-w-3xl mx-auto">
             <SplitConfigEditor />
           </div>
         )}
 
         {activeTab === "snippets" && (
-          <div className="max-w-3xl">
+          <div className="max-w-3xl mx-auto">
             <SnippetsEditor />
           </div>
         )}
 
         {activeTab === "signatures" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h2 className="text-lg font-semibold exo-text-primary mb-2">
-                Email Signatures
-              </h2>
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">Email Signatures</h2>
               <p className="exo-text-secondary mb-4">
                 Create and manage email signatures. The default signature is automatically appended
                 when composing new emails.
@@ -1705,7 +1900,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     </span>
                     <p className="text-xs exo-text-muted">
                       Appends a small &quot;Sent by{" "}
-                      <a href="https://exo.email" className="text-[var(--exo-accent)] hover:underline">
+                      <a
+                        href="https://exo.email"
+                        className="text-[var(--exo-accent)] hover:underline"
+                      >
                         Exo
                       </a>
                       &quot; line after your signature.
@@ -1851,6 +2049,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                             accountId: e.target.value || undefined,
                           })
                         }
+                        aria-label="Signature account"
                         className="w-full p-3 border border-[var(--exo-border-strong)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--exo-focus-ring)] focus:border-transparent"
                       >
                         <option value="">All accounts (global)</option>
@@ -1913,7 +2112,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "prompts" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             {isLoading ? (
               <p className="exo-text-muted">Loading settings...</p>
             ) : (
@@ -1932,9 +2131,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                     </button>
                   </div>
                   <p className="text-xs exo-text-muted mb-2">
-                    Each email is categorized as SKIP (no reply), or HIGH / MEDIUM / LOW priority.
-                    Customize the rules below to control how emails are triaged. The required output
-                    format is handled automatically.
+                    Each email is categorized as PRIORITY (needs a reply) or OTHER. Customize the
+                    rules below to control how emails are triaged. The required output format is
+                    handled automatically.
                   </p>
                   <textarea
                     value={analysisPrompt}
@@ -2087,11 +2286,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "style" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h2 className="text-lg font-semibold exo-text-primary mb-2">
-                Writing Style
-              </h2>
+              <h2 className="text-lg font-semibold exo-text-primary mb-2">Writing Style</h2>
               <p className="exo-text-secondary mb-4">
                 Drafts automatically include examples of your past emails to this recipient (or
                 similar recipients) so the AI can match your tone and formality. No manual indexing
@@ -2164,7 +2361,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "assistant" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
               <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Executive Assistant Integration
@@ -2271,7 +2468,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "queue" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
               <h2 className="text-lg font-semibold exo-text-primary mb-2">
                 Background Processing Queue
@@ -2378,9 +2575,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="exo-text-secondary">
-                        Extension Enrichments
-                      </span>
+                      <span className="exo-text-secondary">Extension Enrichments</span>
                       <span className="exo-text-primary font-medium">
                         {prefetchProgress.processed.extensionEnrichment}
                       </span>
@@ -2418,9 +2613,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                   prefetchProgress.agentDrafts.queued > 0 ||
                   prefetchProgress.agentDrafts.completed > 0) && (
                   <div className="exo-settings-card p-4">
-                    <h5 className="text-sm font-medium exo-text-primary mb-3">
-                      Agent Draft Queue
-                    </h5>
+                    <h5 className="text-sm font-medium exo-text-primary mb-3">Agent Draft Queue</h5>
                     <div className="flex gap-4 text-xs exo-text-muted mb-3">
                       <span className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-[var(--exo-accent)] animate-pulse" />
@@ -2458,9 +2651,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                                     : "bg-red-500"
                             }`}
                           />
-                          <span className="truncate flex-1 exo-text-secondary">
-                            {item.subject}
-                          </span>
+                          <span className="truncate flex-1 exo-text-secondary">{item.subject}</span>
                           <span className="exo-text-muted flex-shrink-0">
                             {
                               item.from
@@ -2469,17 +2660,19 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                                 .split(" ")[0]
                             }
                           </span>
-                          <span
-                            className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              item.priority === "high"
-                                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                : item.priority === "medium"
-                                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                  : "bg-[var(--exo-bg-surface-soft)] text-[var(--exo-text-secondary)]"
-                            }`}
-                          >
-                            {item.priority}
-                          </span>
+                          {item.priority && (
+                            <span
+                              className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                item.priority === "high"
+                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                  : item.priority === "medium"
+                                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                    : "bg-[var(--exo-bg-surface-soft)] text-[var(--exo-text-secondary)]"
+                              }`}
+                            >
+                              {item.priority}
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2491,7 +2684,8 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                 <p className="font-medium mb-2">How it works:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    <strong>Analysis:</strong> Determines if emails need a reply and their priority
+                    <strong>Analysis:</strong> Determines if emails are Priority (need a reply) or
+                    Other
                   </li>
                   <li>
                     <strong>Sender Profiles:</strong> Looks up sender information for all inbox
@@ -2512,11 +2706,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         )}
 
         {activeTab === "agents" && (
-          <div className="space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h3 className="text-lg font-medium exo-text-primary mb-4">
-                Agent Settings
-              </h3>
+              <h3 className="text-lg font-medium exo-text-primary mb-4">Agent Settings</h3>
               <p className="text-sm exo-text-muted mb-6">
                 Configure AI agent capabilities including browser automation.
               </p>
@@ -2524,14 +2716,10 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
             {/* Authentication */}
             <div className="exo-settings-card p-6">
-              <h4 className="text-base font-medium exo-text-primary mb-4">
-                Authentication
-              </h4>
+              <h4 className="text-base font-medium exo-text-primary mb-4">Authentication</h4>
 
               <div className="mb-6">
-                <h5 className="text-sm font-medium exo-text-secondary mb-1">
-                  Default AI Provider
-                </h5>
+                <h5 className="text-sm font-medium exo-text-secondary mb-1">Default AI Provider</h5>
                 <p className="text-xs exo-text-muted mb-3">
                   Codex is recommended. Anthropic remains available as a fallback path.
                 </p>
@@ -2569,9 +2757,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               </div>
 
               <div className="mb-6 pt-4 border-t exo-border-subtle">
-                <h5 className="text-sm font-medium exo-text-secondary mb-1">
-                  Codex (OAuth)
-                </h5>
+                <h5 className="text-sm font-medium exo-text-secondary mb-1">Codex (OAuth)</h5>
                 <p className="text-xs exo-text-muted mb-3">
                   Uses your Codex login from <code>codex login</code>.
                 </p>
@@ -2619,9 +2805,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
               {/* Anthropic API Key */}
               <div className="mb-6">
-                <h5 className="text-sm font-medium exo-text-secondary mb-1">
-                  Anthropic API Key
-                </h5>
+                <h5 className="text-sm font-medium exo-text-secondary mb-1">Anthropic API Key</h5>
                 <p className="text-xs exo-text-muted mb-3">
                   Required for email analysis, draft generation, and sender lookup.
                 </p>
@@ -2664,9 +2848,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
               {/* Claude Account (OAuth) — only shown when claude CLI is available */}
               {claudeCliAvailable && (
                 <div className="pt-4 border-t exo-border-subtle">
-                  <h5 className="text-sm font-medium exo-text-secondary mb-1">
-                    Claude Agent
-                  </h5>
+                  <h5 className="text-sm font-medium exo-text-secondary mb-1">Claude Agent</h5>
                   <p className="text-xs exo-text-muted mb-3">
                     The agent can also authenticate via your Claude account. If you have Claude Code
                     installed and logged in, this is detected automatically.
@@ -2755,9 +2937,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             <div className="exo-settings-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h4 className="text-base font-medium exo-text-primary">
-                    Browser Automation
-                  </h4>
+                  <h4 className="text-base font-medium exo-text-primary">Browser Automation</h4>
                   <p className="text-sm exo-text-muted mt-1">
                     Allow agents to browse the web using Chrome DevTools Protocol. Requires Chrome
                     to be running with remote debugging enabled.
@@ -2853,9 +3033,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             {/* Custom MCP Servers */}
             <div className="exo-settings-card p-6">
               <div className="mb-4">
-                <h4 className="text-base font-medium exo-text-primary">
-                  Custom MCP Servers
-                </h4>
+                <h4 className="text-base font-medium exo-text-primary">Custom MCP Servers</h4>
                 <p className="text-sm exo-text-muted mt-1">
                   Add MCP servers to give the agent access to custom tools. Paste the JSON config
                   from your MCP server&apos;s docs.
@@ -2883,9 +3061,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
                               {transport}
                             </span>
                           </p>
-                          <p className="text-xs exo-text-muted truncate font-mono">
-                            {detail}
-                          </p>
+                          <p className="text-xs exo-text-muted truncate font-mono">{detail}</p>
                         </div>
                       </div>
                     );
@@ -3092,9 +3268,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             {/* CLI Tools */}
             <div className="exo-settings-card p-6">
               <div className="mb-4">
-                <h4 className="text-base font-medium exo-text-primary">
-                  CLI Tools
-                </h4>
+                <h4 className="text-base font-medium exo-text-primary">CLI Tools</h4>
                 <p className="text-sm exo-text-muted mt-1">
                   Allow the agent to run specific CLI commands. Each command becomes a dedicated
                   tool the agent can call.
@@ -3320,11 +3494,9 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
         {activeTab === "extensions" && <ExtensionsTab />}
 
         {activeTab === "analytics" && (
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl mx-auto space-y-6">
             <div>
-              <h3 className="text-lg font-medium exo-text-primary mb-4">
-                Analytics
-              </h3>
+              <h3 className="text-lg font-medium exo-text-primary mb-4">Analytics</h3>
               <p className="text-sm exo-text-muted mb-6">
                 Help improve Exo by sharing usage data and error reports. No email content is ever
                 sent.
@@ -3335,9 +3507,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
             <div className="exo-settings-card p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h4 className="text-base font-medium exo-text-primary">
-                    Enable Analytics
-                  </h4>
+                  <h4 className="text-base font-medium exo-text-primary">Enable Analytics</h4>
                   <p className="text-sm exo-text-muted mt-1">
                     Crash reports, app usage data, and session recordings for debugging
                   </p>
@@ -3493,9 +3663,7 @@ function UsageCostSection() {
   return (
     <div className="space-y-6 mt-8 border-t exo-border-subtle pt-6">
       <div>
-        <h3 className="text-lg font-medium exo-text-primary mb-1">
-          AI Usage & Costs
-        </h3>
+        <h3 className="text-lg font-medium exo-text-primary mb-1">AI Usage & Costs</h3>
         <p className="text-sm exo-text-muted mb-4">
           Token usage and estimated costs for Claude API calls (last 30 days).
         </p>
@@ -3510,19 +3678,12 @@ function UsageCostSection() {
             ["This Month", stats?.thisMonth],
           ] as const
         ).map(([label, bucket]) => (
-          <div
-            key={label}
-            className="exo-settings-card p-4"
-          >
-            <p className="text-xs font-medium exo-text-muted uppercase tracking-wide">
-              {label}
-            </p>
+          <div key={label} className="exo-settings-card p-4">
+            <p className="text-xs font-medium exo-text-muted uppercase tracking-wide">{label}</p>
             <p className="text-2xl font-semibold exo-text-primary mt-1">
               {formatCost(bucket?.totalCostCents ?? 0)}
             </p>
-            <p className="text-sm exo-text-muted">
-              {bucket?.totalCalls ?? 0} calls
-            </p>
+            <p className="text-sm exo-text-muted">{bucket?.totalCalls ?? 0} calls</p>
           </div>
         ))}
       </div>
@@ -3546,9 +3707,7 @@ function UsageCostSection() {
                   <td className="py-1.5 text-right exo-text-secondary">
                     {formatCost(row.costCents)}
                   </td>
-                  <td className="py-1.5 text-right exo-text-secondary">
-                    {row.calls}
-                  </td>
+                  <td className="py-1.5 text-right exo-text-secondary">{row.calls}</td>
                 </tr>
               ))}
             </tbody>
@@ -3573,15 +3732,11 @@ function UsageCostSection() {
             <tbody>
               {stats.byModel.map((row) => (
                 <tr key={row.model} className="border-b border-[var(--exo-border-subtle)]/30/50">
-                  <td className="py-1.5 exo-text-primary font-mono text-xs">
-                    {row.model}
-                  </td>
+                  <td className="py-1.5 exo-text-primary font-mono text-xs">{row.model}</td>
                   <td className="py-1.5 text-right exo-text-secondary">
                     {formatCost(row.costCents)}
                   </td>
-                  <td className="py-1.5 text-right exo-text-secondary">
-                    {row.calls}
-                  </td>
+                  <td className="py-1.5 text-right exo-text-secondary">{row.calls}</td>
                 </tr>
               ))}
             </tbody>
@@ -3615,9 +3770,7 @@ function UsageCostSection() {
                       {new Date(row.created_at.replace(" ", "T") + "Z").toLocaleString()}
                     </td>
                     <td className="py-1.5 exo-text-primary">{row.caller}</td>
-                    <td className="py-1.5 exo-text-secondary font-mono">
-                      {row.model}
-                    </td>
+                    <td className="py-1.5 exo-text-secondary font-mono">{row.model}</td>
                     <td className="py-1.5 text-right exo-text-secondary">
                       {row.input_tokens.toLocaleString()} / {row.output_tokens.toLocaleString()}
                     </td>
@@ -3643,6 +3796,109 @@ function UsageCostSection() {
           <p className="text-sm exo-text-muted">No calls recorded yet.</p>
         )}
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Blocked senders settings section
+// =============================================================================
+
+function BlockedSendersSection() {
+  const queryClient = useQueryClient();
+  const accounts = useAppStore((s) => s.accounts);
+
+  const { data: blocked, isLoading } = useQuery({
+    queryKey: ["blocked-senders"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = (await (window as any).api.emails.listBlockedSenders()) as {
+        success: boolean;
+        data?: BlockedSender[];
+        error?: string;
+      };
+      if (!result.success) throw new Error(result.error);
+      return result.data ?? [];
+    },
+  });
+
+  const [unblocking, setUnblocking] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const accountEmailById = new Map(accounts.map((a) => [a.id, a.email]));
+
+  const handleUnblock = async (senderEmail: string, accountId: string) => {
+    const key = `${accountId}:${senderEmail}`;
+    setUnblocking(key);
+    setError(null);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = (await (window as any).api.emails.unblockSender(senderEmail, accountId)) as {
+        success: boolean;
+        error?: string;
+      };
+      if (!result.success) {
+        setError(result.error ?? "Failed to unblock sender");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["blocked-senders"] });
+    } finally {
+      setUnblocking(null);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+        Blocked Senders
+      </h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        Senders here are routed to Trash by a Gmail filter, so the block applies in Gmail Web and on
+        mobile too. Unblock to delete the filter and restore future delivery.
+      </p>
+
+      {error && (
+        <div className="mb-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded px-3 py-2">
+          {error}
+        </div>
+      )}
+
+      {isLoading ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">Loading…</p>
+      ) : blocked && blocked.length > 0 ? (
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded">
+          {blocked.map((row) => {
+            const key = `${row.accountId}:${row.senderEmail}`;
+            const accountEmail = accountEmailById.get(row.accountId) ?? row.accountId;
+            return (
+              <li key={key} className="flex items-center justify-between px-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {row.senderEmail}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    Blocked {new Date(row.blockedAt).toLocaleDateString()} · {accountEmail}
+                    {row.gmailFilterId ? "" : " · (no Gmail filter — local only)"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleUnblock(row.senderEmail, row.accountId)}
+                  disabled={unblocking === key}
+                  className="ml-3 px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded disabled:opacity-50"
+                >
+                  {unblocking === key ? "Unblocking…" : "Unblock"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          You haven't blocked anyone. Click the block icon in any email header (or use the Sender
+          panel) to start.
+        </p>
+      )}
     </div>
   );
 }

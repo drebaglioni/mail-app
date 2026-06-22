@@ -7,7 +7,7 @@
  */
 import { getEmail, saveAnalysis } from "../db";
 import { saveDraftAndSync } from "./gmail-draft-sync";
-import { getConfig, getModelIdForFeature } from "../ipc/settings.ipc";
+import { getConfig, getFeatureModelConfig } from "../ipc/settings.ipc";
 import { getEmailSyncService } from "../ipc/sync.ipc";
 import { buildStyleContext } from "./style-profiler";
 import { buildMemoryContext } from "./memory-context";
@@ -97,10 +97,14 @@ async function buildDraftPipeline(
     snippet: email.snippet,
   };
 
+  const draftsConfig = getFeatureModelConfig("drafts");
+  const calendaringConfig = getFeatureModelConfig("calendaring");
   const generator = new DraftGenerator(
-    getModelIdForFeature("drafts"),
+    draftsConfig.model,
     prompt,
-    getModelIdForFeature("calendaring"),
+    calendaringConfig.model,
+    draftsConfig.provider,
+    calendaringConfig.provider,
   );
 
   return { email, emailForDraft, config, prompt, generator, emailAccountId };
@@ -134,9 +138,11 @@ export async function generateDraftForEmail(
 
   // Auto-analyze if not already done (e.g. freshly synced email)
   if (!email.analysis) {
+    const analysisConfig = getFeatureModelConfig("analysis");
     const analyzer = new EmailAnalyzer(
-      getModelIdForFeature("analysis"),
+      analysisConfig.model,
       config.analysisPrompt ?? undefined,
+      analysisConfig.provider,
     );
     const analysisResult = await analyzer.analyze(emailForDraft);
     saveAnalysis(
@@ -150,7 +156,6 @@ export async function generateDraftForEmail(
     email.analysis = {
       needsReply: analysisResult.needs_reply,
       reason: analysisResult.reason,
-      priority: analysisResult.priority,
       analyzedAt: Date.now(),
     };
   }
@@ -159,17 +164,20 @@ export async function generateDraftForEmail(
   let { generator } = pipeline;
   if (instructions) {
     const fullPrompt = `${pipeline.prompt}\n\nADDITIONAL INSTRUCTIONS:\n${instructions}`;
+    const dConfig = getFeatureModelConfig("drafts");
+    const cConfig = getFeatureModelConfig("calendaring");
     generator = new DraftGenerator(
-      getModelIdForFeature("drafts"),
+      dConfig.model,
       fullPrompt,
-      getModelIdForFeature("calendaring"),
+      cConfig.model,
+      dConfig.provider,
+      cConfig.provider,
     );
   }
 
   const analysis: AnalysisResult = {
     needs_reply: email.analysis.needsReply,
     reason: email.analysis.reason,
-    priority: email.analysis.priority,
   };
 
   const enableSenderLookup = config.enableSenderLookup ?? true;
