@@ -108,9 +108,7 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
                     className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
                   >
                     <span className="exo-text-primary">{preset.label}</span>
-                    <span className="exo-text-muted text-xs">
-                      {preset.description}
-                    </span>
+                    <span className="exo-text-muted text-xs">{preset.description}</span>
                   </button>
                 ))}
               </div>
@@ -152,9 +150,7 @@ export function ScheduleSendButton({ onSchedule, disabled, className }: Schedule
                     />
                   </svg>
                 </button>
-                <p className="text-sm font-medium exo-text-primary">
-                  Custom date & time
-                </p>
+                <p className="text-sm font-medium exo-text-primary">Custom date & time</p>
               </div>
               <div className="space-y-2">
                 <input
@@ -335,9 +331,7 @@ export function ScheduledMessagesList({ accountId }: { accountId: string }) {
         {messages.map((msg) => (
           <div key={msg.id} className="flex items-center justify-between px-3 py-2">
             <div className="flex-1 min-w-0">
-              <p className="text-sm exo-text-primary truncate">
-                {msg.subject || "(no subject)"}
-              </p>
+              <p className="text-sm exo-text-primary truncate">{msg.subject || "(no subject)"}</p>
               <p className="text-xs exo-text-muted">
                 To {msg.to.join(", ")} &middot; {formatScheduledTime(msg.scheduledAt)}
               </p>

@@ -1,44 +1,43 @@
 import { useState, useEffect } from "react";
 import type { DashboardEmail } from "../../shared/types";
 
-// Priority options for the override dropdown
-const PRIORITY_OPTIONS = [
-  { value: "skip", label: "Skip", needsReply: false, priority: null },
-  { value: "low", label: "Low", needsReply: true, priority: "low" },
-  { value: "medium", label: "Medium", needsReply: true, priority: "medium" },
-  { value: "high", label: "High", needsReply: true, priority: "high" },
-] as const;
+// Binary classification options: Priority (needs reply) vs Other.
+const OPTIONS = [
+  { value: "priority" as const, label: "Priority", needsReply: true },
+  { value: "other" as const, label: "Other", needsReply: false },
+];
 
-function currentPriorityValue(analysis: { needsReply: boolean; priority?: string }): string {
-  if (!analysis.needsReply) return "skip";
-  return analysis.priority ?? "medium";
+type OptionValue = (typeof OPTIONS)[number]["value"];
+
+function currentValue(analysis: { needsReply: boolean }): OptionValue {
+  return analysis.needsReply ? "priority" : "other";
 }
 
-/** Interactive analysis section with priority override — designed for sidebar placement. */
+/** Interactive analysis section with Priority/Other override and optional memory reason. */
 export function AnalysisPrioritySection({
   email,
   onAnalysisUpdated,
 }: {
   email: DashboardEmail;
-  onAnalysisUpdated: (newNeedsReply: boolean, newPriority: string | null) => void;
+  onAnalysisUpdated: (newNeedsReply: boolean) => void;
 }) {
   const analysis = email.analysis!;
-  const current = currentPriorityValue(analysis);
+  const current = currentValue(analysis);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedValue, setSelectedValue] = useState(current);
+  const [selectedValue, setSelectedValue] = useState<OptionValue>(current);
   const [reason, setReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset state when email changes
   useEffect(() => {
     setIsEditing(false);
-    setSelectedValue(currentPriorityValue(analysis));
+    setSelectedValue(currentValue(analysis));
     setReason("");
   }, [email.id]);
 
   const handleSave = async () => {
-    const option = PRIORITY_OPTIONS.find((o) => o.value === selectedValue);
+    const option = OPTIONS.find((o) => o.value === selectedValue);
     if (!option || selectedValue === current) {
       setIsEditing(false);
       return;
@@ -49,14 +48,13 @@ export function AnalysisPrioritySection({
       await window.api.analysis.overridePriority(
         email.id,
         option.needsReply,
-        option.priority,
         reason.trim() || undefined,
       );
-      onAnalysisUpdated(option.needsReply, option.priority);
+      onAnalysisUpdated(option.needsReply);
       setIsEditing(false);
       setReason("");
     } catch (err) {
-      console.error("Failed to override priority:", err);
+      console.error("Failed to override classification:", err);
     } finally {
       setIsSaving(false);
     }
@@ -69,15 +67,13 @@ export function AnalysisPrioritySection({
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium exo-text-muted mb-1">Analysis</p>
             <p className="text-sm exo-text-secondary">
-              {analysis.needsReply ? "Needs reply" : "No reply needed"}
-              {analysis.priority && (
-                <span className="exo-text-muted"> · {analysis.priority}</span>
-              )}
+              <span className={analysis.needsReply ? "text-[var(--exo-accent)]" : "exo-text-muted"}>
+                {analysis.needsReply ? "Priority" : "Other"}
+              </span>
+              {analysis.priority && <span className="exo-text-muted"> · {analysis.priority}</span>}
             </p>
             {analysis.reason && (
-              <p className="text-xs exo-text-muted mt-1 line-clamp-2">
-                {analysis.reason}
-              </p>
+              <p className="text-xs exo-text-muted mt-1 line-clamp-2">{analysis.reason}</p>
             )}
           </div>
           <button
@@ -96,7 +92,7 @@ export function AnalysisPrioritySection({
       <p className="text-xs font-medium exo-text-muted mb-2">Analysis</p>
       <div className="flex flex-col gap-2">
         <div className="flex gap-1">
-          {PRIORITY_OPTIONS.map((opt) => (
+          {OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setSelectedValue(opt.value)}

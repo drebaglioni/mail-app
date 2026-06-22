@@ -162,7 +162,8 @@ export function SnippetsEditor() {
   if (!currentAccountId) {
     return (
       <div className="text-sm exo-text-muted">
-        Select an account to manage snippets.
+        Switch from <span className="font-medium">All Inboxes</span> to a single account in the
+        title bar to manage that account's snippets.
       </div>
     );
   }
@@ -305,18 +306,14 @@ export function SnippetsEditor() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm exo-text-primary">
-                      {snippet.name}
-                    </span>
+                    <span className="font-medium text-sm exo-text-primary">{snippet.name}</span>
                     {snippet.shortcut && (
                       <span className="px-1.5 py-0.5 text-xs bg-[var(--exo-bg-surface-soft)] exo-text-secondary rounded font-mono">
                         ;{snippet.shortcut}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs exo-text-muted mt-1 truncate">
-                    {stripHtml(snippet.body)}
-                  </p>
+                  <p className="text-xs exo-text-muted mt-1 truncate">{stripHtml(snippet.body)}</p>
                 </div>
                 <div className="flex items-center gap-1 ml-2 shrink-0">
                   <button
@@ -396,9 +393,7 @@ function SnippetForm({
       className="border exo-border-subtle rounded-lg p-4 exo-elevated space-y-3"
     >
       <div>
-        <label className="block text-sm font-medium exo-text-secondary mb-1">
-          Name
-        </label>
+        <label className="block text-sm font-medium exo-text-secondary mb-1">Name</label>
         <input
           type="text"
           value={name}
@@ -409,9 +404,7 @@ function SnippetForm({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium exo-text-secondary mb-1">
-          Content
-        </label>
+        <label className="block text-sm font-medium exo-text-secondary mb-1">Content</label>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}

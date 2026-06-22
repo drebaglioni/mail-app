@@ -1,6 +1,7 @@
 import React from "react";
 import type { DashboardEmail } from "../../../shared/types";
 import type { ExtensionEnrichmentResult } from "../../../shared/extension-types";
+import { useAppStore } from "../../store";
 
 // Types for the enrichment data from web-search extension
 interface SenderProfileData {
@@ -26,6 +27,7 @@ interface SenderProfilePanelProps {
  */
 export function SenderProfilePanel({
   email,
+  threadEmails,
   enrichment,
   isLoading,
 }: SenderProfilePanelProps): React.ReactElement {
@@ -37,6 +39,38 @@ export function SenderProfilePanel({
   // Fallback values if no enrichment
   const senderName = profile?.name || extractDisplayName(email.from);
   const senderEmail = profile?.email || extractEmailAddress(email.from);
+
+  const addUndoAction = useAppStore((s) => s.addUndoAction);
+  const removeEmails = useAppStore((s) => s.removeEmails);
+
+  // Hide the block button on reminder emails — the visible sender is the
+  // original-sender (e.g. someone you bcc'd via Boomerang), and blocking
+  // them via the reminder service header would do the wrong thing.
+  const canBlock = !isReminder && !!email.accountId && !!senderEmail && senderEmail.includes("@");
+
+  // Deferred commit: optimistically remove the thread from view and queue an
+  // undo. The IPC (create Gmail filter + trash existing messages) only fires
+  // when the undo timer elapses; clicking Undo within 5s restores the view
+  // and the server-side action never happens.
+  const handleBlock = () => {
+    if (!canBlock || !email.accountId) return;
+    const accountId = email.accountId;
+    const normalized = senderEmail.toLowerCase();
+
+    const threadIds = threadEmails.map((e) => e.id);
+    removeEmails(threadIds);
+
+    addUndoAction({
+      id: `block-${normalized}-${Date.now()}`,
+      type: "block",
+      threadCount: 1,
+      accountId,
+      emails: [...threadEmails],
+      scheduledAt: Date.now(),
+      delayMs: 5000,
+      blockedSender: normalized,
+    });
+  };
 
   return (
     <div className="p-4">
@@ -57,6 +91,18 @@ export function SenderProfilePanel({
           <p className="text-sm exo-text-muted truncate">{senderEmail}</p>
         </div>
       </div>
+
+      {/* Block sender — single click, undoable via toast */}
+      {canBlock && (
+        <button
+          type="button"
+          onClick={handleBlock}
+          className="mb-4 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline"
+          title="Create a Gmail filter that routes this sender to Trash"
+        >
+          Block sender
+        </button>
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -89,13 +135,9 @@ export function SenderProfilePanel({
           {(profile.company || profile.title) && (
             <div className="exo-surface-soft p-3 rounded-lg">
               {profile.title && (
-                <p className="text-sm font-medium exo-text-primary">
-                  {profile.title}
-                </p>
+                <p className="text-sm font-medium exo-text-primary">{profile.title}</p>
               )}
-              {profile.company && (
-                <p className="text-sm exo-text-secondary">{profile.company}</p>
-              )}
+              {profile.company && <p className="text-sm exo-text-secondary">{profile.company}</p>}
             </div>
           )}
 
@@ -104,9 +146,7 @@ export function SenderProfilePanel({
             <h4 className="text-xs font-semibold exo-text-muted uppercase tracking-wide mb-2 exo-micro-label">
               About
             </h4>
-            <p className="text-sm exo-text-secondary leading-relaxed">
-              {profile.summary}
-            </p>
+            <p className="text-sm exo-text-secondary leading-relaxed">{profile.summary}</p>
           </div>
 
           {/* LinkedIn Link */}
@@ -134,9 +174,7 @@ export function SenderProfilePanel({
       {/* No profile available */}
       {!isLoading && !profile && (
         <div className="text-center py-8">
-          <p className="text-sm exo-text-muted">
-            No profile information available
-          </p>
+          <p className="text-sm exo-text-muted">No profile information available</p>
         </div>
       )}
     </div>

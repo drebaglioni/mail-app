@@ -71,9 +71,7 @@ const MentionList = forwardRef<MentionListRef, MentionListProps>(({ items, comma
           onMouseEnter={() => setSelectedIndex(index)}
           data-testid="mention-suggestion"
         >
-          <span className="exo-text-primary truncate">
-            {item.name || item.email}
-          </span>
+          <span className="exo-text-primary truncate">{item.name || item.email}</span>
           {item.name && (
             <span className="text-[var(--exo-text-muted)] text-sm truncate flex-shrink-0">
               {item.email}

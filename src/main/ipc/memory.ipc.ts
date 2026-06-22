@@ -1,5 +1,8 @@
 import { ipcMain } from "electron";
 import { randomUUID } from "crypto";
+// Fork uses llm-router shim (provider routing for Codex/Anthropic). Upstream
+// added llm-service for Anthropic+Ollama routing; we let llm-router stay as
+// the entry point and migrate Ollama wiring later if needed.
 import { createMessage } from "../services/llm-router";
 import {
   saveMemory,
@@ -21,7 +24,24 @@ import type {
   MemorySource,
 } from "../../shared/types";
 import { consolidateMemoryScopes } from "../services/draft-edit-learner";
+import { getConfig } from "./settings.ipc";
 import { createLogger } from "../services/logger";
+
+/**
+ * Whether Anthropic credentials are available. memory:classify uses Haiku
+ * which is Anthropic-only — no Ollama equivalent — so for users with only
+ * an Ollama Cloud key we short-circuit to a sensible default scope rather
+ * than constructing the Anthropic client without a key (which would throw
+ * before our retry logic gets a chance to handle it).
+ */
+function hasAnthropicCredentials(): boolean {
+  if (process.env.ANTHROPIC_API_KEY) return true;
+  try {
+    return !!getConfig().anthropicApiKey;
+  } catch {
+    return false;
+  }
+}
 
 const log = createLogger("memory-ipc");
 
@@ -185,10 +205,22 @@ export function registerMemoryIpc(): void {
           data: { scope: "person", scopeValue: senderEmail, content },
         };
       }
+      // Ollama-only users have no Anthropic key — fall back to "person" scope
+      // rather than constructing an Anthropic client that will throw. The catch
+      // below would also handle this, but the explicit guard avoids noisy logs
+      // and makes the intent (graceful degradation) obvious.
+      if (!hasAnthropicCredentials()) {
+        return {
+          success: true,
+          data: { scope: "person", scopeValue: senderEmail, content },
+        };
+      }
       try {
+        // Simple JSON classification — always haiku, independent of user model config.
+        // No provider override needed: this is a cheap utility call that always uses Anthropic.
         const response = await createMessage(
           {
-            model: "claude-haiku-4-5-20251001", // simple JSON classification — always haiku, independent of user model config
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 256,
             messages: [
               {

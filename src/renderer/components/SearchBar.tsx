@@ -61,16 +61,23 @@ function renderSnippet(snippet: string): React.ReactNode {
     const m = part.match(/^<mark>([^<]*)<\/mark>$/);
     if (m) {
       return (
-        <mark
-          key={i}
-          className="bg-[var(--exo-accent-soft)] text-inherit rounded-sm px-0.5"
-        >
+        <mark key={i} className="bg-[var(--exo-accent-soft)] text-inherit rounded-sm px-0.5">
           {decodeHtmlEntities(m[1])}
         </mark>
       );
     }
     return <span key={i}>{decodeHtmlEntities(part)}</span>;
   });
+}
+
+function mergeUniqueById(lists: DashboardEmail[][]): DashboardEmail[] {
+  const seen = new Map<string, DashboardEmail>();
+  for (const list of lists) {
+    for (const email of list) {
+      if (!seen.has(email.id)) seen.set(email.id, email);
+    }
+  }
+  return Array.from(seen.values());
 }
 
 interface SearchBarProps {
@@ -89,7 +96,10 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     setSelectedEmailId,
+    setSelectedThreadId,
+    setSelectedDraftId,
     currentAccountId,
+    accounts,
     setActiveSearch,
     setViewMode,
     isOnline,
@@ -111,6 +121,17 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
 
   // The "search all mail" affordance is at index === displayResults.length
   const searchAllMailIndex = displayResults.length;
+
+  const openQuickResult = useCallback(
+    (result: SearchResult) => {
+      setSelectedDraftId(null);
+      setSelectedThreadId(result.threadId);
+      setSelectedEmailId(result.id);
+      setViewMode("full");
+      onClose();
+    },
+    [onClose, setSelectedDraftId, setSelectedEmailId, setSelectedThreadId, setViewMode],
+  );
 
   // Focus input when opened
   useEffect(() => {
@@ -176,7 +197,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
         const response = await window.api.emails.searchRemote(query, currentAccountId, 20);
         if (cancelled) return;
         if (response.success && response.data) {
-          const converted: SearchResult[] = response.data.emails.map((e) => ({
+          const converted: SearchResult[] = response.data.emails.map((e: DashboardEmail) => ({
             id: e.id,
             threadId: e.threadId,
             accountId: e.accountId ?? currentAccountId,
@@ -203,9 +224,14 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
     };
   }, [query, currentAccountId, isOnline]);
 
-  // Perform full Gmail search and show results (local + remote in parallel)
+  // Perform full Gmail search and show results (local + remote in parallel).
+  // In unified ("all inboxes") mode, currentAccountId is null and we fan out
+  // across every connected account, merging results by email id.
   const performFullSearch = useCallback(() => {
-    if (!query.trim() || !currentAccountId) return;
+    if (!query.trim()) return;
+
+    const targetAccountIds = currentAccountId ? [currentAccountId] : accounts.map((a) => a.id);
+    if (targetAccountIds.length === 0) return;
 
     trackEvent("search_performed");
 
@@ -213,43 +239,83 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
     // setActiveSearch closes the modal, sets remoteSearchStatus: 'searching'.
     setActiveSearch(query, []);
 
-    // Fire local search — results stream into the store when ready
-    window.api.emails
-      .search(query, currentAccountId, 500)
-      .then((localResponse: IpcResponse<DashboardEmail[]>) => {
+    // Fire local search across every target account in parallel
+    Promise.all(
+      targetAccountIds.map((accountId) =>
+        window.api.emails
+          .search(query, accountId, 500)
+          .then((r: IpcResponse<DashboardEmail[]>) => (r.success && r.data ? r.data : []))
+          .catch((error: unknown) => {
+            console.error("Local search failed:", error);
+            return [];
+          }),
+      ),
+    )
+      .then((perAccount) => {
         if (useAppStore.getState().activeSearchQuery !== query) return;
-        if (localResponse.success && localResponse.data) {
-          useAppStore.getState().setActiveSearchResults(localResponse.data);
-        }
+        useAppStore.getState().setActiveSearchResults(mergeUniqueById(perAccount));
       })
       .catch((error: unknown) => {
-        console.error("Local search failed:", error);
+        console.error("Local search result processing failed:", error);
       });
 
-    // Fire remote search (slow) — results stream into the store when ready
+    // Fire remote search (slow) across every target account in parallel.
+    // Pagination is per-account, so when fanning out across multiple accounts
+    // we don't expose a nextPageToken — users can refine the query for more results.
     if (isOnline) {
-      window.api.emails
-        .searchRemote(query, currentAccountId, 500)
-        .then(
-          (response: {
-            success: boolean;
-            data?: { emails: DashboardEmail[]; nextPageToken?: string };
-            error?: string;
-          }) => {
-            if (useAppStore.getState().activeSearchQuery !== query) return;
-            if (response.success && response.data) {
-              setRemoteSearchResults(response.data.emails);
-              useAppStore
-                .getState()
-                .setRemoteSearchNextPageToken(response.data.nextPageToken ?? null);
-            } else {
-              setRemoteSearchError(response.error || "Gmail search failed");
-            }
-          },
-        )
-        .catch((err: unknown) => {
+      type RemoteOutcome =
+        | { ok: true; emails: DashboardEmail[]; next: string | undefined }
+        | { ok: false; error: string };
+      Promise.all(
+        targetAccountIds.map(
+          (accountId): Promise<RemoteOutcome> =>
+            window.api.emails
+              .searchRemote(query, accountId, 500)
+              .then(
+                (
+                  response: IpcResponse<{
+                    emails: DashboardEmail[];
+                    nextPageToken?: string;
+                  }>,
+                ): RemoteOutcome => {
+                  if (response.success) {
+                    return {
+                      ok: true,
+                      emails: response.data.emails,
+                      next: response.data.nextPageToken,
+                    };
+                  }
+                  return { ok: false, error: response.error || "Gmail search failed" };
+                },
+              )
+              .catch(
+                (err: unknown): RemoteOutcome => ({
+                  ok: false,
+                  error: err instanceof Error ? err.message : "Gmail search failed",
+                }),
+              ),
+        ),
+      )
+        .then((results) => {
           if (useAppStore.getState().activeSearchQuery !== query) return;
-          setRemoteSearchError(err instanceof Error ? err.message : "Gmail search failed");
+          const successes = results.filter((r): r is Extract<RemoteOutcome, { ok: true }> => r.ok);
+          if (successes.length === 0) {
+            const firstError = results.find(
+              (r): r is Extract<RemoteOutcome, { ok: false }> => !r.ok,
+            );
+            setRemoteSearchError(firstError ? firstError.error : "Gmail search failed");
+            return;
+          }
+          setRemoteSearchResults(mergeUniqueById(successes.map((r) => r.emails)));
+          useAppStore
+            .getState()
+            .setRemoteSearchNextPageToken(
+              targetAccountIds.length === 1 ? (successes[0].next ?? null) : null,
+            );
+        })
+        .catch((error: unknown) => {
+          if (useAppStore.getState().activeSearchQuery !== query) return;
+          setRemoteSearchError(error instanceof Error ? error.message : "Gmail search failed");
         });
     } else {
       setRemoteSearchResults([]);
@@ -257,6 +323,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
   }, [
     query,
     currentAccountId,
+    accounts,
     isOnline,
     setActiveSearch,
     setRemoteSearchResults,
@@ -290,9 +357,10 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
             displayResults[selectedIndex]
           ) {
             // User explicitly navigated to a result, select it
-            setSelectedEmailId(displayResults[selectedIndex].id);
-            setViewMode("full");
-            onClose();
+            // Use displayResults (which includes Gmail remote dropdown hits)
+            // so the auto-search Gmail dropdown (#13) wins when the user
+            // navigated into it. openQuickResult handles routing + close.
+            openQuickResult(displayResults[selectedIndex] as SearchResult);
           } else {
             // Either: no navigation, or selected "search all mail" row, or just pressed Enter
             if (query.trim()) {
@@ -307,18 +375,14 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
       selectedIndex,
       hasNavigated,
       searchAllMailIndex,
-      setSelectedEmailId,
-      setViewMode,
-      onClose,
       query,
       performFullSearch,
+      openQuickResult,
     ],
   );
 
   const handleResultClick = (result: SearchResult) => {
-    setSelectedEmailId(result.id);
-    setViewMode("full");
-    onClose();
+    openQuickResult(result);
   };
 
   // Format date for display
@@ -388,7 +452,11 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
             className="flex-1 text-lg outline-none placeholder-[var(--exo-text-muted)] bg-transparent"
           />
           {(isSearching || isSearchingRemote) && (
-            <svg className="w-5 h-5 text-[var(--exo-accent)] animate-spin" fill="none" viewBox="0 0 24 24">
+            <svg
+              className="w-5 h-5 text-[var(--exo-accent)] animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle
                 className="opacity-25"
                 cx="12"
@@ -429,9 +497,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                         <span className="font-medium exo-text-primary truncate">
                           {getSenderName(result.from)}
                         </span>
-                        <span className="text-sm exo-text-muted">
-                          {formatDate(result.date)}
-                        </span>
+                        <span className="text-sm exo-text-muted">{formatDate(result.date)}</span>
                         {result.source === "remote" && (
                           <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--exo-bg-surface-soft)] exo-text-muted">
                             Archive
@@ -532,16 +598,20 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
                   - Search by recipient
                 </li>
                 <li>
-                  <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">subject:keyword</code>{" "}
+                  <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">
+                    subject:keyword
+                  </code>{" "}
                   - Search in subject
                 </li>
                 <li>
-                  <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">"exact phrase"</code>{" "}
+                  <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">
+                    "exact phrase"
+                  </code>{" "}
                   - Search exact phrase
                 </li>
                 <li>
-                  <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">in:draft</code> - View
-                  drafts
+                  <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">in:draft</code> -
+                  View drafts
                 </li>
               </ul>
             </div>
@@ -551,7 +621,8 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
         {/* Footer hints */}
         <div className="flex items-center gap-4 px-4 py-2 text-xs text-[var(--exo-text-muted)] border-t exo-border-subtle exo-surface-soft">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">↑↓</kbd> to navigate
+            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">↑↓</kbd> to
+            navigate
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">Enter</kbd>{" "}

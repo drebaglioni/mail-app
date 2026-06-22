@@ -3,6 +3,7 @@ import { execFile, execFileSync } from "child_process";
 import { agentCoordinator } from "../agents/agent-coordinator";
 import { authenticateProvider } from "../agents/private-providers-main";
 import { getConfig, getModelIdForFeature } from "./settings.ipc";
+import { resolveAgentOllamaConfig } from "../../shared/types";
 import { getAgentTrace } from "../db";
 import type { AgentContext } from "../agents/types";
 import type { ScopedAgentEvent } from "../agents/types";
@@ -45,10 +46,18 @@ export function registerAgentIpc(): void {
       },
     ): Promise<IpcResponse<{ taskId: string }>> => {
       try {
-        // Only pass Claude tier model overrides when Anthropic is the active provider.
-        // Codex runs should use the Codex model configured under Agent settings.
+        // Codex-active runs leave the override undefined so the agent
+        // coordinator falls back to the Codex model configured under Agent
+        // settings. When Anthropic is the active provider, prefer the
+        // upstream Ollama-aware resolver so a configured Ollama destination
+        // wins over the static getModelIdForFeature value.
+        const cfg = getConfig();
+        const ollamaConfig = resolveAgentOllamaConfig(cfg);
         const modelOverride =
-          getConfig().aiProvider === "anthropic" ? getModelIdForFeature("agentChat") : undefined;
+          cfg.aiProvider === "anthropic"
+            ? (ollamaConfig?.model ?? getModelIdForFeature("agentChat"))
+            : undefined;
+
         await agentCoordinator.runAgent(taskId, providerIds, prompt, context, modelOverride);
         return { success: true, data: { taskId } };
       } catch (error) {
