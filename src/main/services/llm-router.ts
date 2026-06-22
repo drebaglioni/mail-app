@@ -167,6 +167,17 @@ interface RuntimeAiConfig {
 }
 
 async function getRuntimeAiConfig(): Promise<RuntimeAiConfig> {
+  if (process.env.EXO_EVAL_MODE === "true") {
+    return {
+      aiProvider: "codex",
+      enableAnthropicFallback: false,
+      hasAnthropicAuth: false,
+      codexModel: process.env.EXO_EVAL_CODEX_MODEL || "gpt-5.5",
+      codexModelOverrides: {},
+      codexCliPath: undefined,
+    };
+  }
+
   // In test/demo mode, return safe defaults instead of reading config.
   // This avoids loading electron-backed modules (data-dir, electron-store) on
   // the test import chain, which fails under plain Node without Electron.

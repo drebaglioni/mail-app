@@ -47,7 +47,7 @@ export class DraftGenerator {
   private prompt: string;
 
   constructor(
-    model: string = "claude-sonnet-4-20250514",
+    model: string = "claude-sonnet-4-6",
     prompt: string = DEFAULT_DRAFT_PROMPT,
     calendaringModel?: string,
   ) {

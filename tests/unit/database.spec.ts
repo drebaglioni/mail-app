@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { createRequire } from "module";
 import type BetterSqlite3 from "better-sqlite3";
 import { SCHEMA, FTS5_SCHEMA, FTS5_TRIGGERS } from "../../src/main/db/schema";
+import { classifySenderByHeuristics } from "../../src/main/services/sender-classifier";
 
 const require = createRequire(import.meta.url);
 
@@ -78,6 +79,25 @@ function createTestDb(): DB {
   db.exec(FTS5_SCHEMA);
   db.exec(FTS5_TRIGGERS);
   return db;
+}
+
+function dropStalePersonAnalysesForReanalysis(db: DB): void {
+  const rows = db
+    .prepare(
+      `SELECT a.email_id, e.from_address
+       FROM analyses a
+       JOIN emails e ON e.id = a.email_id
+       WHERE a.sender_type = 'person' OR a.sender_type IS NULL`,
+    )
+    .all() as Array<{ email_id: string; from_address: string }>;
+
+  const deleteStmt = db.prepare("DELETE FROM analyses WHERE email_id = ?");
+  for (const row of rows) {
+    const result = classifySenderByHeuristics({ from: row.from_address });
+    if (result === null) {
+      deleteStmt.run(row.email_id);
+    }
+  }
 }
 
 // ---- DB operation wrappers (mirror src/main/db/index.ts logic) ----
@@ -1211,6 +1231,17 @@ test.describe("Database CRUD operations", () => {
 
   // ===== Analysis operations =====
   test.describe("Analysis operations", () => {
+    test("fresh schema includes sender classification columns", () => {
+      const emailCols = db.prepare("PRAGMA table_info(emails)").all() as Array<{ name: string }>;
+      const analysisCols = db.prepare("PRAGMA table_info(analyses)").all() as Array<{
+        name: string;
+      }>;
+
+      expect(emailCols.some((col) => col.name === "archive_kept")).toBe(true);
+      expect(analysisCols.some((col) => col.name === "sender_type")).toBe(true);
+      expect(analysisCols.some((col) => col.name === "automated_category")).toBe(true);
+    });
+
     test("saveAnalysis attaches analysis to email", () => {
       saveEmail(db, makeEmail({ id: "e1", threadId: "t1" }), "acct1");
       saveAnalysis(db, "e1", true, "Needs urgent reply", "high");
@@ -1236,6 +1267,57 @@ test.describe("Database CRUD operations", () => {
       const result = getEmail(db, "e1");
       expect(result.needsReply).toBe(0);
       expect(result.reason).toBe("updated");
+    });
+
+    test("dropStalePersonAnalysesForReanalysis removes only ambiguous person analyses", () => {
+      saveEmail(
+        db,
+        makeEmail({ id: "ambiguous-person", threadId: "t1", from: "Alex <alex@example.com>" }),
+      );
+      saveEmail(
+        db,
+        makeEmail({ id: "ambiguous-null", threadId: "t2", from: "Casey <casey@example.com>" }),
+      );
+      saveEmail(
+        db,
+        makeEmail({
+          id: "heuristic-automated",
+          threadId: "t3",
+          from: "GitHub <noreply@github.com>",
+        }),
+      );
+      saveEmail(
+        db,
+        makeEmail({ id: "already-automated", threadId: "t4", from: "Alerts <alerts@example.com>" }),
+      );
+
+      const insert = db.prepare(
+        `INSERT INTO analyses
+         (email_id, needs_reply, reason, priority, sender_type, automated_category, analyzed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      );
+      insert.run("ambiguous-person", 0, "fallback", null, "person", null, Date.now());
+      insert.run("ambiguous-null", 0, "fallback", null, null, null, Date.now());
+      insert.run("heuristic-automated", 0, "fallback", null, "person", null, Date.now());
+      insert.run(
+        "already-automated",
+        0,
+        "notification",
+        null,
+        "automated",
+        "notifications",
+        Date.now(),
+      );
+
+      dropStalePersonAnalysesForReanalysis(db);
+
+      const remaining = db
+        .prepare("SELECT email_id FROM analyses ORDER BY email_id")
+        .all() as Array<{ email_id: string }>;
+      expect(remaining.map((row) => row.email_id)).toEqual([
+        "already-automated",
+        "heuristic-automated",
+      ]);
     });
 
     test("getAllEmails includes analysis data when present", () => {

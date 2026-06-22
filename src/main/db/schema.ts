@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS emails (
   label_ids TEXT,
   attachments TEXT,
   message_id TEXT,
-  in_reply_to TEXT
+  in_reply_to TEXT,
+  archive_kept INTEGER DEFAULT 0
 );
 
 -- Analysis results from Claude
@@ -66,6 +67,8 @@ CREATE TABLE IF NOT EXISTS analyses (
   needs_reply INTEGER NOT NULL,
   reason TEXT NOT NULL,
   priority TEXT,
+  sender_type TEXT,
+  automated_category TEXT,
   analyzed_at INTEGER NOT NULL
 );
 

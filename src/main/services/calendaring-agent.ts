@@ -16,7 +16,7 @@ export class CalendaringAgent {
   private model: string;
   private prompt: string;
 
-  constructor(model: string = "claude-sonnet-4-20250514", prompt?: string) {
+  constructor(model: string = "claude-sonnet-4-6", prompt?: string) {
     this.model = model;
     this.prompt = prompt || DEFAULT_CALENDARING_PROMPT;
   }

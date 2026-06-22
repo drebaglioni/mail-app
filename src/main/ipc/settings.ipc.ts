@@ -14,6 +14,7 @@ import {
   DEFAULT_AGENT_DRAFTER_PROMPT,
   DEFAULT_MODEL_CONFIG,
   MODEL_TIER_IDS,
+  normalizeCodexModelId,
   resolveModelId,
 } from "../../shared/types";
 import { resetAnalyzer } from "./analysis.ipc";
@@ -138,22 +139,12 @@ export function getConfig(): Config {
   } else if (!config.codex.model) {
     config.codex.model = "gpt-5.5";
     needsSave = true;
-  } else if (/^claude-/i.test(config.codex.model)) {
-    // Codex cannot use Claude model IDs. Normalize legacy/misconfigured values.
-    config.codex.model = "gpt-5.5";
-    needsSave = true;
   }
 
-  // Normalize stale "gpt-5.4"/"gpt-5.4-mini" values that codex rejects as unknown
-  // (these were defaults in earlier builds). Map them onto the real GPT-5 family.
+  // Normalize stale/invalid Codex model values written by earlier builds.
   if (config.codex) {
-    const remap = (id: string): string => {
-      if (/^gpt-5\.4-mini$/i.test(id)) return "gpt-5.5";
-      if (/^gpt-5\.4$/i.test(id)) return "gpt-5.5";
-      return id;
-    };
     if (config.codex.model) {
-      const next = remap(config.codex.model);
+      const next = normalizeCodexModelId(config.codex.model);
       if (next !== config.codex.model) {
         config.codex.model = next;
         needsSave = true;
@@ -161,7 +152,7 @@ export function getConfig(): Config {
     }
     if (config.codex.modelOverrides) {
       for (const [feature, id] of Object.entries(config.codex.modelOverrides)) {
-        const next = remap(id);
+        const next = normalizeCodexModelId(id);
         if (next !== id) {
           config.codex.modelOverrides[feature] = next;
           needsSave = true;

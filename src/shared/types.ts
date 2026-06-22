@@ -399,6 +399,13 @@ export const DEFAULT_CODEX_MODEL_OVERRIDES: Record<string, string> = {
 
 export type CodexConfig = z.infer<typeof CodexConfigSchema>;
 
+export function normalizeCodexModelId(modelId: string): string {
+  if (/^gpt-5\.4-mini$/i.test(modelId)) return "gpt-5.5";
+  if (/^gpt-5\.4$/i.test(modelId)) return "gpt-5.5";
+  if (/^claude-/i.test(modelId)) return "gpt-5.5";
+  return modelId;
+}
+
 // Config schema
 export const ConfigSchema = z.object({
   maxEmails: z.number().default(50),
