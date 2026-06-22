@@ -1285,21 +1285,13 @@ test.describe("Database CRUD operations", () => {
 
       const insert = db.prepare(
         `INSERT INTO analyses
-         (email_id, needs_reply, reason, priority, sender_type, automated_category, analyzed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (email_id, needs_reply, reason, sender_type, automated_category, analyzed_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       );
-      insert.run("ambiguous-person", 0, "fallback", null, "person", null, Date.now());
-      insert.run("ambiguous-null", 0, "fallback", null, null, null, Date.now());
-      insert.run("heuristic-automated", 0, "fallback", null, "person", null, Date.now());
-      insert.run(
-        "already-automated",
-        0,
-        "notification",
-        null,
-        "automated",
-        "notifications",
-        Date.now(),
-      );
+      insert.run("ambiguous-person", 0, "fallback", "person", null, Date.now());
+      insert.run("ambiguous-null", 0, "fallback", null, null, Date.now());
+      insert.run("heuristic-automated", 0, "fallback", "person", null, Date.now());
+      insert.run("already-automated", 0, "notification", "automated", "notifications", Date.now());
 
       dropStalePersonAnalysesForReanalysis(db);
 
