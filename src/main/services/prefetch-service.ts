@@ -445,6 +445,20 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
     }
     const needsDraft = Array.from(newestPerThread.values());
 
+    // For each eligible thread, find the newest INBOX (non-sent) email to actually draft
+    // against. The trigger email (needsReply=true) may be older than the latest message
+    // in the thread if newer emails arrived but haven't been analyzed yet.
+    const latestInboxEmailPerThread = new Map<string, { id: string; date: string }>();
+    for (const email of inboxEmails) {
+      if (!newestPerThread.has(email.threadId)) continue;
+      // Skip sent-only emails — we want to reply to incoming messages, not our own sent emails
+      if (email.labelIds && !email.labelIds.includes("INBOX")) continue;
+      const existing = latestInboxEmailPerThread.get(email.threadId);
+      if (!existing || new Date(email.date).getTime() > new Date(existing.date).getTime()) {
+        latestInboxEmailPerThread.set(email.threadId, { id: email.id, date: email.date });
+      }
+    }
+
     if (candidateEmails.length > 0 || skippedExistingDraftThreadCount > 0) {
       log.info(
         `[Prefetch] Auto-draft scan: ${candidateEmails.length} candidates, ${skippedExistingDraftThreadCount} skipped (existing draft in thread), ${needsDraft.length} queued`,
@@ -457,12 +471,19 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
         // the optional fork-only priority field is present; otherwise treat
         // everything as the same upstream tier (5).
         const queuePriority = email.analysis?.priority === "low" ? 25 : 5;
+        const latestTarget = latestInboxEmailPerThread.get(email.threadId);
+        const draftEmailId = latestTarget?.id ?? email.id;
         this.queue.push({
-          emailId: email.id,
+          emailId: draftEmailId,
           type: "agent-draft",
           priority: queuePriority,
         });
         this.processedDraftThreads.add(email.threadId);
+        // If targeting a newer email that lacks needsReply analysis, force-queue it so
+        // processAgentDraftForEmail doesn't skip it at the analysis guard.
+        if (draftEmailId !== email.id) {
+          this.forceQueuedDrafts.add(draftEmailId);
+        }
       }
       log.info(
         `[Prefetch] Queueing ${needsDraft.length} agent drafts (${candidateEmails.length} candidates deduplicated to ${needsDraft.length} threads)`,
@@ -1516,12 +1537,24 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
 
       const priority = candidate.analysis?.priority === "high" ? 5 : 25;
 
+      // Use the newest INBOX email in the thread as the draft target, not just the
+      // newest analyzed email. Newer emails may not have analysis yet.
+      const latestTarget = threadEmails
+        .filter((e) => !e.labelIds || e.labelIds.includes("INBOX"))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      const draftEmailId = latestTarget?.id ?? candidate.id;
+
       this.queue.push({
-        emailId: candidate.id,
+        emailId: draftEmailId,
         type: "agent-draft",
         priority,
       });
       this.processedDraftThreads.add(threadId);
+      // If targeting a newer email that lacks needsReply analysis, force-queue it so
+      // processAgentDraftForEmail doesn't skip it at the analysis guard.
+      if (draftEmailId !== candidate.id) {
+        this.forceQueuedDrafts.add(draftEmailId);
+      }
       queuedCount++;
     }
 
