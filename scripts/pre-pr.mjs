@@ -29,7 +29,9 @@
  *                               updates in place on repeat runs
  *   stdout                    — progress + final verdict
  *
- * Local-only. Requires ANTHROPIC_API_KEY in .env.local or env.
+ * Local-only. Uses the app's Codex/OpenAI path by default. Legacy
+ * Claude-agent verification and feature-judge evals run only when
+ * ANTHROPIC_API_KEY is present.
  */
 
 import { execSync, spawnSync } from "node:child_process";
@@ -81,6 +83,7 @@ const NO_INJECT = args.has("--no-inject");
 const NO_COMMENT = args.has("--no-comment");
 
 const MODE = QUICK ? "quick" : FULL_SYNC ? "full-sync" : "full";
+const HAS_ANTHROPIC_AUTH = Boolean(process.env.ANTHROPIC_API_KEY);
 
 function gitShortSha() {
   // --short=7 (not bare --short) so the length matches the CI side
@@ -230,20 +233,24 @@ function runPhase(name, cmd, argv, opts = {}) {
   return { name, status, ms, stdout, stderr, ok };
 }
 
+function skippedPhase(name, reason) {
+  console.log(`\n──── ${name} ────`);
+  console.log(`  skipped: ${reason}`);
+  return { name, status: "skipped", ms: 0, stdout: reason, stderr: "", ok: true };
+}
+
 // ============================================================
 // Main
 // ============================================================
 
 async function main() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error("ANTHROPIC_API_KEY is required. Put it in .env.local (see .env.local.example).");
-    process.exit(1);
-  }
-
   const sha = gitShortSha();
   const changed = gitChangedFiles();
   console.log(`pre-pr mode=${MODE} sha=${sha}`);
   console.log(`changed files: ${changed.length}`);
+  console.log(
+    `anthropic legacy checks: ${HAS_ANTHROPIC_AUTH ? "enabled" : "skipped (no ANTHROPIC_API_KEY)"}`,
+  );
 
   const phases = [];
 
@@ -255,6 +262,13 @@ async function main() {
     const features = affectedFeatures(changed);
     if (features.length === 0) {
       console.log("\n[evals] no AI-feature files in diff — skipping eval phase");
+    } else if (!HAS_ANTHROPIC_AUTH) {
+      phases.push(
+        skippedPhase(
+          "eval:features",
+          "legacy feature evals require ANTHROPIC_API_KEY; Codex/OpenAI analyzer eval remains the supported OpenAI-only gate",
+        ),
+      );
     } else {
       console.log(`\n[evals] affected features: ${features.join(", ")}`);
       for (const feature of features) {
@@ -269,9 +283,22 @@ async function main() {
       }
     }
   } else {
-    // Full / full-sync: run analyzer eval (existing) + every feature suite
+    // Full / full-sync: run analyzer eval on the app's current Codex/OpenAI
+    // path. Legacy feature suites still use Anthropic as their judge, so keep
+    // them as optional extra coverage instead of blocking OpenAI-only users.
     phases.push(runPhase("eval:analyzer", "npx", ["tsx", "tests/evals/runner.ts"]));
-    phases.push(runPhase("eval:features", "npx", ["tsx", "tests/evals/feature-evals.ts", "--all"]));
+    if (HAS_ANTHROPIC_AUTH) {
+      phases.push(
+        runPhase("eval:features", "npx", ["tsx", "tests/evals/feature-evals.ts", "--all"]),
+      );
+    } else {
+      phases.push(
+        skippedPhase(
+          "eval:features",
+          "legacy feature evals require ANTHROPIC_API_KEY; skipped for OpenAI-only pre-pr",
+        ),
+      );
+    }
   }
 
   // ============================================================
@@ -300,12 +327,17 @@ async function main() {
   // real-mode flows with sender enrichment + draft generation and routinely
   // crashes mid-verification on budget exhaustion (exit 1) before it can emit
   // a verdict. $1.50 gives ~3× headroom over the worst observed run ($0.90).
-  const verifyResult = runPhase(
-    "agentic-verify",
-    "node",
-    ["scripts/agentic-verify.mjs", "--mode=verify-diff", "--budget-usd=1.5"],
-    infraOnly ? { softExits: [3] } : {},
-  );
+  const verifyResult = HAS_ANTHROPIC_AUTH
+    ? runPhase(
+        "agentic-verify",
+        "node",
+        ["scripts/agentic-verify.mjs", "--mode=verify-diff", "--budget-usd=1.5"],
+        infraOnly ? { softExits: [3] } : {},
+      )
+    : skippedPhase(
+        "agentic-verify",
+        "legacy Claude-agent verifier requires ANTHROPIC_API_KEY; skipped for OpenAI-only pre-pr",
+      );
 
   // Promote "inconclusive + zero anomalies + non-trivial exploration" to a
   // soft pass. Backend-only diffs (e.g. provider routing in llm-service.ts,
