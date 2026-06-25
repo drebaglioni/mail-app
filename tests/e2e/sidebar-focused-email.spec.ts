@@ -38,7 +38,7 @@ test.describe("Sidebar reflects focused email in thread", () => {
 
   test("clicking different emails in a multi-sender thread updates the sidebar sender", async () => {
     // Wait for inbox to load
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Find and click the multi-sender thread
     const threadRow = page.locator("button").filter({ hasText: "Launch Readiness" }).first();

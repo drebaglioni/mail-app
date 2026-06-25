@@ -71,7 +71,7 @@ function getStore(): Store<{ config: Config }> {
           senderLookupProvider: "anthropic" as const,
           syncDraftsToGmail: false,
           theme: "system" as const,
-          inboxDensity: "compact" as const,
+          inboxDensity: "default" as const,
           undoSendDelay: 5,
           sendAndArchive: false,
           showExoBranding: true,
@@ -97,9 +97,10 @@ export function getConfig(): Config {
   const config = getStore().get("config");
   let needsSave = false;
 
-  // Migrate removed density values to "compact"
+  // Migrate removed density values to the spacious default. Existing explicit
+  // "compact" settings remain untouched.
   if (config.inboxDensity && !["default", "compact"].includes(config.inboxDensity)) {
-    config.inboxDensity = "compact";
+    config.inboxDensity = "default";
     needsSave = true;
   }
 

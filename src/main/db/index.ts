@@ -58,7 +58,18 @@ export function initDatabase(): DatabaseInstance {
   // Enable WAL mode for better concurrent access
   db.pragma("journal_mode = WAL");
 
-  // Run migrations for existing databases
+  const hasBaselineSchema = Boolean(
+    db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'").get(),
+  );
+
+  // Fresh databases need the baseline tables before forward-only migrations
+  // that alter/backfill those tables. Existing databases keep the legacy order
+  // so ad-hoc migrations can add missing columns before schema indexes run.
+  if (!hasBaselineSchema) {
+    db.exec(SCHEMA);
+  }
+
+  // Run migrations for existing databases and forward-only migrations.
   runMigrations(db);
 
   // Create tables (IF NOT EXISTS for new columns won't help existing tables)

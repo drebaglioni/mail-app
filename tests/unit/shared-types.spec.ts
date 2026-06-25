@@ -280,7 +280,7 @@ test.describe("ConfigSchema", () => {
       expect(result.data.dryRun).toBe(false);
       expect(result.data.theme).toBe("system");
       expect(result.data.undoSendDelay).toBe(5);
-      expect(result.data.inboxDensity).toBe("compact");
+      expect(result.data.inboxDensity).toBe("default");
     }
   });
 

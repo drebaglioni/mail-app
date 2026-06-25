@@ -1,5 +1,29 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
+
+async function selectFirstThread(page: Page): Promise<void> {
+  await expect(page.locator(".overflow-y-auto div[data-thread-id]").first()).toBeVisible({
+    timeout: 10000,
+  });
+  const selected = page.locator(".overflow-y-auto div[data-thread-id][data-selected='true']");
+  const deadline = Date.now() + 10000;
+
+  while (Date.now() < deadline) {
+    await page.keyboard.press("j");
+    try {
+      await expect(selected).toBeVisible({ timeout: 500 });
+      return;
+    } catch {
+      await page.waitForTimeout(100);
+    }
+  }
+
+  await expect(selected).toBeVisible({ timeout: 1000 });
+}
+
+function agentInput(page: Page) {
+  return page.locator("input[placeholder*='Ask agent']").first();
+}
 
 test.describe("Agent Framework", () => {
   test.describe.configure({ mode: "serial" });
@@ -32,15 +56,14 @@ test.describe("Agent Framework", () => {
 
   test("Cmd+J opens the agent command palette", async () => {
     // Select the first email so palette shows quick actions
-    await page.keyboard.press("j");
-    await page.waitForTimeout(300);
+    await selectFirstThread(page);
 
     // Press Cmd+J
     await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     // The palette should be visible with contextual placeholder
-    const paletteInput = page.locator('input[placeholder="Ask agent about this email..."]');
+    const paletteInput = agentInput(page);
     await expect(paletteInput).toBeVisible({ timeout: 3000 });
 
     // Should show quick actions
@@ -84,7 +107,7 @@ test.describe("Agent Framework", () => {
     await expect(page.locator("text=Draft a new email")).toBeVisible();
 
     // Placeholder should indicate general mode
-    const paletteInput = page.locator('input[placeholder="Ask agent anything..."]');
+    const paletteInput = agentInput(page);
     await expect(paletteInput).toBeVisible();
 
     await page.keyboard.press("Escape");
@@ -123,14 +146,13 @@ test.describe("Agent Framework", () => {
 
   test("agent palette filtering works", async () => {
     // Select an email first so quick actions are shown
-    await page.keyboard.press("j");
-    await page.waitForTimeout(300);
+    await selectFirstThread(page);
 
     await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
 
     // Type to filter
-    const input = page.locator('input[placeholder="Ask agent about this email..."]');
+    const input = agentInput(page);
     await input.fill("archive");
     await page.waitForTimeout(300);
 

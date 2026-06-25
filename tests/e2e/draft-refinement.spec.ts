@@ -1,5 +1,10 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import {
+  closeApp,
+  launchElectronApp,
+  needsReplyEmailButton,
+  waitForEmailListReady,
+} from "./launch-helpers";
 
 /**
  * E2E Tests for draft generation and refinement workflow.
@@ -35,11 +40,13 @@ test.describe("Draft Generation and Refinement", () => {
 
   test("can select an email that needs reply", async () => {
     // Wait for inbox to load
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
+    await waitForEmailListReady(page);
 
-    // Priority pills were collapsed in issue #143. In demo mode the default
-    // Priority tab only contains needs-reply emails, so the first row is one.
-    const needsReplyEmail = page.locator("[data-thread-id]").first();
+    // Find an email marked as needing a reply. The app now uses binary
+    // Priority/Other classification, so demo rows may render as low/priority
+    // instead of the legacy high-priority marker.
+    const needsReplyEmail = needsReplyEmailButton(page);
     await expect(needsReplyEmail).toBeVisible({ timeout: 10000 });
     await needsReplyEmail.click();
     await page.waitForTimeout(500);
@@ -176,12 +183,10 @@ test.describe("Draft Generation - Multiple Emails", () => {
 
   test("switching emails clears previous draft state", async () => {
     // Wait for inbox to load
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
-    // Priority pills were collapsed in issue #143. Pick the first thread —
-    // in demo mode all default-Priority-tab rows are needs-reply emails.
-    const needsReplyEmails = page.locator("[data-thread-id]");
-    const firstEmail = needsReplyEmails.first();
+    await waitForEmailListReady(page);
+    const firstEmail = needsReplyEmailButton(page);
 
     if (!(await firstEmail.isVisible())) {
       test.skip();
@@ -227,18 +232,17 @@ test.describe("Draft Generation - From Full View", () => {
 
   test("can generate and view draft from full email view", async () => {
     // Wait for inbox to load
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
-    // Priority pills were collapsed in issue #143. Pick the first thread —
-    // in demo mode all default-Priority-tab rows are needs-reply emails.
-    const needsReplyEmail = page.locator("[data-thread-id]").first();
+    await waitForEmailListReady(page);
+    const highPriorityEmail = needsReplyEmailButton(page);
 
-    if (!(await needsReplyEmail.isVisible())) {
+    if (!(await highPriorityEmail.isVisible())) {
       test.skip();
       return;
     }
 
-    await needsReplyEmail.click();
+    await highPriorityEmail.click();
     await page.waitForTimeout(500);
 
     // Enter full view

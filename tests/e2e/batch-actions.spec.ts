@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /** Best-effort screenshot */
 async function screenshot(page: Page, name: string) {
@@ -18,14 +18,31 @@ async function countInboxThreads(page: Page): Promise<number> {
 
 /** Select the first inbox thread via keyboard */
 async function selectFirstThread(page: Page): Promise<void> {
-  await page.keyboard.press("j");
-  await page.waitForTimeout(300);
+  await expect(page.locator(".overflow-y-auto div[data-thread-id]").first()).toBeVisible({
+    timeout: 10000,
+  });
+  const selected = page.locator(".overflow-y-auto div[data-thread-id][data-selected='true']");
+  const deadline = Date.now() + 10000;
+
+  while (Date.now() < deadline) {
+    await page.keyboard.press("j");
+    try {
+      await expect(selected).toBeVisible({ timeout: 500 });
+      return;
+    } catch {
+      await page.waitForTimeout(100);
+    }
+  }
+
+  await expect(selected).toBeVisible({ timeout: 1000 });
 }
 
 /** Get the currently highlighted row's text */
 async function getSelectedRowText(page: Page): Promise<string | null> {
   // The highlighted row has bg-blue-600 class on the outer div
-  const selected = page.locator(".overflow-y-auto div[data-thread-id].bg-blue-600").first();
+  const selected = page
+    .locator(".overflow-y-auto div[data-thread-id][data-selected='true']")
+    .first();
   if (await selected.isVisible().catch(() => false)) {
     return selected.textContent();
   }

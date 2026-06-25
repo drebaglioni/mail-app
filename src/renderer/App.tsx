@@ -102,28 +102,24 @@ function SearchResultThreadRow({
       data-email-id={thread.latestEmail.id}
       data-selected={isSelected || undefined}
       onClick={onClick}
-      className={`w-full h-8 px-3 gap-1.5 text-xs flex items-center text-left exo-list-row transition-colors cursor-pointer ${
-        isSelected ? "exo-list-row-selected text-white" : "exo-text-primary"
+      className={`w-full h-10 px-4 gap-2 text-xs flex items-center text-left exo-list-row transition-colors cursor-pointer ${
+        isSelected ? "exo-list-row-selected exo-text-primary" : "exo-text-primary"
       }`}
     >
       {/* Unread indicator */}
       <div className="w-5 flex-shrink-0 flex items-center justify-center">
         <div className="w-2 flex items-center justify-center">
-          {thread.isUnread && (
-            <div
-              className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-white" : "bg-[var(--exo-accent)]"}`}
-            />
-          )}
+          {thread.isUnread && <div className={`w-1.5 h-1.5 rounded-full bg-[var(--exo-accent)]`} />}
         </div>
       </div>
 
       {/* Content area */}
-      <div className="flex-1 flex items-center gap-1.5 min-w-0 h-full text-left">
+      <div className="flex-1 flex items-center gap-2 min-w-0 h-full text-left">
         {/* Sender name */}
         <span
-          className={`w-28 truncate font-medium flex-shrink-0 ${
+          className={`w-32 truncate font-medium flex-shrink-0 ${
             isSelected
-              ? "text-white"
+              ? "text-[var(--exo-text-primary)]"
               : thread.isUnread
                 ? "text-[var(--exo-text-primary)]"
                 : "text-[var(--exo-text-secondary)]"
@@ -137,7 +133,7 @@ function SearchResultThreadRow({
           <span
             className={`text-[9px] px-1 py-px rounded flex-shrink-0 uppercase font-medium ${
               isSelected
-                ? "bg-white/20 text-white"
+                ? "bg-[var(--exo-bg-elevated)] text-[var(--exo-text-secondary)]"
                 : "bg-[var(--exo-bg-surface-soft)] border border-[var(--exo-border-subtle)] text-[var(--exo-text-muted)]"
             }`}
           >
@@ -146,11 +142,11 @@ function SearchResultThreadRow({
         )}
 
         {/* Subject + Snippet */}
-        <div className="flex-1 min-w-0 flex items-center gap-1.5">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
           <span
             className={`font-medium truncate ${
               isSelected
-                ? "text-white"
+                ? "text-[var(--exo-text-primary)]"
                 : thread.isUnread
                   ? "text-[var(--exo-text-primary)]"
                   : "text-[var(--exo-text-secondary)]"
@@ -159,14 +155,14 @@ function SearchResultThreadRow({
             {decodeHtmlEntities(thread.subject)}
           </span>
           <span
-            className={`flex-shrink-0 ${isSelected ? "text-white/40" : "text-[var(--exo-border-strong)]"}`}
+            className={`flex-shrink-0 ${isSelected ? "text-[var(--exo-text-muted)]" : "text-[var(--exo-border-strong)]"}`}
           >
             —
           </span>
           {thread.draft ? (
             <>
               <span
-                className={`flex-shrink-0 ${isSelected ? "text-green-200" : "text-green-600 dark:text-green-400"}`}
+                className={`flex-shrink-0 ${isSelected ? "text-[var(--exo-accent)]" : "text-green-600 dark:text-green-400"}`}
               >
                 <svg
                   className="w-3 h-3 inline-block mr-0.5 -mt-px"
@@ -185,7 +181,7 @@ function SearchResultThreadRow({
               </span>
               <span
                 className={`truncate ${
-                  isSelected ? "text-white/60" : "text-[var(--exo-text-muted)]"
+                  isSelected ? "text-[var(--exo-text-secondary)]" : "text-[var(--exo-text-muted)]"
                 }`}
               >
                 {(thread.draft.body ?? "")
@@ -197,7 +193,7 @@ function SearchResultThreadRow({
           ) : (
             <span
               className={`truncate ${
-                isSelected ? "text-white/60" : "text-[var(--exo-text-muted)]"
+                isSelected ? "text-[var(--exo-text-secondary)]" : "text-[var(--exo-text-muted)]"
               }`}
             >
               {snippet}
@@ -208,7 +204,7 @@ function SearchResultThreadRow({
         {/* Time */}
         <span
           className={`w-9 text-[10px] text-right flex-shrink-0 tabular-nums ${
-            isSelected ? "text-white/60" : "text-[var(--exo-text-muted)]"
+            isSelected ? "text-[var(--exo-text-secondary)]" : "text-[var(--exo-text-muted)]"
           }`}
         >
           {formatSearchDate(latestEmail.date)}
@@ -219,7 +215,7 @@ function SearchResultThreadRow({
           <span
             className={`text-[9px] min-w-[1rem] h-4 px-1 rounded-full flex items-center justify-center flex-shrink-0 ${
               isSelected
-                ? "bg-white/20 text-white"
+                ? "bg-[var(--exo-bg-elevated)] text-[var(--exo-text-secondary)]"
                 : "bg-[var(--exo-bg-surface-soft)] border border-[var(--exo-border-subtle)] text-[var(--exo-text-muted)]"
             }`}
           >
@@ -378,12 +374,12 @@ function SearchResultsView() {
   return (
     <div className="flex-1 min-w-0 flex flex-col exo-surface">
       {/* Search header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b exo-border-subtle exo-surface">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between px-5 py-3 border-b exo-border-subtle exo-surface">
+        <div className="flex items-center gap-3">
           <button
             onClick={clearActiveSearch}
             aria-label="Close search"
-            className="p-1 text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded transition-colors"
+            className="p-1.5 text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -396,7 +392,7 @@ function SearchResultsView() {
           </button>
           <span
             data-testid="search-results-header"
-            className="text-sm font-medium exo-text-primary"
+            className="text-base font-medium exo-text-primary"
           >
             Search results for &quot;{activeSearchQuery}&quot;
           </span>
@@ -473,7 +469,7 @@ function SearchResultsView() {
 
         {/* Still searching indicator (shown below results) */}
         {remoteSearchStatus === "searching" && searchThreads.length > 0 && (
-          <div className="px-3 py-3 text-xs exo-text-secondary flex items-center justify-center gap-2 border-t exo-border-subtle">
+          <div className="px-4 py-4 text-xs exo-text-secondary flex items-center justify-center gap-2 border-t exo-border-subtle">
             <svg
               className="w-3.5 h-3.5 text-[var(--exo-accent)] animate-spin flex-shrink-0"
               fill="none"
@@ -498,7 +494,7 @@ function SearchResultsView() {
         )}
 
         {remoteSearchStatus === "error" && (
-          <div className="px-3 py-2 flex items-center gap-2 text-xs border-t exo-border-subtle">
+          <div className="px-4 py-3 flex items-center gap-2 text-xs border-t exo-border-subtle">
             <span className="text-red-600 dark:text-red-400">Gmail search failed</span>
             <button
               onClick={retryRemoteSearch}
@@ -511,7 +507,7 @@ function SearchResultsView() {
 
         {/* Loading more from Gmail indicator */}
         {remoteSearchLoadingMore && (
-          <div className="px-3 py-3 text-xs exo-text-secondary flex items-center justify-center gap-2 border-t exo-border-subtle">
+          <div className="px-4 py-4 text-xs exo-text-secondary flex items-center justify-center gap-2 border-t exo-border-subtle">
             <svg
               className="w-3.5 h-3.5 text-[var(--exo-accent)] animate-spin flex-shrink-0"
               fill="none"
@@ -542,7 +538,7 @@ function SearchResultsView() {
           <div ref={sentinelRef} className="border-t exo-border-subtle">
             <button
               onClick={loadMoreResults}
-              className="w-full px-3 py-3 text-xs text-[var(--exo-accent)] flex items-center justify-center gap-2 hover:bg-[var(--exo-bg-surface-hover)] transition-colors exo-micro-label"
+              className="w-full px-4 py-4 text-xs text-[var(--exo-accent)] flex items-center justify-center gap-2 hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
             >
               <svg
                 className="w-3.5 h-3.5 flex-shrink-0"
@@ -663,6 +659,15 @@ export default function App() {
   const isAgentsSidebarOpen = useAppStore((s) => s.isAgentsSidebarOpen);
   const viewMode = useAppStore((s) => s.viewMode);
   const activeSearchQuery = useAppStore((s) => s.activeSearchQuery);
+  const hasSelectedEmail = useAppStore((s) =>
+    s.selectedEmailId ? s.emails.some((email) => email.id === s.selectedEmailId) : false,
+  );
+  const hasSelectedDraft = useAppStore((s) =>
+    s.selectedDraftId ? s.localDrafts.some((draft) => draft.id === s.selectedDraftId) : false,
+  );
+  const hasGlobalAgentTask = useAppStore((s) =>
+    s.globalAgentTaskKey ? Boolean(s.agentTasks[s.globalAgentTaskKey]) : false,
+  );
   const _activeSearchResults = useAppStore((s) => s.activeSearchResults);
   const expiredAccountIds = useAppStore((s) => s.expiredAccountIds);
   const extensionAuthRequired = useAppStore((s) => s.extensionAuthRequired);
@@ -716,6 +721,9 @@ export default function App() {
   const setSplits = useAppStore((s) => s.setSplits);
   const setSplitAssignments = useAppStore((s) => s.setSplitAssignments);
   const setSnippets = useAppStore((s) => s.setSnippets);
+  const shouldShowPreviewSidebar =
+    (!activeSearchQuery || viewMode === "full") &&
+    (hasSelectedEmail || hasSelectedDraft || hasGlobalAgentTask);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts({
@@ -1788,16 +1796,16 @@ export default function App() {
       <OfflineBanner />
 
       {/* Titlebar */}
-      <div className="titlebar-drag h-12 exo-elevated border-b exo-border-subtle flex items-center justify-between px-4">
-        <div className="flex items-center space-x-4">
+      <div className="titlebar-drag h-16 exo-elevated flex items-center justify-between px-5">
+        <div className="flex items-center space-x-6">
           <div className="w-20" /> {/* Space for traffic lights */}
-          <h1 className="text-lg font-semibold exo-text-primary">Exo</h1>
+          <h1 className="text-2xl exo-brand-mark">Exo</h1>
           {/* Account Selector */}
           {accounts.length > 0 && (
             <div className="titlebar-no-drag relative">
               <button
                 onClick={() => setAccountMenuOpen(!accountMenuOpen)}
-                className="flex items-center space-x-2 px-3 py-1.5 text-sm exo-surface-soft hover:bg-[var(--exo-bg-surface-hover)] border exo-border-subtle rounded-md transition-colors"
+                className="flex items-center space-x-2 px-4 py-2.5 text-sm exo-surface-soft hover:bg-[var(--exo-bg-surface-hover)] border exo-border-subtle exo-control-surface rounded-md transition-colors"
               >
                 <span className="text-[var(--exo-text-secondary)] truncate max-w-[200px]">
                   {isUnifiedView ? "All Inboxes" : currentAccount?.email || "Select account"}
@@ -1850,14 +1858,14 @@ export default function App() {
 
               {/* Account dropdown menu */}
               {accountMenuOpen && (
-                <div className="absolute top-full left-0 mt-1 w-64 exo-elevated border exo-border-subtle rounded-md shadow-lg dark:shadow-black/40 z-50">
-                  <div className="py-1">
+                <div className="absolute top-full left-0 mt-2 w-72 exo-elevated border exo-border-subtle rounded-xl shadow-2xl dark:shadow-black/40 z-50">
+                  <div className="py-2">
                     {accounts.length > 1 && (
                       <>
                         <button
                           onClick={() => handleAccountSwitch(null)}
-                          className={`w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between ${
-                            isUnifiedView ? "bg-blue-50 dark:bg-blue-900/30" : ""
+                          className={`w-full px-4 py-2.5 text-left text-sm text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-hover)] flex items-center justify-between ${
+                            isUnifiedView ? "bg-[var(--exo-accent-soft)]" : ""
                           }`}
                         >
                           <div className="flex items-center space-x-2">
@@ -1868,18 +1876,16 @@ export default function App() {
                             </span>
                             <span className="truncate">All Inboxes</span>
                           </div>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {accounts.length}
-                          </span>
+                          <span className="text-xs exo-text-muted">{accounts.length}</span>
                         </button>
-                        <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+                        <div className="border-t exo-border-subtle my-1" />
                       </>
                     )}
                     {accounts.map((account) => (
                       <button
                         key={account.id}
                         onClick={() => handleAccountSwitch(account.id)}
-                        className={`w-full px-4 py-2 text-left text-sm text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-hover)] flex items-center justify-between ${
+                        className={`w-full px-4 py-2.5 text-left text-sm text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-hover)] flex items-center justify-between ${
                           account.id === currentAccountId ? "bg-[var(--exo-accent-soft)]" : ""
                         }`}
                       >
@@ -1906,7 +1912,7 @@ export default function App() {
                           setAccountMenuOpen(false);
                           setShowSettings(true);
                         }}
-                        className="w-full px-4 py-2 text-left text-sm text-[var(--exo-accent)] hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full px-4 py-2.5 text-left text-sm text-[var(--exo-accent)] hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         + Add account...
                       </button>
@@ -1919,11 +1925,11 @@ export default function App() {
           {/* Update indicator — inline next to account picker */}
           <UpdateBanner />
         </div>
-        <div className="titlebar-no-drag flex items-center space-x-2">
+        <div className="titlebar-no-drag flex items-center space-x-3">
           {/* Search button */}
           <button
             onClick={openSearch}
-            className="p-2 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors flex items-center gap-1"
+            className="p-3 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors flex items-center gap-1"
             title="Search (/)"
             aria-label="Search"
           >
@@ -1938,7 +1944,7 @@ export default function App() {
           </button>
           {/* Outbox badge (show when there are pending messages and online) */}
           {isOnline && outboxStats.pending > 0 && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg text-sm">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg text-sm">
               <svg
                 className="w-4 h-4 animate-pulse"
                 fill="none"
@@ -1957,7 +1963,7 @@ export default function App() {
           )}
           {/* Outbox badge for failed messages */}
           {outboxStats.failed > 0 && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg text-sm">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg text-sm">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -1974,7 +1980,7 @@ export default function App() {
             <div className="relative" ref={scheduledPanelRef}>
               <button
                 onClick={() => setScheduledPanelOpen(!scheduledPanelOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)] rounded-md text-sm hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)] rounded-lg text-sm hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
                 title="View scheduled messages"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2003,8 +2009,8 @@ export default function App() {
 
               {/* Scheduled messages dropdown */}
               {scheduledPanelOpen && (
-                <div className="absolute top-full right-0 mt-1 w-80 exo-elevated border exo-border-subtle rounded-md shadow-lg dark:shadow-black/40 z-50">
-                  <div className="px-4 py-2.5 border-b exo-border-subtle">
+                <div className="absolute top-full right-0 mt-2 w-96 exo-elevated border exo-border-subtle rounded-xl shadow-2xl dark:shadow-black/40 z-50">
+                  <div className="px-5 py-3 border-b exo-border-subtle">
                     <h3 className="text-sm font-medium exo-text-primary">Scheduled Messages</h3>
                   </div>
                   {scheduledMessages.length === 0 ? (
@@ -2012,11 +2018,11 @@ export default function App() {
                       No scheduled messages
                     </div>
                   ) : (
-                    <div className="max-h-72 overflow-y-auto divide-y divide-[var(--exo-border-subtle)]">
+                    <div className="max-h-80 overflow-y-auto divide-y divide-[var(--exo-border-subtle)]">
                       {scheduledMessages.map((msg) => (
                         <div
                           key={msg.id}
-                          className="px-4 py-3 hover:bg-[var(--exo-bg-surface-hover)]"
+                          className="px-5 py-3.5 hover:bg-[var(--exo-bg-surface-hover)]"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
@@ -2057,7 +2063,7 @@ export default function App() {
               openCompose("new");
               setViewMode("full");
             }}
-            className="px-3 py-1.5 bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] text-white text-sm font-medium rounded-md transition-colors flex items-center gap-1"
+            className="exo-primary-action px-5 py-2.5 bg-[var(--exo-accent)] hover:bg-[var(--exo-accent-strong)] text-[#180800] text-sm font-bold rounded-md transition-colors flex items-center gap-2"
             title="Compose (C)"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2072,7 +2078,7 @@ export default function App() {
           </button>
           <button
             onClick={() => setShowSettings(true)}
-            className="p-2 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors focus:outline-none"
+            className="p-3 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors focus:outline-none"
             title="Settings"
             aria-label="Settings"
           >
@@ -2094,7 +2100,7 @@ export default function App() {
           <button
             onClick={handleRefresh}
             disabled={isFetching || isSyncing}
-            className="p-2 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors disabled:opacity-50"
+            className="p-3 text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors disabled:opacity-50"
             title="Refresh"
             aria-label="Refresh"
           >
@@ -2305,7 +2311,7 @@ export default function App() {
 
         {/* Preview sidebar — kept mounted across view mode transitions to avoid
             expensive unmount/remount of agent trace timelines */}
-        {(!activeSearchQuery || viewMode === "full") && <EmailPreviewSidebar />}
+        {shouldShowPreviewSidebar && <EmailPreviewSidebar />}
       </div>
 
       {/* Keyboard hints bar */}

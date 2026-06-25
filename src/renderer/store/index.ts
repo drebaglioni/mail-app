@@ -652,7 +652,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   resolvedTheme: "light",
 
   // Inbox density state
-  inboxDensity: "compact",
+  inboxDensity: "default",
 
   // Keyboard binding preset
   keyboardBindings: "superhuman",

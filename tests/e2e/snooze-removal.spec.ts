@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 let electronApp: ElectronApplication;
 let page: Page;
@@ -37,11 +37,9 @@ test.describe("Snooze — email must leave inbox and cursor must advance", () =>
       console.log(`[RENDERER ${msg.type()}]: ${msg.text()}`);
     });
 
-    // Wait for the app to fully load with emails
+    // Wait for the app to fully load with emails.
     await page.waitForSelector("text=Exo", { timeout: 15000 });
-    // Priority pills were collapsed in issue #143 — wait on the stable
-    // per-row data-thread-id attribute instead.
-    await page.locator("[data-thread-id]").first().waitFor({ timeout: 10000 });
+    await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout: 10000 });
   });
 
   test.afterAll(async () => {
@@ -182,7 +180,9 @@ test.describe("Snooze — email must leave inbox and cursor must advance", () =>
     }
 
     // The selected row in the UI should be highlighted
-    const highlightedRow = page.locator(".overflow-y-auto div[data-thread-id].bg-blue-600");
+    const highlightedRow = page.locator(
+      ".overflow-y-auto div[data-thread-id][data-selected='true']",
+    );
     await expect(highlightedRow.first()).toBeVisible({ timeout: 2000 });
   });
 });

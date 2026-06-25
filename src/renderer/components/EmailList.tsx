@@ -22,9 +22,56 @@ function hasRichFormatting(html: string): boolean {
   return /<(p|div|br|strong|em|ol|ul|li)\b/i.test(html);
 }
 
+function normalizeMessageRef(value: string | undefined): string | undefined {
+  return value?.trim().replace(/^<|>$/g, "");
+}
+
+function findLatestByDate(emails: DashboardEmail[]): DashboardEmail | undefined {
+  let latest: DashboardEmail | undefined;
+  let latestTime = -Infinity;
+
+  for (const email of emails) {
+    const time = new Date(email.date).getTime();
+    if (Number.isFinite(time) && time > latestTime) {
+      latest = email;
+      latestTime = time;
+    }
+  }
+
+  return latest;
+}
+
+function getDraftSourceSnippet(
+  draft: LocalDraft,
+  threads: EmailThread[],
+  emails: DashboardEmail[],
+): string | undefined {
+  const thread = draft.threadId ? threads.find((t) => t.threadId === draft.threadId) : undefined;
+  const threadEmails =
+    thread?.emails ?? emails.filter((email) => email.threadId === draft.threadId);
+  const replyRef = normalizeMessageRef(draft.inReplyTo);
+
+  if (replyRef) {
+    const replyEmail = [...threadEmails, ...emails].find((email) => {
+      const messageId = normalizeMessageRef(email.messageId);
+      return email.id === draft.inReplyTo || email.id === replyRef || messageId === replyRef;
+    });
+    if (replyEmail?.snippet) return replyEmail.snippet;
+  }
+
+  if (thread?.latestReceivedEmail.snippet) {
+    return thread.latestReceivedEmail.snippet;
+  }
+
+  const latestReceivedEmail = findLatestByDate(
+    threadEmails.filter((email) => !email.labelIds?.includes("SENT")),
+  );
+  return latestReceivedEmail?.snippet ?? findLatestByDate(threadEmails)?.snippet;
+}
+
 const densityOrder: InboxDensity[] = ["default", "compact"];
 const densityLabels: Record<InboxDensity, string> = {
-  default: "Default",
+  default: "Spacious",
   compact: "Compact",
 };
 
@@ -71,6 +118,7 @@ function EmailListImpl() {
   const selectedThreadIds = useAppStore((s) => s.selectedThreadIds);
   const currentSplitId = useAppStore((s) => s.currentSplitId);
   const selectedDraftId = useAppStore((s) => s.selectedDraftId);
+  const allEmails = useAppStore((s) => s.emails);
   const allLocalDrafts = useAppStore((s) => s.localDrafts);
   const unsnoozedReturnTimes = useAppStore((s) => s.unsnoozedReturnTimes);
   const selectedThreadId = useAppStore((s) => s.selectedThreadId);
@@ -499,8 +547,8 @@ function EmailListImpl() {
     [toggleThreadSelected],
   );
 
-  // Row height depends on density
-  const rowHeight = inboxDensity === "compact" ? 32 : 40;
+  // Row height depends on density and must match EmailRow/DraftRow fixed heights.
+  const rowHeight = inboxDensity === "compact" ? 40 : 104;
 
   // Build a flat items array for the virtualizer: drafts at top + thread items
   type ListItem = { type: "draft"; draft: LocalDraft } | { type: "thread"; thread: EmailThread };
@@ -610,45 +658,34 @@ function EmailListImpl() {
   // Email list takes available width (flex-1)
   return (
     <div className="flex-1 exo-list-shell flex flex-col overflow-hidden">
-      {/* Header - top-level mailbox tabs + actions */}
-      <div className="h-10 px-4 flex items-center justify-between exo-list-header">
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => {
-              if (isSentView) setCurrentSplitId("__people__");
-            }}
-            className={`px-2.5 py-1 text-sm font-medium rounded-md transition-colors focus:outline-none ${
-              !isSentView
-                ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)]"
-                : "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
-            }`}
-          >
-            Inbox
-          </button>
-          <button
-            onClick={() => setCurrentSplitId("__sent__")}
-            className={`px-2.5 py-1 text-sm font-medium rounded-md transition-colors inline-flex items-center gap-1 focus:outline-none ${
-              isSentView
-                ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-border-strong)]"
-                : "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
-            }`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-            Sent
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="exo-list-header flex items-start justify-between">
+        {isSentView ? (
+          <div className="h-28 px-10 flex items-end pb-6">
+            <button
+              onClick={() => setCurrentSplitId("__people__")}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--exo-accent)] hover:text-[var(--exo-accent-strong)] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Sent
+            </button>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <SplitTabs />
+          </div>
+        )}
+        <div className="h-28 px-8 flex items-end gap-4 pb-7">
           {isAutomatedView && threads.length > 0 && (
             <button
               onClick={handleArchiveAll}
-              className="px-2.5 py-1 text-xs font-medium text-white bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600 rounded transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -704,12 +741,28 @@ function EmailListImpl() {
               {agentDraftIndicator?.label}
             </span>
           )}
+          {!isSentView && (
+            <button
+              onClick={() => setCurrentSplitId("__sent__")}
+              title="Sent"
+              className="p-1.5 rounded-md text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+            </button>
+          )}
           {/* Density toggle */}
           <button
             onClick={cycleDensity}
             title={`Density: ${densityLabels[inboxDensity]}`}
             aria-label={`Density: ${densityLabels[inboxDensity]}`}
-            className="p-1 rounded-md text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] transition-colors"
           >
             <svg
               className="w-4 h-4"
@@ -738,13 +791,10 @@ function EmailListImpl() {
         </div>
       </div>
 
-      {/* Split tabs - hidden in Sent view since sub-tabs are inbox-specific */}
-      {!isSentView && <SplitTabs />}
-
       {/* Initial sync progress bar */}
       {isInitialSyncing && (
-        <div className="px-4 py-1.5 border-b exo-border-subtle exo-surface-soft">
-          <div className="flex items-center justify-between mb-1">
+        <div className="px-5 py-2 border-b exo-border-subtle exo-surface-soft">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs exo-text-secondary exo-micro-label">
               Loading inbox: {currentProgress.fetched.toLocaleString()} /{" "}
               {currentProgress.total.toLocaleString()}
@@ -801,6 +851,7 @@ function EmailListImpl() {
                   >
                     <DraftRow
                       draft={item.draft}
+                      previewSnippet={getDraftSourceSnippet(item.draft, threads, allEmails)}
                       isSelected={selectedDraftId === item.draft.id}
                       density={inboxDensity}
                       onClick={() => handleDraftClick(item.draft)}
@@ -846,7 +897,7 @@ function EmailListImpl() {
           !isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--exo-bg-surface)]">
               <PixelWave />
-              <p className="text-sm exo-text-muted exo-micro-label relative z-10">
+              <p className="text-sm exo-text-muted relative z-10">
                 {isSnoozedView ? "No snoozed emails" : isSentView ? "No sent emails" : "Inbox zero"}
               </p>
             </div>

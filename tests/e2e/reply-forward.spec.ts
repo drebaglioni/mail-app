@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /**
  * E2E Tests for Reply and Forward workflows.
@@ -39,6 +39,19 @@ async function openFirstEmailInFullView(page: Page): Promise<void> {
 
   // Verify we're in full view by checking for the Reply button
   await expect(page.locator("button[title='Reply All']").first()).toBeVisible({ timeout: 5000 });
+}
+
+async function openForward(page: Page): Promise<void> {
+  await page.locator("body").click({ position: { x: 300, y: 100 } });
+  await page.waitForTimeout(100);
+  await page.keyboard.press("f");
+  await page.waitForTimeout(800);
+  await expect(page.locator("[data-testid='inline-compose']")).toBeVisible({ timeout: 5000 });
+}
+
+async function expectForwardActionInMoreMenu(page: Page): Promise<void> {
+  const moreButton = page.locator("button[title='More actions']");
+  await expect(moreButton).toBeVisible({ timeout: 5000 });
 }
 
 /**
@@ -93,10 +106,9 @@ test.describe("Reply and Forward Workflows", () => {
     await openFirstEmailInFullView(page);
 
     const replyButton = page.locator("button[title='Reply All']").first();
-    const forwardButton = page.locator("button[title='Forward']").first();
 
     await expect(replyButton).toBeVisible();
-    await expect(forwardButton).toBeVisible();
+    await expectForwardActionInMoreMenu(page);
   });
 
   test("reply opens inline compose with correct state", async () => {
@@ -131,9 +143,7 @@ test.describe("Reply and Forward Workflows", () => {
 
   test("forward opens inline compose with AddressInput for To field", async () => {
     // Click Forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     // Inline compose should appear
     const inlineCompose = page.locator("[data-testid='inline-compose']");
@@ -160,9 +170,7 @@ test.describe("Reply and Forward Workflows", () => {
 
   test("can type in forward recipient and add content", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -193,9 +201,7 @@ test.describe("Reply and Forward Workflows", () => {
 
   test("forward with Cc/Bcc toggle works", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -246,9 +252,7 @@ test.describe("Reply and Forward Workflows", () => {
 
   test("cancel forward then open forward again works", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -259,8 +263,7 @@ test.describe("Reply and Forward Workflows", () => {
     await expect(inlineCompose).toBeHidden();
 
     // Open forward again
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
     // Use exact text match to avoid matching content that contains "Forward"
     await expect(inlineCompose.getByText("Forward", { exact: true })).toBeVisible();
@@ -285,9 +288,7 @@ test.describe("Reply and Forward Workflows", () => {
     await page.waitForTimeout(300);
 
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
     // Should now show Forward header, not Reply
@@ -302,9 +303,7 @@ test.describe("Reply and Forward Workflows", () => {
 
   test("cancel forward then open reply works", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -356,9 +355,7 @@ test.describe("Reply After Forward - Bug Regression", () => {
     await disableUndoSend(page);
 
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -401,9 +398,7 @@ test.describe("Reply After Forward - Bug Regression", () => {
     await setUndoSendDelay(page, 5);
 
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -470,9 +465,7 @@ test.describe("Reply After Forward - Bug Regression", () => {
     await expect(inlineCompose).toBeHidden({ timeout: 5000 });
 
     // Now open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(1000);
+    await openForward(page);
 
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
     await expect(inlineCompose.getByText("Forward", { exact: true })).toBeVisible();

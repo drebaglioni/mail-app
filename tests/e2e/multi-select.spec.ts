@@ -46,7 +46,7 @@ test.describe("Multi-Select - Cmd+Click", () => {
   });
 
   test("Cmd+click selects multiple emails and shows batch action bar", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
     // Get all thread rows
@@ -116,7 +116,7 @@ test.describe("Multi-Select - Shift+Click Range", () => {
   });
 
   test("Shift+click selects a range of emails", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
     const threadRows = page.locator(".overflow-y-auto div[data-thread-id] button");
@@ -217,7 +217,7 @@ test.describe("Multi-Select - Shift+J/K Extend Selection", () => {
   });
 
   test("Shift+J extends selection downward", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Select first thread
     await page.keyboard.press("j");
@@ -266,7 +266,7 @@ test.describe("Multi-Select - Batch Actions", () => {
   });
 
   test("batch action bar shows all action buttons", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
     // Select two threads
@@ -336,7 +336,7 @@ test.describe("Multi-Select - Batch Actions", () => {
     await page.waitForTimeout(500);
 
     // The action should complete without errors
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 
   test("'e' key archives multiple selected threads", async () => {
@@ -388,7 +388,7 @@ test.describe("Multi-Select - Select All and Clear", () => {
   });
 
   test("Cmd+A selects all threads", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
     const totalThreads = await countInboxThreads(page);
@@ -453,7 +453,7 @@ test.describe("Multi-Select - Checkbox Interaction", () => {
   });
 
   test("checkboxes appear after entering multi-select mode", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
     // Enter multi-select mode with Cmd+click
