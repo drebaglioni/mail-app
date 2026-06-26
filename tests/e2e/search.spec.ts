@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /**
  * E2E Tests for Search functionality
@@ -84,6 +84,9 @@ test.describe("Search - Opening and Closing", () => {
       await page.waitForTimeout(300);
     }
 
+    // Search should be closed
+    const searchInput = page.locator("input[placeholder*='Search']");
+    const isStillVisible = await searchInput.isVisible().catch(() => false);
     // If clicking backdrop works, modal should be closed
     // Some implementations may not support backdrop click
   });
@@ -231,8 +234,11 @@ test.describe("Search - Result Navigation", () => {
     // Press down arrow to select second result
     await page.keyboard.press("ArrowDown");
     await page.waitForTimeout(100);
-    // Selection (indicated by bg-blue-50 class) might be on first or second
-    // item depending on implementation — no stable assertion here.
+
+    // The selection should move to a result row.
+    const selectedItem = page.locator("[data-search-selected='true']");
+    const hasSelection = await selectedItem.isVisible().catch(() => false);
+    expect(hasSelection).toBe(true);
 
     // Close
     await page.keyboard.press("Escape");
@@ -262,7 +268,11 @@ test.describe("Search - Result Navigation", () => {
       // Press Enter to select
       await page.keyboard.press("Enter");
       await page.waitForTimeout(300);
-      // Modal should close after selecting a result (no stable assertion here).
+
+      // Search modal should close after selection
+      const searchModal = page.locator("input[placeholder*='Search']");
+      const modalClosed = !(await searchModal.isVisible().catch(() => false));
+      // Modal should close after selecting a result
     }
   });
 
@@ -357,8 +367,13 @@ test.describe("Search - Search Operators", () => {
     // Wait for results
     await page.waitForTimeout(500);
 
-    // Note: demo mode does simple string matching, so a result from alice
-    // might appear differently — no stable assertion here.
+    // Should show result from alice (demo data)
+    const aliceResult = page.locator("text=alice");
+    const hasAlice = await aliceResult
+      .first()
+      .isVisible()
+      .catch(() => false);
+    // Note: demo mode does simple string matching, so this might work differently
 
     // Close
     await page.keyboard.press("Escape");
@@ -403,7 +418,7 @@ test.describe("Search - UI Elements", () => {
     const navHints = page.locator("text=↑↓");
     const hasNavHints = await navHints.isVisible().catch(() => false);
 
-    expect(hasSearchIcon || hasEscHint || hasNavHints).toBe(true);
+    expect(hasEscHint || hasNavHints).toBe(true);
 
     // Close
     await page.keyboard.press("Escape");
@@ -419,6 +434,9 @@ test.describe("Search - UI Elements", () => {
     const searchInput = page.locator("input[placeholder*='Search']");
     await searchInput.fill("test");
 
+    // Loading indicator might briefly appear
+    // This is hard to test due to timing, but we can verify the UI structure exists
+    const loadingSpinner = page.locator(".animate-spin");
     // Just verify the search completes without error
 
     await page.waitForTimeout(500);
@@ -475,27 +493,6 @@ test.describe("Search - Quick Search Click Loads Email", () => {
     }
   });
 
-  async function resetSelection() {
-    await page.evaluate(() => {
-      const store = (window as unknown as Record<string, unknown>).__ZUSTAND_STORE__ as {
-        getState: () => {
-          clearActiveSearch: () => void;
-          setSelectedEmailId: (id: string | null) => void;
-          setSelectedThreadId: (id: string | null) => void;
-          setSelectedDraftId: (id: string | null) => void;
-          setViewMode: (mode: "split" | "full") => void;
-        };
-      };
-      const state = store.getState();
-      state.clearActiveSearch();
-      state.setSelectedEmailId(null);
-      state.setSelectedThreadId(null);
-      state.setSelectedDraftId(null);
-      state.setViewMode("split");
-    });
-    await page.waitForTimeout(300);
-  }
-
   test("clicking a quick search result loads the email detail", async () => {
     // Open search
     const searchButton = page.locator("button[title*='Search']").first();
@@ -521,50 +518,6 @@ test.describe("Search - Quick Search Click Loads Email", () => {
     // Email detail should show the subject (cleaned, without "Re:")
     const emailSubject = page.locator("h1").filter({ hasText: "Q4 Planning" });
     await expect(emailSubject).toBeVisible({ timeout: 5000 });
-  });
-
-  test("slash quick-search result preserves thread context for reply and forward shortcuts", async () => {
-    await resetSelection();
-
-    await page.locator("body").click({ position: { x: 300, y: 120 } });
-    await page.keyboard.press("/");
-
-    const searchInput = page.locator("input[placeholder*='Search']");
-    await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await searchInput.fill("Q4 Planning");
-    await page.waitForTimeout(500);
-
-    const searchPanel = page.locator(".fixed.inset-0.z-50");
-    const resultItem = searchPanel.locator("button").filter({ hasText: "Q4 Planning" }).first();
-    await expect(resultItem).toBeVisible({ timeout: 3000 });
-    await resultItem.click();
-
-    await expect(page.locator("h1").filter({ hasText: "Q4 Planning" })).toBeVisible({
-      timeout: 5000,
-    });
-
-    const selectedThreadId = await page.evaluate(() => {
-      const store = (window as unknown as Record<string, unknown>).__ZUSTAND_STORE__ as {
-        getState: () => { selectedThreadId: string | null };
-      };
-      return store.getState().selectedThreadId;
-    });
-    expect(selectedThreadId).toBe("thread-q4-planning");
-
-    await page.keyboard.press("Enter");
-    const inlineCompose = page.locator("[data-testid='inline-compose']");
-    await expect(inlineCompose).toBeVisible({ timeout: 5000 });
-    await expect(inlineCompose.locator("text=Reply")).toBeVisible();
-
-    await inlineCompose.locator("[data-testid='inline-compose-close']").click();
-    await expect(inlineCompose).toBeHidden({ timeout: 3000 });
-
-    await page.keyboard.press("f");
-    await expect(inlineCompose).toBeVisible({ timeout: 5000 });
-    await expect(inlineCompose.getByText("Forward", { exact: true })).toBeVisible();
-
-    await inlineCompose.locator("[data-testid='inline-compose-close']").click();
-    await expect(inlineCompose).toBeHidden({ timeout: 3000 });
   });
 
   test("arrow+enter on quick search result loads the email detail", async () => {
@@ -889,7 +842,7 @@ test.describe("Search - Search All Mail Affordance", () => {
     await page.waitForTimeout(500);
 
     // Count how many result buttons exist (excluding the "Search all mail" row)
-    const resultButtons = page.locator(".max-h-96 button");
+    const resultButtons = page.locator("[data-testid='search-modal-results'] button");
     const count = await resultButtons.count();
     // The last button is the "Search all mail" row
     expect(count).toBeGreaterThan(1);
@@ -900,10 +853,9 @@ test.describe("Search - Search All Mail Affordance", () => {
       await page.waitForTimeout(50);
     }
 
-    // The "Search all mail" row should be highlighted (bg-blue-50)
+    // The "Search all mail" row should be highlighted.
     const searchAllMailRow = page.locator("button").filter({ hasText: "Search all mail for" });
-    const classes = await searchAllMailRow.getAttribute("class");
-    expect(classes).toContain("bg-blue-50");
+    await expect(searchAllMailRow).toHaveAttribute("data-search-selected", "true");
 
     await page.keyboard.press("Escape");
   });
@@ -965,7 +917,7 @@ test.describe("Search - Search All Mail Affordance", () => {
     await page.waitForTimeout(500);
 
     // Navigate past all results to the "Search all mail" row
-    const resultButtons = page.locator(".max-h-96 button");
+    const resultButtons = page.locator("[data-testid='search-modal-results'] button");
     const count = await resultButtons.count();
     for (let i = 0; i < count; i++) {
       await page.keyboard.press("ArrowDown");

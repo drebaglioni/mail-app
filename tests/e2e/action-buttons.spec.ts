@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /** Best-effort screenshot - won't fail the test if it times out (e.g. due to pending font loads) */
 async function screenshot(page: Page, name: string) {
@@ -18,6 +18,21 @@ async function selectEmail(page: Page, textMatch: string) {
   await page.waitForTimeout(300);
 }
 
+async function openMoreActions(page: Page) {
+  const moreButton = page.locator("button[title='More actions']");
+  await expect(moreButton).toBeVisible({ timeout: 5000 });
+  await moreButton.click();
+  await expect(page.locator("button").filter({ hasText: "Trash" })).toBeVisible({
+    timeout: 3000,
+  });
+}
+
+async function clickMoreAction(page: Page, label: string | RegExp) {
+  await openMoreActions(page);
+  await page.locator("button").filter({ hasText: label }).first().click();
+  await page.waitForTimeout(300);
+}
+
 /** Go back to the email list if we're in a detail view */
 async function ensureInList(page: Page) {
   // If the Back button is visible, click it
@@ -27,7 +42,7 @@ async function ensureInList(page: Page) {
     await page.waitForTimeout(300);
   }
   // Wait for inbox to be ready
-  await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+  await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
 }
 
 test.describe("Email Action Buttons", () => {
@@ -40,9 +55,9 @@ test.describe("Email Action Buttons", () => {
     electronApp = result.app;
     page = result.page;
 
-    // Wait for email list to populate. Priority pills were collapsed in
-    // issue #143, so use the stable per-row data-thread-id attribute.
-    await page.locator("[data-thread-id]").first().waitFor({ timeout: 10000 });
+    // Wait for email list to populate. The default spacious density intentionally
+    // avoids visible priority chips, so rows are the stable loaded signal.
+    await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout: 10000 });
 
     page.on("console", (msg) => {
       if (msg.type() === "error") {
@@ -61,18 +76,25 @@ test.describe("Email Action Buttons", () => {
     // Select an email (Garry Tan's Q3 report — not snoozed in demo mode)
     await selectEmail(page, "Garry");
 
-    // Verify all action buttons are present by their title attributes
+    // Verify primary action buttons are present in the minimalist header.
     await expect(page.locator("button[title='Archive']")).toBeVisible();
-    await expect(page.locator("button[title='Delete']")).toBeVisible();
-    await expect(page.locator("button[title='Mark as unread']")).toBeVisible();
-
-    // Star button could be "Star" or "Unstar"
-    const starButton = page.locator("button[title='Star'], button[title='Unstar']");
-    await expect(starButton.first()).toBeVisible();
-
-    // Reply and Forward should also be visible
     await expect(page.locator("button[title='Reply All']").first()).toBeVisible();
-    await expect(page.locator("button[title='Forward']").first()).toBeVisible();
+    await expect(page.locator("button[title='More actions']")).toBeVisible();
+
+    // Secondary actions live behind the More menu.
+    await openMoreActions(page);
+    await expect(page.locator("button").filter({ hasText: "Forward" }).first()).toBeVisible();
+    await expect(
+      page
+        .locator("button")
+        .filter({ hasText: /Star|Unstar/ })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page.locator("button").filter({ hasText: "Mark as unread" }).first(),
+    ).toBeVisible();
+    await expect(page.locator("button").filter({ hasText: "Trash" }).first()).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // Screenshot the full email detail view with action buttons visible
     await screenshot(page, "action-buttons-overview");
@@ -83,38 +105,38 @@ test.describe("Email Action Buttons", () => {
     await ensureInList(page);
     await selectEmail(page, "Garry");
 
-    // The initial state should be "Star" (unstarred)
-    const starButton = page.locator("button[title='Star']");
-    const unstarButton = page.locator("button[title='Unstar']");
+    await openMoreActions(page);
 
-    const isInitiallyUnstarred = await starButton.isVisible().catch(() => false);
+    const starAction = page
+      .locator("button")
+      .filter({ hasText: /Star|Unstar/ })
+      .first();
+    await expect(starAction).toBeVisible({ timeout: 3000 });
 
-    if (isInitiallyUnstarred) {
-      // Click Star
-      await starButton.click();
-      await page.waitForTimeout(300);
+    await starAction.click();
+    await page.waitForTimeout(300);
 
-      // Should now show "Unstar"
-      await expect(unstarButton).toBeVisible({ timeout: 3000 });
+    await openMoreActions(page);
+    const nextStarAction = page
+      .locator("button")
+      .filter({ hasText: /Star|Unstar/ })
+      .first();
+    await expect(nextStarAction).toBeVisible({ timeout: 3000 });
 
-      // Screenshot showing starred state (yellow filled star)
-      await screenshot(page, "action-buttons-starred");
+    await nextStarAction.click();
+    await page.waitForTimeout(300);
+    await openMoreActions(page);
+    await expect(
+      page
+        .locator("button")
+        .filter({ hasText: /Star|Unstar/ })
+        .first(),
+    ).toBeVisible({
+      timeout: 3000,
+    });
 
-      // Click again to unstar
-      await unstarButton.click();
-      await page.waitForTimeout(300);
-
-      // Should be back to "Star"
-      await expect(starButton).toBeVisible({ timeout: 3000 });
-
-      // Screenshot unstarred state
-      await screenshot(page, "action-buttons-unstarred");
-    } else {
-      // Already starred, click to unstar
-      await unstarButton.click();
-      await page.waitForTimeout(300);
-      await expect(starButton).toBeVisible({ timeout: 3000 });
-    }
+    await screenshot(page, "action-buttons-star-toggle");
+    await page.keyboard.press("Escape");
   });
 
   test("mark as unread navigates back to list", async () => {
@@ -124,18 +146,13 @@ test.describe("Email Action Buttons", () => {
     // Select a specific email (use HR Team — always visible, not snoozed)
     await selectEmail(page, "HR Team");
 
-    // Verify we're in the detail view
-    await expect(page.locator("button[title='Mark as unread']")).toBeVisible();
-
     // Screenshot before clicking
     await screenshot(page, "action-buttons-before-unread");
 
-    // Click "Mark as unread"
-    await page.locator("button[title='Mark as unread']").click();
-    await page.waitForTimeout(500);
+    await clickMoreAction(page, "Mark as unread");
 
     // Should navigate back - inbox should be visible
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout: 5000 });
 
     // Screenshot after marking unread
     await screenshot(page, "action-buttons-after-unread");
@@ -192,13 +209,11 @@ test.describe("Email Action Buttons", () => {
       // Screenshot before trashing
       await screenshot(page, "action-buttons-before-trash");
 
-      // Click Delete/Trash — should auto-advance to next email (like archive)
-      await page.locator("button[title='Delete']").click();
-      await page.waitForTimeout(500);
+      await clickMoreAction(page, "Trash");
 
       // Should still be in detail view showing the next email
       // (Trash auto-advances like the '#' keyboard shortcut)
-      await expect(page.locator("button[title='Delete']")).toBeVisible({ timeout: 5000 });
+      await expect(page.locator("button[title='Archive']")).toBeVisible({ timeout: 5000 });
 
       // Screenshot after trashing
       await screenshot(page, "action-buttons-after-trash");
@@ -222,10 +237,8 @@ test.describe("Email Action Buttons", () => {
 
       // Verify the buttons area is rendered (action + compose buttons visible)
       await expect(page.locator("button[title='Archive']")).toBeVisible();
-      await expect(page.locator("button[title='Delete']")).toBeVisible();
-      await expect(page.locator("button[title='Mark as unread']")).toBeVisible();
       await expect(page.locator("button[title='Reply All']").first()).toBeVisible();
-      await expect(page.locator("button[title='Forward']").first()).toBeVisible();
+      await expect(page.locator("button[title='More actions']")).toBeVisible();
 
       // Take a final styled screenshot
       await screenshot(page, "action-buttons-final");

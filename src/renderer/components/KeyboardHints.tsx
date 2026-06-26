@@ -51,11 +51,11 @@ const COMPOSE_HINTS: Hint[] = [
 
 function HintItem({ hint }: { hint: Hint }) {
   return (
-    <span className="inline-flex items-center gap-1">
-      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-[var(--exo-border-subtle)] exo-text-secondary rounded">
+    <span className="inline-flex items-center gap-1.5">
+      <kbd className="px-2 py-0.5 text-xs bg-transparent exo-text-secondary rounded-sm">
         {hint.key}
       </kbd>
-      <span className="exo-text-muted">{hint.label}</span>
+      <span className="exo-text-secondary">{hint.label}</span>
     </span>
   );
 }
@@ -78,7 +78,7 @@ export function KeyboardHints() {
   // Show compose hints when composing
   if (composeState?.isOpen) {
     return (
-      <div className="h-8 exo-surface-soft border-t exo-border-subtle flex items-center justify-center gap-6 text-xs">
+      <div className="h-10 exo-surface-soft flex items-center justify-center gap-7 text-xs">
         {COMPOSE_HINTS.map((hint) => (
           <HintItem key={hint.key} hint={hint} />
         ))}
@@ -97,7 +97,7 @@ export function KeyboardHints() {
           : DEFAULT_HINTS;
 
   return (
-    <div className="h-8 exo-surface-soft border-t exo-border-subtle flex items-center justify-center gap-6 text-xs">
+    <div className="h-10 exo-surface-soft flex items-center justify-center gap-7 text-xs">
       {hints.map((hint) => (
         <HintItem key={hint.key} hint={hint} />
       ))}

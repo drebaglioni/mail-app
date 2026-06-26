@@ -59,6 +59,14 @@ async function reopenFirstEmail(page: Page): Promise<void> {
   await page.waitForTimeout(1000);
 }
 
+async function openForward(page: Page): Promise<void> {
+  await page.locator("body").click({ position: { x: 300, y: 100 } });
+  await page.waitForTimeout(100);
+  await page.keyboard.press("f");
+  await page.waitForTimeout(800);
+  await expect(page.locator("[data-testid='inline-compose']")).toBeVisible({ timeout: 5000 });
+}
+
 test.describe("Draft persistence across navigation", () => {
   test.describe.configure({ mode: "serial" });
   let electronApp: ElectronApplication;
@@ -126,9 +134,7 @@ test.describe("Draft persistence across navigation", () => {
 
   test("forward recipients and body persist after navigating away and back", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -185,8 +191,7 @@ test.describe("Draft persistence across navigation", () => {
     await page.waitForTimeout(300);
 
     // Discard draft by opening forward, clearing body, closing
-    await forwardButton.click();
-    await page.waitForTimeout(500);
+    await openForward(page);
     const clearEditor = inlineCompose.locator(".ProseMirror");
     await clearEditor.click();
     await page.keyboard.press("ControlOrMeta+a");
@@ -198,9 +203,7 @@ test.describe("Draft persistence across navigation", () => {
 
   test("forward with Cc recipients persists after navigating away and back", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });
@@ -261,8 +264,7 @@ test.describe("Draft persistence across navigation", () => {
     // Clean up
     await inlineCompose.locator("[data-testid='inline-compose-close']").click();
     await page.waitForTimeout(300);
-    await forwardButton.click();
-    await page.waitForTimeout(500);
+    await openForward(page);
     const clearEditor = inlineCompose.locator(".ProseMirror");
     await clearEditor.click();
     await page.keyboard.press("ControlOrMeta+a");
@@ -274,9 +276,7 @@ test.describe("Draft persistence across navigation", () => {
 
   test("compose mode persists: forward stays forward after round-trip", async () => {
     // Open forward
-    const forwardButton = page.locator("button[title='Forward']").first();
-    await forwardButton.click();
-    await page.waitForTimeout(800);
+    await openForward(page);
 
     const inlineCompose = page.locator("[data-testid='inline-compose']");
     await expect(inlineCompose).toBeVisible({ timeout: 5000 });

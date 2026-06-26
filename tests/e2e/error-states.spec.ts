@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /**
  * E2E Tests for error handling and edge cases.
@@ -45,7 +45,7 @@ test.describe("Error States - App Load", () => {
 
   test("app loads without critical console errors", async () => {
     // Wait for the app to fully load
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(2000);
 
     // There should be no critical JS errors
@@ -95,7 +95,7 @@ test.describe("Error States - Empty Inbox Handling", () => {
   });
 
   test("archiving all visible emails shows empty state gracefully", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
     // Count initial threads — skip if none exist
@@ -124,7 +124,7 @@ test.describe("Error States - Empty Inbox Handling", () => {
     expect(remainingCount).toBe(0);
 
     // The inbox header should still be visible
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -146,7 +146,7 @@ test.describe("Error States - Long Email Body", () => {
   });
 
   test("email body renders without horizontal overflow", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Select first email
     await page.keyboard.press("j");
@@ -195,7 +195,7 @@ test.describe("Error States - Rapid Interactions", () => {
   });
 
   test("rapid j/k navigation doesn't crash", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Rapidly press j to navigate down
     for (let i = 0; i < 15; i++) {
@@ -250,7 +250,7 @@ test.describe("Error States - Rapid Interactions", () => {
     await page.waitForTimeout(300);
 
     // Inbox should be visible and functional
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 
   test("rapid multi-select and deselect doesn't crash", async () => {
@@ -270,7 +270,7 @@ test.describe("Error States - Rapid Interactions", () => {
     await page.waitForTimeout(300);
 
     // App should still work
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -292,7 +292,7 @@ test.describe("Error States - UI Resilience", () => {
   });
 
   test("clicking empty space in detail area doesn't crash", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Click on body in a neutral area
     try {
@@ -308,7 +308,7 @@ test.describe("Error States - UI Resilience", () => {
     await page.waitForTimeout(300);
 
     // App should still be responsive
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 
   test("navigating while settings are open doesn't crash", async () => {
@@ -331,19 +331,15 @@ test.describe("Error States - UI Resilience", () => {
   });
 
   test("double-clicking an email doesn't cause issues", async () => {
-    // Priority pills were collapsed in issue #143 — pick any visible thread.
-    const emailButton = page.locator("[data-thread-id]").first();
+    // Find an email to double-click
+    const emailButton = page.locator("div[data-thread-id] button").first();
 
     if (await emailButton.isVisible()) {
       await emailButton.dblclick();
       await page.waitForTimeout(500);
 
-      // App should handle double-click gracefully. Verify against the titlebar
-      // "Exo" header rather than the sidebar Inbox button: clicking a thread
-      // switches to full-view mode which hides the sidebar, so a previous
-      // assertion against `text=Inbox` would flake. The titlebar is always
-      // visible whatever the view mode.
-      await expect(page.locator("h1").filter({ hasText: "Exo" })).toBeVisible({ timeout: 5000 });
+      // App should handle double-click gracefully
+      await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
     }
   });
 
@@ -360,10 +356,8 @@ test.describe("Error States - UI Resilience", () => {
       await refreshButton.click();
       await page.waitForTimeout(500);
 
-      // App should still be alive after refresh. Verify against the always-
-      // visible titlebar rather than the sidebar Inbox button, which is
-      // hidden when the previous keyboard actions land the app in full view.
-      await expect(page.locator("h1").filter({ hasText: "Exo" })).toBeVisible({ timeout: 5000 });
+      // Inbox should still be visible
+      await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
     }
   });
 });

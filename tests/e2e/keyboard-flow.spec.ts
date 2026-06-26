@@ -26,6 +26,10 @@ async function getSelectedThreadId(page: Page): Promise<string | null> {
   return null;
 }
 
+async function expectEmailListVisible(page: Page, timeout = 10000): Promise<void> {
+  await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout });
+}
+
 test.describe("Keyboard Navigation - j/k Movement", () => {
   test.describe.configure({ mode: "serial" });
   let electronApp: ElectronApplication;
@@ -163,7 +167,7 @@ test.describe("Keyboard Navigation - Enter and Escape", () => {
     await page.waitForTimeout(500);
 
     // Inbox should still be visible (split view)
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expectEmailListVisible(page, 5000);
   });
 
   test("Escape deselects the selected email", async () => {
@@ -353,7 +357,7 @@ test.describe("Keyboard Actions - Star (s)", () => {
     await page.waitForTimeout(500);
 
     // The star action should complete without crash
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expectEmailListVisible(page, 5000);
   });
 });
 
@@ -375,15 +379,15 @@ test.describe("Keyboard Go-To - g i (Go to Inbox)", () => {
   });
 
   test("'g then i' switches to priority inbox view", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expectEmailListVisible(page);
 
-    // Switch away from priority view first (go to "All" tab)
-    const allTab = page
+    // Switch away from People view first.
+    const automatedTab = page
       .locator("button")
-      .filter({ hasText: /^All\s*\d*$/ })
+      .filter({ hasText: /^Automated\s*\d*$/ })
       .first();
-    if (await allTab.isVisible().catch(() => false)) {
-      await allTab.click();
+    if (await automatedTab.isVisible().catch(() => false)) {
+      await automatedTab.click();
       await page.waitForTimeout(300);
     }
 
@@ -393,16 +397,13 @@ test.describe("Keyboard Go-To - g i (Go to Inbox)", () => {
     await page.keyboard.press("i");
     await page.waitForTimeout(500);
 
-    // Priority tab should be active
-    const priorityTab = page
+    // People tab should be active
+    const peopleTab = page
       .locator("button")
-      .filter({ hasText: /^Priority\s*\d*$/ })
+      .filter({ hasText: /^People\s*\d*$/ })
       .first();
-    const isActive = await priorityTab
-      .evaluate(
-        (el) =>
-          el.classList.contains("border-blue-500") || el.classList.contains("dark:border-blue-400"),
-      )
+    const isActive = await peopleTab
+      .evaluate((el) => el.getAttribute("data-active") === "true")
       .catch(() => false);
     expect(isActive).toBe(true);
   });
@@ -453,7 +454,7 @@ test.describe("Keyboard - Command Palette and Search", () => {
   });
 
   test("Cmd+K opens command palette", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expectEmailListVisible(page);
 
     await page.keyboard.press("ControlOrMeta+k");
     await page.waitForTimeout(500);
@@ -540,7 +541,7 @@ test.describe("Keyboard - Compose New Email (c)", () => {
   });
 
   test("'c' opens new email compose view", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expectEmailListVisible(page);
 
     await page.keyboard.press("c");
     await page.waitForTimeout(500);
@@ -609,14 +610,14 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
   });
 
   test("Escape closes settings", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expectEmailListVisible(page);
 
     await page.keyboard.press("ControlOrMeta+,");
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
 
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expectEmailListVisible(page, 5000);
   });
 
   test("Escape clears multi-selection", async () => {
@@ -655,7 +656,7 @@ test.describe("Keyboard - Escape Closes All Modals", () => {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(500);
 
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expectEmailListVisible(page, 5000);
   });
 
   test("sequential modals open/close cleanly without leaking state", async () => {
@@ -708,7 +709,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
   });
 
   test("Cmd+J opens agent palette", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expectEmailListVisible(page);
 
     await page.keyboard.press("ControlOrMeta+j");
     await page.waitForTimeout(500);
@@ -847,7 +848,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await discardButton.click();
     await page.waitForTimeout(500);
 
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expectEmailListVisible(page, 5000);
   });
 
   test("Escape closes agent palette on a saved-and-reopened draft", async () => {
@@ -911,7 +912,7 @@ test.describe("Keyboard - Agent Palette (Cmd+J)", () => {
     await discardButton.click();
     await page.waitForTimeout(500);
 
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expectEmailListVisible(page, 5000);
   });
 
   test("agent palette and other modals don't leak state between each other", async () => {

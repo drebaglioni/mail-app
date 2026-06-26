@@ -19,19 +19,19 @@ interface EmailRowProps {
 // Density-specific style maps
 const densityStyles = {
   default: {
-    row: "h-10 px-4 gap-2 text-sm",
-    senderWidth: "w-32",
-    priorityBadge: "text-[10px] px-1.5 py-0.5",
-    time: "w-10 text-xs",
-    threadBadge: "text-[10px] w-5 h-5",
-    unreadDot: "w-1.5 h-1.5",
+    row: "h-[104px] px-10 gap-0 text-base",
+    senderWidth: "w-60",
+    priorityBadge: "text-[11px] px-0 py-0.5",
+    time: "w-20 text-[15px]",
+    threadBadge: "text-xs w-6 h-6",
+    unreadDot: "w-2 h-2",
   },
   compact: {
-    row: "h-8 px-3 gap-1.5 text-xs",
-    senderWidth: "w-28",
-    priorityBadge: "text-[9px] px-1 py-px",
-    time: "w-9 text-[10px]",
-    threadBadge: "text-[9px] w-4 h-4",
+    row: "h-10 px-4 gap-2 text-xs",
+    senderWidth: "w-32",
+    priorityBadge: "text-[10px] px-1.5 py-0.5",
+    time: "w-10 text-[11px]",
+    threadBadge: "text-[10px] w-5 h-5",
     unreadDot: "w-1.5 h-1.5",
   },
 } as const;
@@ -140,11 +140,14 @@ export const EmailRow = memo(
     const time = returnTime
       ? formatRelativeDate(new Date(returnTime).toISOString())
       : formatRelativeDate(thread.latestReceivedEmail.date);
-    const rawSnippet = thread.latestEmail.snippet || "";
+    const previewEmail = thread.draft ? thread.latestReceivedEmail : thread.latestEmail;
+    const rawSnippet = previewEmail.snippet || "";
     const snippet = decodeHtmlEntities(rawSnippet);
     const priorityLabel = getPriorityLabel(thread, false);
+    const priorityKind = priorityLabel?.text.toLowerCase();
     // Fallback to "default" if stored density is unrecognized (e.g. removed "comfortable")
     const ds = densityStyles[density] ?? densityStyles.default;
+    const isCompact = density === "compact";
 
     const isUnread = thread.isUnread;
     const isRecentlyUnsnoozed = returnTime !== undefined;
@@ -152,16 +155,19 @@ export const EmailRow = memo(
     const isVisuallyUnread = isUnread || isRecentlyUnsnoozed;
 
     const showChecked = isChecked || isMultiSelectActive;
+    const edgeKind =
+      priorityKind || (thread.draft ? "draft" : isVisuallyUnread ? "unread" : undefined);
 
     return (
       <div
         data-thread-id={thread.threadId}
         data-selected={isSelected ? "true" : undefined}
+        data-edge={edgeKind}
         className={`
-        w-full ${ds.row} flex items-center text-left exo-list-row group
+        w-full ${ds.row} flex items-center text-left exo-list-row exo-message-object group
         ${
           isSelected && !isChecked
-            ? "exo-list-row-selected text-white"
+            ? "exo-list-row-selected exo-text-primary"
             : isChecked
               ? "exo-list-row-checked exo-text-primary"
               : "exo-text-primary"
@@ -169,7 +175,9 @@ export const EmailRow = memo(
       `}
       >
         {/* Checkbox / Unread indicator area */}
-        <div className="w-5 flex-shrink-0 flex items-center justify-center">
+        <div
+          className={`${isCompact || showChecked ? "w-5" : "w-0"} flex-shrink-0 flex items-center justify-center`}
+        >
           {showChecked ? (
             <input
               type="checkbox"
@@ -182,45 +190,66 @@ export const EmailRow = memo(
               className="w-3.5 h-3.5 rounded border-[var(--exo-border-strong)] text-[var(--exo-accent)] focus:ring-[var(--exo-focus-ring)] cursor-pointer"
               data-testid="thread-checkbox"
             />
-          ) : (
+          ) : isCompact ? (
             <div className="w-2 flex items-center justify-center">
               {isRecentlyUnsnoozed ? (
                 <div
-                  className={`${ds.unreadDot} rounded-full ${isSelected ? "bg-white" : "bg-fuchsia-500"}`}
+                  className={`${ds.unreadDot} rounded-full ${isSelected ? "bg-[var(--exo-accent)]" : "bg-fuchsia-500"}`}
                 />
               ) : isUnread ? (
-                <div
-                  className={`${ds.unreadDot} rounded-full ${isSelected ? "bg-white" : "bg-[var(--exo-accent)]"}`}
-                />
+                <div className={`${ds.unreadDot} rounded-full bg-[var(--exo-accent)]`} />
               ) : null}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Clickable area for opening the thread */}
         <button
           onClick={onClick}
-          className="flex-1 flex items-center gap-2 min-w-0 h-full text-left"
+          className={`flex-1 flex items-center min-w-0 h-full text-left ${isCompact ? "gap-2" : "gap-8"}`}
         >
           {/* Sender name */}
-          <div
-            className={`${ds.senderWidth} truncate font-medium flex-shrink-0 ${
-              isSelected && !isChecked
-                ? "text-white"
-                : isVisuallyUnread
+          {isCompact ? (
+            <div
+              className={`${ds.senderWidth} truncate font-semibold flex-shrink-0 ${
+                isSelected && !isChecked
                   ? "text-[var(--exo-text-primary)]"
-                  : "text-[var(--exo-text-secondary)]"
-            }`}
-          >
-            {senderName}
-          </div>
+                  : isVisuallyUnread
+                    ? "text-[var(--exo-text-primary)]"
+                    : "text-[var(--exo-text-secondary)]"
+              }`}
+            >
+              {senderName}
+            </div>
+          ) : (
+            <div className={`${ds.senderWidth} flex-shrink-0 flex flex-col justify-center gap-1`}>
+              <div
+                className={`truncate text-xl leading-6 font-bold ${
+                  isSelected && !isChecked
+                    ? "text-[var(--exo-text-primary)]"
+                    : isVisuallyUnread
+                      ? "text-[var(--exo-text-primary)]"
+                      : "text-[var(--exo-text-secondary)]"
+                }`}
+              >
+                {senderName}
+              </div>
+              <div className="h-6 flex items-center text-sm leading-5 text-[var(--exo-text-muted)]">
+                {thread.hasMultipleEmails ? (
+                  <span className="truncate">{thread.emails.length} messages</span>
+                ) : (
+                  <span aria-hidden="true">&nbsp;</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Priority label */}
-          {priorityLabel && (
+          {isCompact && priorityLabel && (
             <span
               className={`
-          ${ds.priorityBadge} rounded-sm flex-shrink-0 uppercase font-medium exo-micro-label
-          ${isSelected && !isChecked ? "bg-white/20 text-white" : priorityLabel.className}
+          ${ds.priorityBadge} flex-shrink-0 uppercase font-semibold exo-micro-label
+          ${isSelected && !isChecked ? "text-[var(--exo-accent)]" : priorityLabel.className}
         `}
             >
               {priorityLabel.text}
@@ -228,67 +257,83 @@ export const EmailRow = memo(
           )}
 
           {/* Subject + Snippet (combined to use available space) */}
-          <div
-            className={`flex-1 min-w-0 flex items-center ${density === "compact" ? "gap-1.5" : "gap-2"}`}
-          >
-            <span
-              className={`font-medium truncate flex-shrink-0 max-w-[85%] ${
-                isSelected && !isChecked
-                  ? "text-white"
-                  : isVisuallyUnread
+          {isCompact ? (
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
+              <span
+                className={`font-semibold truncate flex-shrink-0 max-w-[85%] ${
+                  isSelected && !isChecked
                     ? "text-[var(--exo-text-primary)]"
-                    : "text-[var(--exo-text-secondary)]"
-              }`}
-            >
-              {decodeHtmlEntities(thread.subject)}
-            </span>
-            <span
-              aria-hidden="true"
-              className={`flex-shrink ${isSelected && !isChecked ? "text-white/40" : "text-[var(--exo-border-strong)]"}`}
-            >
-              —
-            </span>
-            {thread.draft ? (
-              <>
-                <span
-                  className={`flex-shrink-0 ${isSelected && !isChecked ? "text-green-200" : "text-[var(--exo-priority-low-text)]"}`}
-                >
-                  <svg
-                    className="w-3 h-3 inline-block mr-0.5 -mt-px"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                  </svg>
+                    : isVisuallyUnread
+                      ? "text-[var(--exo-text-primary)]"
+                      : "text-[var(--exo-text-secondary)]"
+                }`}
+              >
+                {decodeHtmlEntities(thread.subject)}
+              </span>
+              <span
+                className={`flex-shrink ${isSelected && !isChecked ? "text-[var(--exo-text-muted)]" : "text-[var(--exo-border-strong)]"}`}
+              >
+                —
+              </span>
+              {thread.draft && (
+                <span className="flex-shrink-0 exo-micro-label uppercase font-semibold text-[var(--exo-accent)]">
                   Draft
                 </span>
-                <span
-                  className={`truncate min-w-0 ${
-                    isSelected && !isChecked ? "text-white/60" : "text-[var(--exo-text-muted)]"
-                  }`}
-                >
-                  {(thread.draft.body ?? "")
-                    .replace(/<[^>]*>/g, "")
-                    .replace(/\n/g, " ")
-                    .substring(0, 100)}
-                </span>
-              </>
-            ) : (
+              )}
               <span
                 className={`truncate min-w-0 ${
-                  isSelected && !isChecked ? "text-white/60" : "text-[var(--exo-text-muted)]"
+                  isSelected && !isChecked
+                    ? "text-[var(--exo-text-secondary)]"
+                    : "text-[var(--exo-text-secondary)]"
                 }`}
               >
                 {snippet}
               </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="exo-message-plane flex-1 min-w-0 flex flex-col justify-center gap-2">
+              <span
+                className={`font-bold truncate max-w-full text-2xl leading-8 ${
+                  isSelected && !isChecked
+                    ? "text-[var(--exo-text-primary)]"
+                    : isVisuallyUnread
+                      ? "text-[var(--exo-text-primary)]"
+                      : "text-[var(--exo-text-secondary)]"
+                }`}
+              >
+                {decodeHtmlEntities(thread.subject)}
+              </span>
+              <span className="flex min-w-0 items-center gap-2 text-base leading-6">
+                {thread.draft && (
+                  <span className="flex-shrink-0 exo-micro-label uppercase font-semibold text-[var(--exo-accent)]">
+                    <svg
+                      className="w-3.5 h-3.5 inline-block mr-1 -mt-px opacity-80"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    Draft
+                  </span>
+                )}
+                <span
+                  className={`truncate min-w-0 ${
+                    isSelected && !isChecked
+                      ? "text-[var(--exo-text-secondary)]"
+                      : "text-[var(--exo-text-secondary)]"
+                  }`}
+                >
+                  {snippet}
+                </span>
+              </span>
+            </div>
+          )}
 
           {/* Keep toggle (Automated tab only) */}
           {onKeepToggle && (
@@ -300,10 +345,10 @@ export const EmailRow = memo(
               className={`flex-shrink-0 p-0.5 rounded transition-colors focus:outline-none ${
                 thread.archiveKept
                   ? isSelected && !isChecked
-                    ? "text-white"
+                    ? "text-[var(--exo-text-primary)]"
                     : "text-amber-500 dark:text-amber-400"
                   : isSelected && !isChecked
-                    ? "text-white/30 opacity-0 group-hover:opacity-100"
+                    ? "text-[var(--exo-text-muted)] opacity-0 group-hover:opacity-100"
                     : "text-[var(--exo-border-strong)] opacity-0 group-hover:opacity-100"
               }`}
               title={
@@ -332,7 +377,9 @@ export const EmailRow = memo(
           {snoozeInfo && (
             <span
               className={`flex items-center gap-0.5 flex-shrink-0 ${
-                isSelected && !isChecked ? "text-white/60" : "text-[#9a6308] dark:text-[#ffd65c]"
+                isSelected && !isChecked
+                  ? "text-[var(--exo-text-secondary)]"
+                  : "text-[#9a6308] dark:text-[#e7bd68]"
               }`}
               title={`Snoozed until ${formatSnoozeTime(snoozeInfo.snoozeUntil)}`}
             >
@@ -351,9 +398,9 @@ export const EmailRow = memo(
           <span
             className={`${ds.time} text-right flex-shrink-0 tabular-nums exo-micro-label ${
               isSelected && !isChecked
-                ? "text-white/60"
+                ? "text-[var(--exo-text-secondary)]"
                 : snoozeInfo
-                  ? "text-[#9a6308] dark:text-[#ffd65c]"
+                  ? "text-[#9a6308] dark:text-[#e7bd68]"
                   : "text-[var(--exo-text-muted)]"
             }`}
           >
@@ -367,8 +414,8 @@ export const EmailRow = memo(
           ${ds.threadBadge} rounded-full flex items-center justify-center flex-shrink-0 exo-micro-label
           ${
             isSelected && !isChecked
-              ? "bg-white/20 text-white"
-              : "bg-[var(--exo-bg-surface-soft)] border border-[var(--exo-border-subtle)] text-[var(--exo-text-muted)]"
+              ? "bg-[var(--exo-bg-elevated)] text-[var(--exo-text-secondary)]"
+              : "bg-transparent text-[var(--exo-text-muted)]"
           }
         `}
             >

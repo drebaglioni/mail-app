@@ -35,11 +35,14 @@ export async function launchElectronApp(
   });
 
   const window = await app.firstWindow();
-  await window.waitForLoadState("domcontentloaded");
+  // Electron can finish domcontentloaded before Playwright attaches to the
+  // BrowserWindow. Treat it as a best-effort signal and rely on shell/data
+  // selectors below for actual readiness.
+  await window.waitForLoadState("domcontentloaded", { timeout: 10000 }).catch(() => undefined);
   await window.waitForSelector("text=Exo", { timeout: 15000 });
 
-  // The app defaults to the Priority tab. Switch to "All" so tests see every
-  // email in the demo inbox (most tests search for specific emails by name).
+  // Older builds had an All tab. Keep this best-effort switch for tests that
+  // search broad demo data, but the current minimal masthead may not expose it.
   const allTab = window
     .locator("button")
     .filter({ hasText: /^All\s*\d*$/ })
@@ -102,9 +105,20 @@ export async function closeApp(electronApp: ElectronApplication): Promise<void> 
  * The settle delay lets React flush pending effects before keyboard events fire.
  */
 export async function waitForEmailListReady(page: Page): Promise<void> {
-  await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
   await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout: 10000 });
   await page.waitForTimeout(1000);
+}
+
+export function needsReplyEmailButton(page: Page) {
+  return page
+    .locator(
+      [
+        "div[data-thread-id][data-edge='high'] button",
+        "div[data-thread-id][data-edge='low'] button",
+        "div[data-thread-id][data-edge='priority'] button",
+      ].join(", "),
+    )
+    .first();
 }
 
 /**

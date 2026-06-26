@@ -51,16 +51,16 @@ function ProviderRow({ provider }: { provider: AgentProviderConfig }) {
   return (
     <button
       onClick={handleToggle}
-      className={`w-full px-3 py-2 flex items-center gap-3 text-left text-sm transition-colors rounded-lg ${
+      className={`w-full px-3 py-2 flex items-center gap-3 text-left text-sm transition-colors rounded-md ${
         isSelected
-          ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+          ? "exo-list-row-selected text-[var(--exo-accent)]"
           : "exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
       }`}
     >
       {/* Checkbox */}
       <div
         className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-          isSelected ? "bg-purple-600 border-purple-600" : "exo-border-strong"
+          isSelected ? "bg-[var(--exo-accent)] border-[var(--exo-accent)]" : "exo-border-strong"
         }`}
       >
         {isSelected && (
@@ -147,9 +147,9 @@ export function AgentsSidebar() {
   const recentHistory = [...agentTaskHistory].reverse().slice(0, 20);
 
   return (
-    <div className="w-56 flex-shrink-0 border-r exo-border-subtle exo-elevated flex flex-col h-full">
+    <div className="w-64 flex-shrink-0 exo-elevated exo-preview-shell flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-3 border-b exo-border-subtle">
+      <div className="flex items-center justify-between px-4 py-4">
         <span className="text-sm font-medium exo-text-primary">Agents</span>
         <button
           onClick={toggleAgentsSidebar}
@@ -169,9 +169,9 @@ export function AgentsSidebar() {
       </div>
 
       {/* Provider list */}
-      <div className="p-2 space-y-1">
+      <div className="p-3 space-y-1.5">
         {availableProviders.length === 0 ? (
-          <div className="px-3 py-4 text-center text-sm exo-text-muted">No agents available.</div>
+          <div className="px-3 py-6 text-center text-sm exo-text-muted">No agents available.</div>
         ) : (
           availableProviders.map((provider) => (
             <ProviderRow key={provider.id} provider={provider} />
@@ -182,7 +182,7 @@ export function AgentsSidebar() {
       {/* Task History */}
       {recentHistory.length > 0 && (
         <>
-          <div className="px-3 py-2 border-t exo-border-subtle">
+          <div className="px-4 py-3">
             <span className="text-xs font-medium exo-text-muted uppercase tracking-wider">
               Recent Tasks
             </span>
@@ -196,10 +196,10 @@ export function AgentsSidebar() {
       )}
 
       {/* Footer */}
-      <div className="px-3 py-2 border-t exo-border-subtle">
+      <div className="px-4 py-3">
         <button
           onClick={() => setShowSettings(true)}
-          className="w-full px-3 py-1.5 text-xs exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors text-center"
+          className="w-full px-3 py-1.5 text-xs exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors text-center"
         >
           Manage...
         </button>

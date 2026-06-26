@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /**
  * E2E Tests for the Settings panel.
@@ -65,12 +65,12 @@ test.describe("Settings Panel - Open and Close", () => {
     await page.waitForTimeout(300);
 
     // Should be back to inbox
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 
   test("can open settings via Cmd+, keyboard shortcut", async () => {
     // Ensure we're on the inbox view
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
 
     // Press Cmd+, to open settings
     await page.keyboard.press("ControlOrMeta+,");
@@ -86,7 +86,7 @@ test.describe("Settings Panel - Open and Close", () => {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
 
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -422,8 +422,8 @@ test.describe("Settings Panel - Persistence", () => {
     // Compact should still be active
     await expect(compactButton).toHaveAttribute("data-active", "true");
 
-    // Restore to default
-    const defaultButton = page.locator("button:has-text('Default')").first();
+    // Restore to the spacious default density
+    const defaultButton = page.locator("button:has-text('Spacious')").first();
     await defaultButton.click();
     await page.waitForTimeout(300);
   });

@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 let electronApp: ElectronApplication;
 let page: Page;
@@ -12,8 +12,8 @@ test.describe("Dark Mode", () => {
     electronApp = result.app;
     page = result.page;
 
-    // Wait for email list to populate. Priority pills were collapsed in
-    // issue #143, so use the stable per-row data-thread-id attribute.
+    // Wait for email list to populate. Spacious mode uses edge rails instead of
+    // visible priority words, so rows are the stable loaded signal.
     await page.locator("[data-thread-id]").first().waitFor({ timeout: 10000 });
   });
 
@@ -63,8 +63,8 @@ test.describe("Dark Mode", () => {
     const bodyBg = await page.evaluate(() => {
       return window.getComputedStyle(document.body).backgroundColor;
     });
-    // Exo dark app background token (#080d18)
-    expect(bodyBg).toBe("rgb(3, 5, 8)");
+    // Exo dark app background token (#030303)
+    expect(bodyBg).toBe("rgb(3, 3, 3)");
   });
 
   test("dark mode applies to settings panel", async () => {
@@ -106,8 +106,8 @@ test.describe("Dark Mode", () => {
     const bodyBg = await page.evaluate(() => {
       return window.getComputedStyle(document.body).backgroundColor;
     });
-    // Exo light app background token (#f4f7fb)
-    expect(bodyBg).toBe("rgb(244, 247, 251)");
+    // Exo light app background token (#f3eee6)
+    expect(bodyBg).toBe("rgb(243, 238, 230)");
   });
 
   test("can switch to system mode", async () => {
@@ -142,8 +142,9 @@ test.describe("Dark Mode", () => {
       await page.waitForTimeout(300);
     }
 
-    // Verify we're back on inbox
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 5000 });
+    // Verify we're back on the inbox list. The minimalist header no longer renders
+    // a redundant literal "Inbox" mailbox tab.
+    await expect(page.locator("[data-thread-id]").first()).toBeVisible({ timeout: 5000 });
 
     // Dark class should still be active
     const hasDarkClass = await page.evaluate(() =>
@@ -155,7 +156,7 @@ test.describe("Dark Mode", () => {
     const bodyBg = await page.evaluate(() => {
       return window.getComputedStyle(document.body).backgroundColor;
     });
-    expect(bodyBg).toBe("rgb(3, 5, 8)");
+    expect(bodyBg).toBe("rgb(3, 3, 3)");
   });
 
   test("inbox email list renders with dark colors", async () => {
@@ -197,7 +198,7 @@ test.describe("Dark Mode", () => {
 
       // Check that a visible email detail surface is using the dark palette.
       const hasDarkBg = await page.evaluate(() => {
-        const darkPalette = new Set(["rgb(3, 5, 8)", "rgb(10, 14, 23)", "rgb(15, 21, 32)"]);
+        const darkPalette = new Set(["rgb(3, 3, 3)", "rgb(7, 7, 7)", "rgb(17, 16, 14)"]);
         const elements = Array.from(document.querySelectorAll("div"));
         return elements.some((el) => {
           if (!(el instanceof HTMLElement) || el.offsetParent === null) return false;
@@ -241,10 +242,9 @@ test.describe("Dark Mode", () => {
         const truncateSpans = row.querySelectorAll("span.truncate");
         if (truncateSpans.length >= 2) {
           const snippet = truncateSpans[truncateSpans.length - 1];
-          const rgb = window
-            .getComputedStyle(snippet)
-            .color.match(/\d+/g)
-            ?.map(Number) ?? [0, 0, 0];
+          const rgb = window.getComputedStyle(snippet).color.match(/\d+/g)?.map(Number) ?? [
+            0, 0, 0,
+          ];
           const maxChannel = Math.max(...rgb);
           if (maxChannel >= 120) return true;
         }
@@ -255,28 +255,30 @@ test.describe("Dark Mode", () => {
     expect(hasReadableSnippetColor).toBe(true);
   });
 
-  test("settings panel card borders are visible with the new dark border token", async () => {
+  test("settings panel cards remain visually distinct without heavy borders", async () => {
     // Open settings
     const settingsButton = page.locator("button[title='Settings']");
     await settingsButton.click();
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
     await page.waitForTimeout(300);
 
-    const borderColor = await page.evaluate(() => {
+    const cardMaterial = await page.evaluate(() => {
       const cards = document.querySelectorAll(".exo-settings-card");
       for (const card of cards) {
-        const bc = window.getComputedStyle(card).borderColor;
-        if (bc && bc !== "rgb(0, 0, 0)") {
-          return bc;
+        const styles = window.getComputedStyle(card);
+        if (
+          styles.backgroundColor &&
+          styles.backgroundColor !== "rgba(0, 0, 0, 0)" &&
+          styles.boxShadow &&
+          styles.boxShadow !== "none"
+        ) {
+          return { backgroundColor: styles.backgroundColor, boxShadow: styles.boxShadow };
         }
       }
       return null;
     });
 
-    expect(borderColor).not.toBeNull();
-    const rgb = parseRgb(borderColor!);
-    // Dark border token: #24314d => rgb(36, 49, 77)
-    expect(rgbWithinTolerance(rgb, [36, 49, 77], 35)).toBe(true);
+    expect(cardMaterial).not.toBeNull();
   });
 
   test("account switcher dropdown has dark background", async () => {
@@ -324,14 +326,11 @@ test.describe("Dark Mode", () => {
     }
   });
 
-  test("compose placeholder text uses gray-400 level contrast", async () => {
+  test("compose placeholder text uses muted token contrast", async () => {
     // Press 'c' to open compose
     await page.keyboard.press("c");
     await page.waitForTimeout(500);
 
-    // The compose view's To field input uses dark:placeholder-gray-400
-    // gray-400 ≈ rgb(156, 163, 175)
-    // We need to check the placeholder pseudo-element color via evaluate
     const placeholderColor = await page.evaluate(() => {
       // Find input with placeholder in the compose view
       const inputs = document.querySelectorAll("input[placeholder]");
@@ -343,27 +342,15 @@ test.describe("Dark Mode", () => {
             ph.toLowerCase().includes("recipient") ||
             ph.toLowerCase().includes("email"))
         ) {
-          // For placeholder color, we use getComputedStyle with ::placeholder
-          // but that's not directly accessible — check the CSS custom property or class
-          // Instead, check if the element has the dark:placeholder-gray-400 class
-          const classList = input.className;
-          if (classList.includes("placeholder-gray-400")) {
-            // The class is present — Tailwind gray-400 is rgb(156, 163, 175)
-            return "class-verified";
-          }
-        }
-      }
-      // Fallback: look for any input in compose area with placeholder class
-      for (const input of inputs) {
-        if (input.className.includes("placeholder-gray-400")) {
-          return "class-verified";
+          return window.getComputedStyle(input, "::placeholder").color;
         }
       }
       return null;
     });
 
-    // Verify the placeholder class is applied
-    expect(placeholderColor).toBe("class-verified");
+    expect(placeholderColor).not.toBeNull();
+    const rgb = placeholderColor?.match(/\d+/g)?.map(Number) || [];
+    expect(Math.max(...rgb)).toBeGreaterThan(120);
 
     // Close compose - press Escape
     await page.keyboard.press("Escape");
@@ -409,38 +396,39 @@ test.describe("Dark Mode", () => {
     }
   });
 
-  test("priority chips use semantic colors in dark mode", async () => {
+  test("priority state is encoded without visible label clutter in dark mode", async () => {
     // Ensure inbox list is visible
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
     await page.waitForSelector("[data-thread-id]", { timeout: 5000 });
 
-    const priorityStyles = await page.evaluate(() => {
-      const targets = ["High", "Medium", "Low"] as const;
-      const result: Record<string, string | null> = { High: null, Medium: null, Low: null };
+    const priorityState = await page.evaluate(() => {
+      const result: Record<string, boolean> = {
+        high: false,
+        low: false,
+        priority: false,
+        visibleRails: false,
+      };
 
-      for (const label of targets) {
-        const candidates = Array.from(document.querySelectorAll("[data-thread-id] span"));
-        const match = candidates.find((el) => {
-          if (!(el instanceof HTMLElement)) return false;
-          return (
-            el.textContent?.trim() === label &&
-            el.closest("[data-selected='true']") === null &&
-            el.offsetParent !== null
-          );
-        }) as HTMLElement | undefined;
-        result[label] = match ? window.getComputedStyle(match).backgroundColor : null;
+      for (const edge of ["high", "low", "priority"] as const) {
+        result[edge] = Boolean(
+          document.querySelector(
+            `[data-thread-id][data-edge="${edge}"]:not([data-selected='true'])`,
+          ),
+        );
       }
+      result.visibleRails = Array.from(document.querySelectorAll(".exo-row-edge-signal")).some(
+        (el) => el instanceof HTMLElement && window.getComputedStyle(el).display !== "none",
+      );
 
       return result;
     });
 
-    expect(priorityStyles.High).toBe("rgb(58, 17, 22)");
-    expect(priorityStyles.Medium).toBe("rgb(58, 45, 0)");
-    expect(priorityStyles.Low).toBe("rgb(18, 49, 36)");
+    expect(priorityState.high || priorityState.low || priorityState.priority).toBe(true);
+    expect(priorityState.visibleRails).toBe(false);
   });
 
-  test("priority chips use semantic colors in light mode", async () => {
+  test("priority state is encoded without visible label clutter in light mode", async () => {
     const settingsButton = page.locator("button[title='Settings']");
     await settingsButton.click();
     await expect(page.locator("h1:has-text('Settings')")).toBeVisible({ timeout: 5000 });
@@ -450,28 +438,29 @@ test.describe("Dark Mode", () => {
     await page.waitForTimeout(300);
     await page.waitForSelector("[data-thread-id]", { timeout: 5000 });
 
-    const priorityStyles = await page.evaluate(() => {
-      const targets = ["High", "Medium", "Low"] as const;
-      const result: Record<string, string | null> = { High: null, Medium: null, Low: null };
+    const priorityState = await page.evaluate(() => {
+      const result: Record<string, boolean> = {
+        high: false,
+        low: false,
+        priority: false,
+        visibleRails: false,
+      };
 
-      for (const label of targets) {
-        const candidates = Array.from(document.querySelectorAll("[data-thread-id] span"));
-        const match = candidates.find((el) => {
-          if (!(el instanceof HTMLElement)) return false;
-          return (
-            el.textContent?.trim() === label &&
-            el.closest("[data-selected='true']") === null &&
-            el.offsetParent !== null
-          );
-        }) as HTMLElement | undefined;
-        result[label] = match ? window.getComputedStyle(match).backgroundColor : null;
+      for (const edge of ["high", "low", "priority"] as const) {
+        result[edge] = Boolean(
+          document.querySelector(
+            `[data-thread-id][data-edge="${edge}"]:not([data-selected='true'])`,
+          ),
+        );
       }
+      result.visibleRails = Array.from(document.querySelectorAll(".exo-row-edge-signal")).some(
+        (el) => el instanceof HTMLElement && window.getComputedStyle(el).display !== "none",
+      );
 
       return result;
     });
 
-    expect(priorityStyles.High).toBe("rgb(254, 226, 226)");
-    expect(priorityStyles.Medium).toBe("rgb(254, 249, 195)");
-    expect(priorityStyles.Low).toBe("rgb(220, 252, 231)");
+    expect(priorityState.high || priorityState.low || priorityState.priority).toBe(true);
+    expect(priorityState.visibleRails).toBe(false);
   });
 });

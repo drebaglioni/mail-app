@@ -1,5 +1,10 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp, pressKeyUntilVisible , closeApp } from "./launch-helpers";
+import {
+  closeApp,
+  launchElectronApp,
+  pressKeyUntilVisible,
+  waitForEmailListReady,
+} from "./launch-helpers";
 
 /**
  * E2E Tests for the sender profile panel.
@@ -35,7 +40,7 @@ test.describe("Sender Profile - Display", () => {
   });
 
   test("selecting an email shows the detail view with sender info", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Select first email
     await page.keyboard.press("j");
@@ -96,6 +101,9 @@ test.describe("Sender Profile - Display", () => {
   });
 
   test("leaving full view preserves row selection and sender sidebar", async () => {
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(500);
+    await waitForEmailListReady(page);
     const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
     await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 15000 });
     const selectedThreadIdBefore = await selectedRow.getAttribute("data-thread-id");
@@ -138,7 +146,7 @@ test.describe("Sender Profile - Switching Emails", () => {
   });
 
   test("switching emails updates the detail view sender", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // The email detail subject h1 is inside the thread header, not the app titlebar
     const detailSubject = page.locator(".overflow-y-auto h1");
@@ -211,7 +219,7 @@ test.describe("Sender Profile - Sidebar Tab Cycling", () => {
   });
 
   test("pressing 'b' cycles through sidebar tabs", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Select an email first
     await page.keyboard.press("j");
@@ -256,7 +264,7 @@ test.describe("Sender Profile - Full View", () => {
   });
 
   test("full view shows sender name for the selected email", async () => {
-    await expect(page.locator("text=Inbox").first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Navigate to first email and enter full view
     const selectedRow = page.locator("div[data-thread-id][data-selected='true']");

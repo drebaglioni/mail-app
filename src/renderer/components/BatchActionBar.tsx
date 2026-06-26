@@ -28,7 +28,7 @@ export function BatchActionBar({
   return (
     <div
       data-testid="batch-action-bar"
-      className="h-10 px-4 flex items-center gap-2 border-b border-[var(--exo-accent-soft)] bg-[var(--exo-accent-soft)]"
+      className="h-12 px-5 flex items-center gap-3 border-b border-[var(--exo-border-subtle)] bg-[var(--exo-accent-soft)]"
     >
       {/* Selection info */}
       <span className="text-sm font-medium text-[var(--exo-accent)] mr-1">
@@ -54,7 +54,7 @@ export function BatchActionBar({
       </button>
 
       {/* Divider */}
-      <div className="w-px h-5 bg-[var(--exo-accent-soft)] mx-1" />
+      <div className="w-px h-6 bg-[var(--exo-border-strong)] mx-1" />
 
       {/* Action buttons */}
       <button

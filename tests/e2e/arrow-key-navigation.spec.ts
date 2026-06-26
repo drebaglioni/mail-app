@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp , closeApp } from "./launch-helpers";
+import { launchElectronApp, closeApp } from "./launch-helpers";
 
 /** Best-effort screenshot */
 async function screenshot(page: Page, name: string) {
@@ -12,11 +12,31 @@ async function screenshot(page: Page, name: string) {
 
 /** Get the data-thread-id of the currently selected (highlighted) row */
 async function getSelectedThreadId(page: Page): Promise<string | null> {
-  const selected = page.locator(".overflow-y-auto div[data-thread-id].bg-blue-600").first();
+  const selected = page
+    .locator(".overflow-y-auto div[data-thread-id][data-selected='true']")
+    .first();
   if (await selected.isVisible().catch(() => false)) {
     return selected.getAttribute("data-thread-id");
   }
   return null;
+}
+
+async function pressUntilSelected(page: Page, key: string): Promise<string> {
+  await expect(page.locator(".overflow-y-auto div[data-thread-id]").first()).toBeVisible({
+    timeout: 10000,
+  });
+  const deadline = Date.now() + 10000;
+
+  while (Date.now() < deadline) {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(100);
+    const selectedThreadId = await getSelectedThreadId(page);
+    if (selectedThreadId) return selectedThreadId;
+  }
+
+  const selectedThreadId = await getSelectedThreadId(page);
+  expect(selectedThreadId).not.toBeNull();
+  return selectedThreadId!;
 }
 
 test.describe("Arrow Key Navigation", () => {
@@ -47,11 +67,7 @@ test.describe("Arrow Key Navigation", () => {
     await screenshot(page, "arrow-nav-01-initial");
 
     // Press ArrowDown to select the first thread
-    await page.keyboard.press("ArrowDown");
-    await page.waitForTimeout(300);
-
-    const selectedAfterArrow = await getSelectedThreadId(page);
-    expect(selectedAfterArrow).not.toBeNull();
+    await pressUntilSelected(page, "ArrowDown");
 
     await screenshot(page, "arrow-nav-02-after-arrow-down");
   });
@@ -62,9 +78,7 @@ test.describe("Arrow Key Navigation", () => {
     await page.waitForTimeout(300);
 
     // Navigate down with j
-    await page.keyboard.press("j");
-    await page.waitForTimeout(300);
-    const afterJ1 = await getSelectedThreadId(page);
+    const afterJ1 = await pressUntilSelected(page, "j");
 
     await page.keyboard.press("j");
     await page.waitForTimeout(300);
@@ -93,8 +107,7 @@ test.describe("Arrow Key Navigation", () => {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
 
-    await page.keyboard.press("j");
-    await page.waitForTimeout(200);
+    await pressUntilSelected(page, "j");
     await page.keyboard.press("j");
     await page.waitForTimeout(200);
     await page.keyboard.press("j");
@@ -127,9 +140,7 @@ test.describe("Arrow Key Navigation", () => {
     await page.waitForTimeout(300);
 
     // j → ArrowDown → k → ArrowUp should return to start
-    await page.keyboard.press("j");
-    await page.waitForTimeout(200);
-    const start = await getSelectedThreadId(page);
+    const start = await pressUntilSelected(page, "j");
 
     await page.keyboard.press("ArrowDown");
     await page.waitForTimeout(200);

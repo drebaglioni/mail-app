@@ -817,7 +817,7 @@ function ThreadMessage({
     return (
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-4 py-3 px-2 hover:bg-[var(--exo-bg-surface-hover)] transition-colors text-left border-b exo-border-subtle"
+        className="w-full flex items-center gap-5 py-4 px-3 hover:bg-[var(--exo-bg-surface-hover)] transition-colors text-left"
       >
         {/* Sender */}
         <div className="w-28 flex-shrink-0">
@@ -845,7 +845,7 @@ function ThreadMessage({
       {/* Header */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 py-3 px-2 transition-colors text-left hover:bg-[var(--exo-bg-surface-hover)]"
+        className="w-full flex items-center gap-3 py-4 px-3 transition-colors text-left hover:bg-[var(--exo-bg-surface-hover)]"
       >
         <span className={`min-w-0 truncate text-sm font-medium exo-text-primary`}>
           {formatMessageHeader(email, currentUserEmail, nameMap)}
@@ -859,14 +859,14 @@ function ThreadMessage({
         </span>
         {/* Reply/Forward action buttons - top right, visible on hover */}
         {isExpanded && (
-          <span className="flex-shrink-0 flex items-center gap-0.5 ml-2 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+          <span className="flex-shrink-0 flex items-center gap-1 ml-3 opacity-0 group-hover/msg:opacity-100 transition-opacity">
             <span
               role="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onReply();
               }}
-              className={`p-1 rounded transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors ${
                 useWhiteCard
                   ? "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-soft)]"
                   : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
@@ -881,7 +881,7 @@ function ThreadMessage({
                 e.stopPropagation();
                 onReplyAll();
               }}
-              className={`p-1 rounded transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors ${
                 useWhiteCard
                   ? "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-soft)]"
                   : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
@@ -896,7 +896,7 @@ function ThreadMessage({
                 e.stopPropagation();
                 onForward();
               }}
-              className={`p-1 rounded transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors ${
                 useWhiteCard
                   ? "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-secondary)] hover:bg-[var(--exo-bg-surface-soft)]"
                   : "exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)]"
@@ -941,7 +941,7 @@ function ThreadMessage({
       {/* Expandable sender details */}
       {showHeaderDetails && (
         <div
-          className={`mx-2 mt-1 p-2 rounded border text-xs space-y-1 ${
+          className={`mx-3 mt-1 p-3 rounded-lg border text-xs space-y-1.5 ${
             useWhiteCard
               ? "bg-[var(--exo-bg-surface-soft)] border-[var(--exo-border-subtle)]"
               : "bg-[var(--exo-bg-surface-soft)]/50/40 exo-border-subtle"
@@ -1019,7 +1019,7 @@ function ThreadMessage({
       )}
 
       {/* Email body - no inner scroll. Masked in session replays via global maskTextSelector:"*" in posthog.ts. */}
-      <div className="px-2 pb-4" data-ph-no-capture>
+      <div className="px-3 pb-6" data-ph-no-capture>
         {lightBody === null ? (
           <div className="animate-pulse exo-text-muted text-sm py-4 px-2">Loading…</div>
         ) : (
@@ -1623,16 +1623,16 @@ function InlineReply({
   return (
     <div
       ref={containerRef}
-      className="-mx-6 border-t exo-border-subtle bg-[var(--exo-bg-surface-soft)]"
+      className="-mx-8 border-t exo-border-subtle bg-[var(--exo-bg-surface-soft)]"
       data-testid="inline-compose"
     >
-      <div className="px-6 pt-2">
-        <div className="flex items-center justify-between mb-1">
+      <div className="px-8 pt-4">
+        <div className="flex items-center justify-between mb-2">
           {/* Level 1: Collapsed summary / Level 2: Header with controls */}
           {!showAddressFields ? (
             <button
               onClick={() => setShowAddressFields(true)}
-              className="text-sm text-left hover:bg-[var(--exo-bg-surface-hover)] rounded px-1 py-0.5 -mx-1 transition-colors"
+              className="text-sm text-left hover:bg-[var(--exo-bg-surface-hover)] rounded-lg px-2 py-1 -mx-2 transition-colors"
               data-testid="inline-reply-summary"
             >
               <span className="text-green-600 dark:text-green-400 font-medium">
@@ -1753,7 +1753,7 @@ function InlineReply({
           </>
         )}
       </div>
-      <div className="px-6 py-2">
+      <div className="px-8 py-4">
         <ComposeEditor
           initialContent={editorInitialContent}
           onChange={handleEditorChange}
@@ -1791,7 +1791,7 @@ function InlineReply({
         )}
         {/* AI Refine section — toggled via Cmd+Shift+E */}
         {showRefineInput && draftEmailId && (
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-4">
             <input
               ref={refineInputRef}
               type="text"
@@ -2138,7 +2138,7 @@ function NewEmailCompose({
   return (
     <div ref={containerRef} className="flex-1 flex flex-col exo-surface overflow-hidden">
       {/* Header */}
-      <div className="h-9 px-4 exo-surface border-b exo-border-subtle flex items-center flex-shrink-0">
+      <div className="h-9 px-4 exo-surface flex items-center flex-shrink-0">
         <span className="exo-text-primary font-medium text-sm exo-micro-label">New Message</span>
         <button
           onClick={onDiscard ?? (() => onCancel(getFormState(), accountId))}
@@ -2263,7 +2263,7 @@ function NewEmailCompose({
             </>
           )}
 
-          <div className="flex items-baseline gap-2 py-1.5 border-b exo-border-subtle">
+          <div className="flex items-baseline gap-2 py-1.5">
             <label className="w-10 text-sm exo-text-secondary flex-shrink-0 exo-micro-label">
               Subject
             </label>
@@ -3492,7 +3492,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
     <div className="flex-1 flex flex-col exo-surface exo-scanline overflow-hidden">
       {/* Back button for full view */}
       {isFullView && (
-        <div className="h-10 px-4 exo-surface border-b exo-border-subtle flex items-center flex-shrink-0">
+        <div className="h-12 px-5 exo-surface flex items-center flex-shrink-0">
           <button
             onClick={handleBackToSplit}
             className="flex items-center gap-1 exo-text-secondary hover:text-[var(--exo-text-primary)] transition-colors text-sm"
@@ -3506,13 +3506,13 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
       {/* Single scroll container for entire thread */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         {/* Thread header */}
-        <div className="px-6 pt-6 pb-4 border-b exo-border-subtle">
+        <div className="px-8 pt-8 pb-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-semibold exo-text-primary leading-tight">
+              <h1 className="text-2xl font-semibold exo-text-primary leading-tight">
                 {cleanSubject}
               </h1>
-              <div className="flex items-center gap-1.5 mt-1 text-xs exo-text-muted flex-wrap">
+              <div className="flex items-center gap-2 mt-2 text-sm exo-text-muted flex-wrap">
                 {threadEmails.length > 1 && <span>{threadEmails.length} messages</span>}
                 {(() => {
                   const snoozeInfo = snoozedThreads.get(latestEmail.threadId);
@@ -3553,11 +3553,11 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                 )}
               </div>
             </div>
-            <div className="flex items-center ml-4 flex-shrink-0">
-              <div className="flex items-center">
+            <div className="flex items-center ml-6 flex-shrink-0">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={handleArchive}
-                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
+                  className="p-2 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
                   title="Archive"
                 >
                   <Archive className="w-4 h-4" />
@@ -3569,8 +3569,8 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                       focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
                     )
                   }
-                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
-                  title="Reply All (a)"
+                  className="p-2 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
+                  title="Reply All"
                 >
                   <ReplyAll className="w-4 h-4" />
                 </button>
@@ -3589,14 +3589,14 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreMenu(!showMoreMenu)}
-                    className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
+                    className="p-2 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
                     title="More actions"
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
                   {showMoreMenu && (
                     <div
-                      className="absolute right-0 top-full mt-1 w-56 exo-elevated border exo-border-subtle rounded-lg shadow-lg z-50 py-1"
+                      className="absolute right-0 top-full mt-2 w-64 exo-elevated border exo-border-subtle rounded-xl shadow-2xl z-50 py-2"
                       onMouseLeave={() => setShowMoreMenu(false)}
                     >
                       <button
@@ -3607,7 +3607,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                           );
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         <span className="flex items-center gap-2">
                           <Reply className="w-4 h-4" /> Reply
@@ -3622,7 +3622,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                           );
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         <span className="flex items-center gap-2">
                           <Forward className="w-4 h-4" /> Forward
@@ -3635,7 +3635,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                           handleToggleStar();
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         <span className="flex items-center gap-2">
                           <Star className="w-4 h-4" fill={isStarred ? "currentColor" : "none"} />
@@ -3648,7 +3648,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                           handleMarkUnread();
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         <span className="flex items-center gap-2">
                           <MailOpen className="w-4 h-4" /> Mark as unread
@@ -3660,7 +3660,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                           setShowSnoozeMenu(!showSnoozeMenu);
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         <span className="flex items-center gap-2">
                           <Clock className="w-4 h-4" /> Snooze
@@ -3673,7 +3673,7 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                           handleTrash();
                           setShowMoreMenu(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-[var(--exo-bg-surface-hover)]"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-[var(--exo-bg-surface-hover)]"
                       >
                         <span className="flex items-center gap-2">
                           <Trash2 className="w-4 h-4" /> Trash
@@ -3689,12 +3689,12 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
         </div>
 
         {/* Thread messages - single scroll, no nested scrolls */}
-        <div className="px-6">
+        <div className="px-8">
           {threadEmails.map((email, idx) => (
             <div
               key={email.id}
               data-email-id={email.id}
-              className={idx < threadEmails.length - 1 ? "border-b exo-border-subtle" : ""}
+              className={idx < threadEmails.length - 1 ? "mb-2" : ""}
             >
               <ThreadMessage
                 email={email}

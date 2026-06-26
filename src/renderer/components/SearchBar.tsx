@@ -421,14 +421,14 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
 
       {/* Search panel */}
-      <div className="relative w-full max-w-2xl exo-elevated rounded-xl shadow-2xl dark:shadow-black/40 overflow-hidden">
+      <div className="relative w-full max-w-3xl exo-elevated rounded-md shadow-2xl dark:shadow-black/60 overflow-hidden">
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b exo-border-subtle">
+        <div className="flex items-center gap-4 px-6 py-5">
           <svg
             className="w-5 h-5 text-[var(--exo-text-muted)] flex-shrink-0"
             fill="none"
@@ -449,7 +449,8 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search emails... (try from:, to:, subject:)"
-            className="flex-1 text-lg outline-none placeholder-[var(--exo-text-muted)] bg-transparent"
+            className="flex-1 text-xl border-none appearance-none outline-none focus:outline-none focus:ring-0 placeholder-[var(--exo-text-muted)] bg-transparent"
+            style={{ outline: "none", border: "none", boxShadow: "none" }}
           />
           {(isSearching || isSearchingRemote) && (
             <svg
@@ -472,22 +473,25 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
               />
             </svg>
           )}
-          <kbd className="px-2 py-1 text-xs text-[var(--exo-text-muted)] bg-[var(--exo-bg-surface-soft)] rounded">
+          <kbd className="px-2 py-1 text-xs text-[var(--exo-text-muted)] bg-[var(--exo-bg-surface-soft)] rounded-sm">
             esc
           </kbd>
         </div>
 
         {/* Results */}
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-[30rem] overflow-y-auto" data-testid="search-modal-results">
           {displayResults.length > 0 ? (
             <div className="py-2">
               {displayResults.map((result, index) => (
                 <button
                   key={result.id}
                   onClick={() => handleResultClick(result)}
-                  className={`w-full px-4 py-3 text-left transition-colors ${
+                  data-search-selected={
+                    index === selectedIndex && selectedIndex >= 0 ? "true" : undefined
+                  }
+                  className={`w-full px-6 py-4 text-left transition-colors ${
                     index === selectedIndex && selectedIndex >= 0
-                      ? "bg-[var(--exo-accent-soft)]"
+                      ? "exo-list-row-selected"
                       : "hover:bg-[var(--exo-bg-surface-hover)]"
                   }`}
                 >
@@ -520,9 +524,11 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
               {query.trim() && (
                 <button
                   onClick={performFullSearch}
-                  className={`w-full px-4 py-3 text-left transition-colors border-t exo-border-subtle ${
+                  data-search-all-mail="true"
+                  data-search-selected={selectedIndex === searchAllMailIndex ? "true" : undefined}
+                  className={`w-full px-6 py-4 text-left transition-colors ${
                     selectedIndex === searchAllMailIndex
-                      ? "bg-[var(--exo-accent-soft)]"
+                      ? "exo-list-row-selected"
                       : "hover:bg-[var(--exo-bg-surface-hover)]"
                   }`}
                 >
@@ -549,15 +555,17 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
             </div>
           ) : query.trim() && !isSearching && !isSearchingRemote ? (
             <div className="py-2">
-              <div className="px-4 py-4 text-center exo-text-muted text-sm">
-                No results for &quot;{query}&quot;
+              <div className="px-5 py-6 text-center exo-text-muted text-sm">
+                No local results for &quot;{query}&quot;
               </div>
               {/* "Search all mail" affordance when no local results */}
               <button
                 onClick={performFullSearch}
-                className={`w-full px-4 py-3 text-left transition-colors border-t exo-border-subtle ${
+                data-search-all-mail="true"
+                data-search-selected={selectedIndex === searchAllMailIndex ? "true" : undefined}
+                className={`w-full px-6 py-4 text-left transition-colors ${
                   selectedIndex === searchAllMailIndex
-                    ? "bg-[var(--exo-accent-soft)]"
+                    ? "exo-list-row-selected"
                     : "hover:bg-[var(--exo-bg-surface-hover)]"
                 }`}
               >
@@ -582,7 +590,7 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
               </button>
             </div>
           ) : !query.trim() ? (
-            <div className="px-4 py-6 text-sm exo-text-muted">
+            <div className="px-5 py-7 text-sm exo-text-muted">
               <div className="font-medium mb-2">Search operators:</div>
               <ul className="space-y-1">
                 <li>
@@ -619,9 +627,9 @@ export function SearchBar({ isOpen, onClose }: SearchBarProps) {
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 px-4 py-2 text-xs text-[var(--exo-text-muted)] border-t exo-border-subtle exo-surface-soft">
+        <div className="flex items-center gap-5 px-6 py-3 text-xs text-[var(--exo-text-muted)] exo-surface-soft">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded">↑↓</kbd> to
+            <kbd className="px-1.5 py-0.5 bg-[var(--exo-border-subtle)] rounded-sm">↑↓</kbd> to
             navigate
           </span>
           <span>

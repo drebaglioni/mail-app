@@ -76,7 +76,7 @@ test.describe("Exo Integration Tests", () => {
     const setupTitle = page.locator("text=Connect to Gmail").first();
 
     // Either setup wizard or main inbox UI should be visible
-    const mainUI = page.locator("text=Inbox").first();
+    const mainUI = page.locator("[data-thread-id]").first();
 
     const setupVisible = await setupTitle.isVisible().catch(() => false);
     const mainVisible = await mainUI.isVisible().catch(() => false);

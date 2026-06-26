@@ -19,27 +19,30 @@ interface TabProps {
   active: boolean;
   onClick: () => void;
   count?: number;
+  variant?: "masthead" | "switch";
   children: React.ReactNode;
 }
 
-function Tab({ active, onClick, count, children }: TabProps) {
+function Tab({ active, onClick, count, variant = "switch", children }: TabProps) {
   return (
     <button
       onClick={onClick}
+      data-active={active ? "true" : undefined}
+      data-variant={variant}
       className={`
-        px-3 py-2 text-sm font-medium whitespace-nowrap
-        border-b transition-colors focus:outline-none
+        exo-signal-tab whitespace-nowrap
+        transition-colors focus:outline-none
         ${
           active
-            ? "border-[var(--exo-accent)] text-[var(--exo-accent)] bg-[var(--exo-accent-soft)]"
-            : "border-transparent text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)] hover:border-[var(--exo-border-strong)] hover:bg-[var(--exo-bg-surface-hover)]"
+            ? "text-[var(--exo-accent)]"
+            : "text-[var(--exo-text-muted)] hover:text-[var(--exo-text-primary)]"
         }
       `}
     >
       {children}
       {count !== undefined && (
         <span
-          className={`ml-1.5 text-xs ${active ? "text-[var(--exo-accent)]" : "exo-text-muted"}`}
+          className={`ml-2 align-baseline ${active ? "text-[var(--exo-accent)]" : "exo-text-muted"}`}
         >
           {count}
         </span>
@@ -59,12 +62,13 @@ function Chip({ active, onClick, children }: ChipProps) {
   return (
     <button
       onClick={onClick}
+      data-active={active ? "true" : undefined}
       className={`
-        px-2.5 py-0.5 text-xs font-medium rounded-full transition-colors focus:outline-none
+        exo-signal-chip px-3 py-1 text-xs font-medium transition-colors focus:outline-none
         ${
           active
-            ? "bg-[var(--exo-accent-soft)] text-[var(--exo-accent)] border border-[var(--exo-accent)]"
-            : "bg-[var(--exo-bg-surface-soft)] text-[var(--exo-text-secondary)] border border-[var(--exo-border-subtle)] hover:bg-[var(--exo-bg-surface-hover)]"
+            ? "pl-5 text-[var(--exo-accent)]"
+            : "text-[var(--exo-text-secondary)] hover:text-[var(--exo-text-primary)]"
         }
       `}
     >
@@ -98,7 +102,7 @@ function SplitTabsImpl() {
   const setCurrentAutomatedCategory = useAppStore((state) => state.setCurrentAutomatedCategory);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const splitAssignments = useAppStore((state) => state.splitAssignments);
-  const { threads, peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
+  const { peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
 
   // Filter splits for current account. In unified mode (currentAccountId
   // === null) include every account's splits — threadMatchesSplit enforces
@@ -129,22 +133,6 @@ function SplitTabsImpl() {
     [automatedThreads, isNonExclusive],
   );
 
-  const counts = useMemo(() => {
-    const map = new Map<string | null, number>();
-
-    const inboxCount = threads.filter(isNonExclusive).length;
-    map.set(null, inboxCount);
-
-    for (const split of splits) {
-      const matchingThreads = threads.filter((t) =>
-        threadMatchesSplit(t, split, splitAssignments.get(t.threadId)),
-      );
-      map.set(split.id, matchingThreads.length);
-    }
-
-    return map;
-  }, [threads, splits, isNonExclusive, splitAssignments]);
-
   // Sort splits by order. In unified mode, two accounts may have splits with
   // the same name (e.g. both have "Newsletter") — disambiguate with a "(2)",
   // "(3)" suffix on subsequent occurrences (sort order is preserved).
@@ -162,63 +150,77 @@ function SplitTabsImpl() {
   const customSplitIds = useMemo(() => new Set(splits.map((s) => s.id)), [splits]);
   const isAutomatedView =
     currentSplitId === "__automated__" || customSplitIds.has(currentSplitId ?? "");
+  const isPeopleView = currentSplitId === "__people__";
+  const isSnoozedView = currentSplitId === "__snoozed__";
+
+  const currentMode = isAutomatedView
+    ? { id: "__automated__", label: "Automated", count: automatedCount }
+    : isSnoozedView
+      ? { id: "__snoozed__", label: "Snoozed", count: snoozedCount }
+      : { id: "__people__", label: "People", count: peopleCount };
 
   return (
-    <div className="flex flex-col border-b exo-border-subtle">
-      {/* Primary tabs row */}
-      <div className="flex h-10 px-2 overflow-x-auto">
-        <Tab
-          active={currentSplitId === "__people__"}
-          onClick={() => setCurrentSplitId("__people__")}
-          count={peopleCount}
+    <div className="flex flex-col">
+      <div className="exo-mode-masthead flex h-28 items-end justify-between px-10 pb-6">
+        <button
+          type="button"
+          data-active="true"
+          className="exo-mode-title min-w-0 text-left focus:outline-none"
+          onClick={() => setCurrentSplitId(currentMode.id)}
         >
-          People
-        </Tab>
-        <Tab
-          active={isAutomatedView}
-          onClick={() => setCurrentSplitId("__automated__")}
-          count={automatedCount}
-        >
-          Automated
-        </Tab>
+          <span className="truncate">{currentMode.label}</span>
+          <span className="exo-mode-count">{currentMode.count}</span>
+        </button>
 
-        {sortedSplits.map(({ split, displayName }) => (
-          <Tab
-            key={split.id}
-            active={currentSplitId === split.id}
-            onClick={() => setCurrentSplitId(split.id)}
-            count={counts.get(split.id)}
-          >
-            {split.icon && <span className="mr-1">{split.icon}</span>}
-            {displayName}
-          </Tab>
-        ))}
+        <div className="exo-hide-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto pb-1">
+          {!isPeopleView && (
+            <Tab
+              active={false}
+              variant="switch"
+              onClick={() => setCurrentSplitId("__people__")}
+              count={peopleCount}
+            >
+              People
+            </Tab>
+          )}
 
-        {/* Conditional virtual tabs */}
-        {snoozedCount > 0 && (
-          <Tab
-            active={currentSplitId === "__snoozed__"}
-            onClick={() => setCurrentSplitId("__snoozed__")}
-            count={snoozedCount}
-          >
-            <span className="inline-flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Snoozed
-            </span>
-          </Tab>
-        )}
+          {!isAutomatedView && (
+            <Tab
+              active={false}
+              variant="switch"
+              onClick={() => setCurrentSplitId("__automated__")}
+              count={automatedCount}
+            >
+              Automated
+            </Tab>
+          )}
+
+          {!isSnoozedView && snoozedCount > 0 && (
+            <Tab
+              active={false}
+              variant="switch"
+              onClick={() => setCurrentSplitId("__snoozed__")}
+              count={snoozedCount}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Snoozed
+              </span>
+            </Tab>
+          )}
+        </div>
       </div>
 
       {/* Subcategory filter chips for Automated tab */}
       {isAutomatedView && (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto">
+        <div className="exo-hide-scrollbar flex items-center gap-4 px-5 py-2 overflow-x-auto">
           {AUTOMATED_CATEGORIES.map((cat) => (
             <Chip
               key={cat.id ?? "all"}

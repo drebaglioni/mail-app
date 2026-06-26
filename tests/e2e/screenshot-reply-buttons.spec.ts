@@ -1,5 +1,5 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp, takeScreenshot , closeApp } from "./launch-helpers";
+import { launchElectronApp, takeScreenshot, closeApp } from "./launch-helpers";
 
 test.describe("Thread Reply Buttons Screenshot", () => {
   let electronApp: ElectronApplication;
@@ -9,9 +9,7 @@ test.describe("Thread Reply Buttons Screenshot", () => {
     const result = await launchElectronApp({ workerIndex: testInfo.workerIndex });
     electronApp = result.app;
     page = result.page;
-    // Wait for email list to populate. Priority pills were collapsed in
-    // issue #143, so use the stable per-row data-thread-id attribute.
-    await page.locator("[data-thread-id]").first().waitFor({ timeout: 10000 });
+    await expect(page.locator("div[data-thread-id]").first()).toBeVisible({ timeout: 10000 });
   });
 
   test.afterAll(async () => {
