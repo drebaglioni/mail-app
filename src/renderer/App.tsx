@@ -10,7 +10,6 @@ import {
 } from "./store";
 import { EmailList } from "./components/EmailList";
 import { EmailDetail } from "./components/EmailDetail";
-import { EmailPreviewSidebar } from "./components/EmailPreviewSidebar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { SearchBar } from "./components/SearchBar";
@@ -659,15 +658,6 @@ export default function App() {
   const isAgentsSidebarOpen = useAppStore((s) => s.isAgentsSidebarOpen);
   const viewMode = useAppStore((s) => s.viewMode);
   const activeSearchQuery = useAppStore((s) => s.activeSearchQuery);
-  const hasSelectedEmail = useAppStore((s) =>
-    s.selectedEmailId ? s.emails.some((email) => email.id === s.selectedEmailId) : false,
-  );
-  const hasSelectedDraft = useAppStore((s) =>
-    s.selectedDraftId ? s.localDrafts.some((draft) => draft.id === s.selectedDraftId) : false,
-  );
-  const hasGlobalAgentTask = useAppStore((s) =>
-    s.globalAgentTaskKey ? Boolean(s.agentTasks[s.globalAgentTaskKey]) : false,
-  );
   const _activeSearchResults = useAppStore((s) => s.activeSearchResults);
   const expiredAccountIds = useAppStore((s) => s.expiredAccountIds);
   const extensionAuthRequired = useAppStore((s) => s.extensionAuthRequired);
@@ -721,9 +711,6 @@ export default function App() {
   const setSplits = useAppStore((s) => s.setSplits);
   const setSplitAssignments = useAppStore((s) => s.setSplitAssignments);
   const setSnippets = useAppStore((s) => s.setSnippets);
-  const shouldShowPreviewSidebar =
-    (!activeSearchQuery || viewMode === "full") &&
-    (hasSelectedEmail || hasSelectedDraft || hasGlobalAgentTask);
 
   // Initialize keyboard shortcuts
   useKeyboardShortcuts({
@@ -2309,9 +2296,6 @@ export default function App() {
         {/* Full mode: full email detail view */}
         {viewMode === "full" && <EmailDetail isFullView />}
 
-        {/* Preview sidebar — kept mounted across view mode transitions to avoid
-            expensive unmount/remount of agent trace timelines */}
-        {shouldShowPreviewSidebar && <EmailPreviewSidebar />}
       </div>
 
       {/* Keyboard hints bar */}
