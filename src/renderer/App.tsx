@@ -2295,7 +2295,6 @@ export default function App() {
 
         {/* Full mode: full email detail view */}
         {viewMode === "full" && <EmailDetail isFullView />}
-
       </div>
 
       {/* Keyboard hints bar */}
