@@ -10,7 +10,6 @@ import {
 } from "./store";
 import { EmailList } from "./components/EmailList";
 import { EmailDetail } from "./components/EmailDetail";
-import { EmailPreviewSidebar } from "./components/EmailPreviewSidebar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { SetupWizard } from "./components/SetupWizard";
 import { SearchBar } from "./components/SearchBar";
@@ -2263,9 +2262,6 @@ export default function App() {
         {/* Full mode: full email detail view */}
         {viewMode === "full" && <EmailDetail isFullView />}
 
-        {/* Preview sidebar — kept mounted across view mode transitions to avoid
-            expensive unmount/remount of agent trace timelines */}
-        {(!activeSearchQuery || viewMode === "full") && <EmailPreviewSidebar />}
       </div>
 
       {/* Keyboard hints bar */}
