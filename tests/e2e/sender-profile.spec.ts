@@ -221,7 +221,7 @@ test.describe("Sender Profile - Sidebar Tab Cycling", () => {
     }
   });
 
-  test("pressing 'b' does not show the removed preview sidebar", async () => {
+  test("pressing 'b' does not show a sidebar", async () => {
     await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
 
     // Select an email first
@@ -231,10 +231,12 @@ test.describe("Sender Profile - Sidebar Tab Cycling", () => {
     await page.keyboard.press("b");
     await page.waitForTimeout(500);
     await expect(page.locator(".w-96.exo-preview-shell")).toBeHidden({ timeout: 3000 });
+    await expect(page.locator(".w-64.exo-preview-shell")).toBeHidden({ timeout: 3000 });
 
     await page.keyboard.press("b");
     await page.waitForTimeout(500);
     await expect(page.locator(".w-96.exo-preview-shell")).toBeHidden({ timeout: 3000 });
+    await expect(page.locator(".w-64.exo-preview-shell")).toBeHidden({ timeout: 3000 });
   });
 });
 
