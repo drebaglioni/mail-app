@@ -1076,12 +1076,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           }
           break;
 
-        // Switch sidebar tab
-        case "b":
-          e.preventDefault();
-          state.cycleSidebarTab();
-          break;
-
         // z: undo last action (Gmail only — no modifier needed)
         case "z":
           if (isGmail && !e.shiftKey) {
@@ -1201,7 +1195,6 @@ export function getKeyboardShortcuts(bindings: "superhuman" | "gmail") {
       { key: "Cmd+J", description: "Agent action palette" },
     ],
     other: [
-      { key: "b", description: "Switch sidebar tab" },
       { key: "Cmd+,", description: "Settings" },
       { key: "?", description: "Show shortcuts" },
     ],

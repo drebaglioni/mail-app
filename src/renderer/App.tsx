@@ -15,7 +15,6 @@ import { SetupWizard } from "./components/SetupWizard";
 import { SearchBar } from "./components/SearchBar";
 import { CommandPalette } from "./components/CommandPalette";
 import { AgentCommandPalette } from "./components/AgentCommandPalette";
-import { AgentsSidebar } from "./components/AgentsSidebar";
 import { ShortcutHelp } from "./components/ShortcutHelp";
 import { KeyboardHints } from "./components/KeyboardHints";
 import { OfflineBanner } from "./components/OfflineBanner";
@@ -645,7 +644,6 @@ export default function App() {
   const isCommandPaletteOpen = useAppStore((s) => s.isCommandPaletteOpen);
   const isFindBarOpen = useAppStore((s) => s.isFindBarOpen);
   const isAgentPaletteOpen = useAppStore((s) => s.isAgentPaletteOpen);
-  const isAgentsSidebarOpen = useAppStore((s) => s.isAgentsSidebarOpen);
   const viewMode = useAppStore((s) => s.viewMode);
   const activeSearchQuery = useAppStore((s) => s.activeSearchQuery);
   const _activeSearchResults = useAppStore((s) => s.activeSearchResults);
@@ -2241,9 +2239,6 @@ export default function App() {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Agents sidebar (collapsible left panel) */}
-        {isAgentsSidebarOpen && <AgentsSidebar />}
-
         {/* Search results view (shown when search is active and not viewing a specific email) */}
         {activeSearchQuery && viewMode !== "full" && <SearchResultsView />}
 
