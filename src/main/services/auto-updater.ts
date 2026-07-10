@@ -107,7 +107,7 @@ class AutoUpdateService extends EventEmitter {
     if (app.isPackaged) {
       autoUpdater.setFeedURL({
         provider: "github",
-        owner: "ankitvgupta",
+        owner: "drebaglioni",
         repo: "mail-app",
         private: true,
         token: process.env.GH_TOKEN || undefined,

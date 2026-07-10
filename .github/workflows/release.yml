@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -14,6 +14,8 @@ jobs:
     runs-on: macos-latest
     env:
       NODE_OPTIONS: --max-old-space-size=4096
+      HAS_SIGNING_CERT: ${{ secrets.CSC_LINK != '' && secrets.CSC_KEY_PASSWORD != '' }}
+      HAS_NOTARIZATION_SECRETS: ${{ secrets.CSC_LINK != '' && secrets.CSC_KEY_PASSWORD != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_API_KEY_ID != '' && secrets.APPLE_API_ISSUER_ID != '' && secrets.APPLE_API_KEY_P8 != '' }}
     outputs:
       submission-id: ${{ steps.notarize-submit.outputs.submission-id }}
     steps:
@@ -57,18 +59,21 @@ jobs:
         run: npm run build
 
       - name: Import signing certificate
+        if: env.HAS_SIGNING_CERT == 'true'
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.CSC_LINK }}
           p12-password: ${{ secrets.CSC_KEY_PASSWORD }}
 
       - name: Install Apple intermediate CA certificates
+        if: env.HAS_SIGNING_CERT == 'true'
         run: |
           curl -sfL -o /tmp/DeveloperIDG2CA.cer https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
           # Import may fail if cert already exists in the .p12 bundle — that's OK
           security import /tmp/DeveloperIDG2CA.cer -t cert -k ~/Library/Keychains/signing_temp.keychain || true
 
       - name: Verify signing identity
+        if: env.HAS_SIGNING_CERT == 'true'
         run: |
           security find-identity -v -p codesigning
           if security find-identity -v -p codesigning | grep -q "0 valid identities found"; then
@@ -76,11 +81,20 @@ jobs:
             exit 1
           fi
 
-      - name: Build distributables (signed)
-        run: npx electron-builder --publish never
+      - name: Build distributables
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ env.HAS_SIGNING_CERT == 'true' && 'true' || 'false' }}
+        run: |
+          if [ "$HAS_SIGNING_CERT" = "true" ]; then
+            echo "Building signed distributables"
+          else
+            echo "No signing certificate configured; building unsigned distributables"
+          fi
+          npx electron-builder --publish never
         timeout-minutes: 10
 
       - name: Submit for notarization (no wait)
+        if: env.HAS_NOTARIZATION_SECRETS == 'true'
         id: notarize-submit
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -107,7 +121,8 @@ jobs:
           echo "Submission ID: $SUBMISSION_ID"
           echo "submission-id=$SUBMISSION_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Upload build artifacts
+      - name: Upload build artifacts for notarization
+        if: env.HAS_NOTARIZATION_SECRETS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: release-assets
@@ -118,9 +133,22 @@ jobs:
             release/*.blockmap
           retention-days: 7
 
+      - name: Upload final build artifacts
+        if: env.HAS_NOTARIZATION_SECRETS != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-final
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+            release/*.blockmap
+          retention-days: 7
+
   # ── Job 2: Poll notarization on Linux (cheap runner for the wait) ────────
   wait-for-notarization:
     needs: build-and-sign
+    if: needs.build-and-sign.outputs.submission-id != ''
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -223,6 +251,7 @@ jobs:
   # ── Job 3: Staple notarization ticket on macOS ───────────────────────────
   staple:
     needs: [build-and-sign, wait-for-notarization]
+    if: needs.build-and-sign.outputs.submission-id != '' && needs.wait-for-notarization.result == 'success'
     runs-on: macos-latest
     steps:
       - name: Download build artifacts
@@ -241,7 +270,7 @@ jobs:
       - name: Upload stapled artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-assets-stapled
+          name: release-assets-final
           path: |
             release/*.dmg
             release/*.zip
@@ -253,15 +282,16 @@ jobs:
   release:
     needs: [build-and-sign, staple]
     if: |
+      always() &&
       needs.build-and-sign.result == 'success' &&
-      needs.staple.result == 'success' &&
+      (needs.staple.result == 'success' || needs.staple.result == 'skipped') &&
       startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - name: Download stapled artifacts
+      - name: Download release artifacts
         uses: actions/download-artifact@v4
         with:
-          name: release-assets-stapled
+          name: release-assets-final
           path: release
 
       - name: Upload assets to release
