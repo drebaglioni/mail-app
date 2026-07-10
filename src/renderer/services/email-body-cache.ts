@@ -183,21 +183,79 @@ function buildIframeHtml(
   <meta name="referrer" content="no-referrer">
   <base target="_blank">
   <style>
+    :root {
+      color-scheme: ${useLightMode ? "light" : "dark"};
+      --capsule-text: ${useLightMode ? "#20201d" : "#f4efe8"};
+      --capsule-muted: ${useLightMode ? "#6d7069" : "#aaa89d"};
+      --capsule-link: ${useLightMode ? "#4f46e5" : "#a5b4fc"};
+      --capsule-rule: ${useLightMode ? "#e7e4dc" : "#34312c"};
+      --capsule-soft: ${useLightMode ? "#f7f5ef" : "#181713"};
+    }
+    html {
+      background: transparent;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      line-height: 1.6;
-      color: ${useLightMode ? "#374151" : "#e5e7eb"};
-      background: ${useLightMode ? "transparent" : "#1f2937"};
+      font-size: 16px;
+      line-height: 1.64;
+      color: var(--capsule-text);
+      background: transparent;
       margin: 0;
       padding: 0;
       word-break: break-word;${needsPreLine ? "\n      white-space: pre-line;" : ""}
+      -webkit-font-smoothing: antialiased;
     }
-    img { max-width: 100%; height: auto; display: block; }
-    a { color: ${useLightMode ? "#3b82f6" : "#60a5fa"}; }
-    table { max-width: 100%; border-collapse: collapse; }
-    td, th { vertical-align: top; }
-    blockquote { margin: 0; padding-left: 12px; border-left: 2px solid ${useLightMode ? "#e5e7eb" : "#4b5563"}; color: ${useLightMode ? "#6b7280" : "#9ca3af"}; }
+    body > *:first-child { margin-top: 0 !important; }
+    body > *:last-child { margin-bottom: 0 !important; }
+    img {
+      max-width: 100% !important;
+      height: auto !important;
+      display: block;
+      border-radius: 14px;
+    }
+    img[title*="Remote image blocked"],
+    img[alt*="Remote image blocked"] {
+      width: min(100%, 640px) !important;
+      min-height: 72px;
+      object-fit: cover;
+      border: 1px solid var(--capsule-rule);
+      background: linear-gradient(135deg, var(--capsule-soft), transparent);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.52);
+    }
+    a {
+      color: var(--capsule-link);
+      text-decoration-thickness: .08em;
+      text-underline-offset: .18em;
+    }
+    p { margin: 0 0 1em; }
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--capsule-text);
+      letter-spacing: 0;
+      line-height: 1.12;
+      margin: 1.35em 0 .55em;
+    }
+    table {
+      max-width: 100% !important;
+      border-collapse: collapse;
+      overflow-wrap: anywhere;
+    }
+    td, th {
+      vertical-align: top;
+      max-width: 100%;
+    }
+    blockquote {
+      margin: 1rem 0;
+      padding: .1rem 0 .1rem 1rem;
+      border-left: 2px solid var(--capsule-rule);
+      color: var(--capsule-muted);
+    }
+    pre {
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--capsule-soft);
+    }
     ${
       !useLightMode
         ? `
@@ -211,7 +269,7 @@ function buildIframeHtml(
       background-color: transparent !important;
     }
     blockquote, blockquote * { color: #9ca3af !important; background-color: transparent !important; }
-    a { color: #60a5fa !important; }
+    a { color: var(--capsule-link) !important; }
     `
         : ""
     }
@@ -247,8 +305,8 @@ class EmailBodyCache {
     this.maxSize = maxSize;
   }
 
-  private makeKey(emailId: string, useLightMode: boolean): string {
-    return `${emailId}:${useLightMode ? "l" : "d"}`;
+  private makeKey(emailId: string, useLightMode: boolean, allowRemoteImages: boolean): string {
+    return `${emailId}:${useLightMode ? "l" : "d"}:${allowRemoteImages ? "remote" : "privacy"}`;
   }
 
   /**
@@ -258,8 +316,13 @@ class EmailBodyCache {
    * to compute the result. This is correct because Gmail message bodies are
    * immutable: the body for a given emailId never changes.
    */
-  getOrCompute(emailId: string, body: string, useLightMode: boolean): SanitizedResult {
-    const key = this.makeKey(emailId, useLightMode);
+  getOrCompute(
+    emailId: string,
+    body: string,
+    useLightMode: boolean,
+    allowRemoteImages = false,
+  ): SanitizedResult {
+    const key = this.makeKey(emailId, useLightMode, allowRemoteImages);
     const cached = this.cache.get(key);
     if (cached !== undefined) {
       // Move to end for LRU freshness
@@ -268,7 +331,7 @@ class EmailBodyCache {
       return cached;
     }
 
-    const result = this.compute(body, useLightMode);
+    const result = this.compute(body, useLightMode, allowRemoteImages);
     this.set(key, result);
     return result;
   }
@@ -276,8 +339,8 @@ class EmailBodyCache {
   /**
    * Check if a result is already cached.
    */
-  has(emailId: string, useLightMode: boolean): boolean {
-    return this.cache.has(this.makeKey(emailId, useLightMode));
+  has(emailId: string, useLightMode: boolean, allowRemoteImages = false): boolean {
+    return this.cache.has(this.makeKey(emailId, useLightMode, allowRemoteImages));
   }
 
   /**
@@ -286,8 +349,13 @@ class EmailBodyCache {
    * Returns a cancel function so callers can clean up stale precompute requests
    * (e.g., in a useEffect cleanup when the user rapidly switches threads).
    */
-  precompute(emailId: string, body: string, useLightMode: boolean): () => void {
-    const key = this.makeKey(emailId, useLightMode);
+  precompute(
+    emailId: string,
+    body: string,
+    useLightMode: boolean,
+    allowRemoteImages = false,
+  ): () => void {
+    const key = this.makeKey(emailId, useLightMode, allowRemoteImages);
     if (this.cache.has(key)) return () => {};
 
     const useIdleCallback = typeof requestIdleCallback === "function";
@@ -295,12 +363,12 @@ class EmailBodyCache {
     const handle: number = useIdleCallback
       ? requestIdleCallback(() => {
           if (this.cache.has(key)) return;
-          const result = this.compute(body, useLightMode);
+          const result = this.compute(body, useLightMode, allowRemoteImages);
           this.set(key, result);
         })
       : window.setTimeout(() => {
           if (this.cache.has(key)) return;
-          const result = this.compute(body, useLightMode);
+          const result = this.compute(body, useLightMode, allowRemoteImages);
           this.set(key, result);
         }, 0);
 
@@ -348,7 +416,11 @@ class EmailBodyCache {
     this.cache.set(key, value);
   }
 
-  private compute(body: string, useLightMode: boolean): SanitizedResult {
+  private compute(
+    body: string,
+    useLightMode: boolean,
+    allowRemoteImages: boolean,
+  ): SanitizedResult {
     if (!isHtmlContent(body)) {
       return { isHtml: false, htmlContent: null };
     }
@@ -357,8 +429,8 @@ class EmailBodyCache {
 
     const needsPreLine = isPlainTextInHtml(stripped);
     const clean = DOMPurify.sanitize(stripped, SANITIZE_CONFIG);
-    const privacySafe = replaceRemoteImageSources(clean, useLightMode);
-    const htmlContent = buildIframeHtml(privacySafe, useLightMode, needsPreLine);
+    const imageSafe = allowRemoteImages ? clean : replaceRemoteImageSources(clean, useLightMode);
+    const htmlContent = buildIframeHtml(imageSafe, useLightMode, needsPreLine);
 
     return { isHtml: true, htmlContent };
   }
