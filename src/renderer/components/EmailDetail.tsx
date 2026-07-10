@@ -3,19 +3,29 @@ import { useAppStore, useSplitFilteredThreads } from "../store";
 import DOMPurify from "dompurify";
 import {
   Archive,
+  Bot,
+  CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronUp,
   Clock,
+  Command,
+  FileText,
   Forward,
+  Link2,
   Loader2,
   MailOpen,
   MoreHorizontal,
   Package,
+  Paperclip,
   Reply,
   ReplyAll,
+  ShieldCheck,
+  Sparkles,
   Star,
   Trash2,
+  UserRound,
+  X,
 } from "lucide-react";
 import {
   emailBodyCache,
@@ -53,6 +63,12 @@ import { FromSelector } from "./FromSelector";
 import { CrossAccountFromSelector } from "./CrossAccountFromSelector";
 import { trackEvent, captureException } from "../services/posthog";
 import { draftBodyToHtml } from "../../shared/draft-utils";
+import {
+  classifyEmailCapsule,
+  countRemoteImages,
+  getSenderIdentity,
+  type CapsuleIconKey,
+} from "../services/email-capsule";
 
 declare global {
   interface Window {
@@ -253,10 +269,12 @@ function EmailBodyRenderer({
   emailId,
   body,
   useLightMode,
+  allowRemoteImages,
 }: {
   emailId: string;
   body: string;
   useLightMode: boolean;
+  allowRemoteImages: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(200);
@@ -264,8 +282,8 @@ function EmailBodyRenderer({
   // Use the LRU cache to avoid re-running DOMPurify on every email switch.
   // On cache hit this is a Map lookup; on miss it sanitizes and caches the result.
   const cached = useMemo(
-    () => emailBodyCache.getOrCompute(emailId, body, useLightMode),
-    [emailId, body, useLightMode],
+    () => emailBodyCache.getOrCompute(emailId, body, useLightMode, allowRemoteImages),
+    [emailId, body, useLightMode, allowRemoteImages],
   );
   const isHtml = cached.isHtml;
   const htmlContent = cached.isHtml ? cached.htmlContent : null;
@@ -285,8 +303,13 @@ function EmailBodyRenderer({
   // isHtmlContent(body) returns false but isHtmlContent(decodedBody) is true.
   const recoveredHtml = useMemo(() => {
     if (isHtml || !decodedBody || !isHtmlContent(decodedBody)) return null;
-    return emailBodyCache.getOrCompute(`${emailId}:recovered`, decodedBody, useLightMode);
-  }, [isHtml, decodedBody, emailId, useLightMode]);
+    return emailBodyCache.getOrCompute(
+      `${emailId}:recovered`,
+      decodedBody,
+      useLightMode,
+      allowRemoteImages,
+    );
+  }, [isHtml, decodedBody, emailId, useLightMode, allowRemoteImages]);
 
   const shouldRenderIframe =
     (isHtml && htmlContent) || (recoveredHtml?.isHtml && recoveredHtml.htmlContent);
@@ -505,6 +528,42 @@ function detectUnsubscribeUrl(bodies: string[]): string | null {
     }
   }
   return null;
+}
+
+function renderCapsuleIcon(icon: CapsuleIconKey): React.ReactNode {
+  switch (icon) {
+    case "calendar":
+      return <CalendarDays className="w-4 h-4" />;
+    case "package":
+      return <Package className="w-4 h-4" />;
+    case "paperclip":
+      return <Paperclip className="w-4 h-4" />;
+    case "link":
+      return <Link2 className="w-4 h-4" />;
+    case "shield":
+      return <ShieldCheck className="w-4 h-4" />;
+    case "sparkles":
+    default:
+      return <Sparkles className="w-4 h-4" />;
+  }
+}
+
+function getTrustedRemoteImageSender(senderEmail: string): boolean {
+  if (!senderEmail.includes("@")) return false;
+  try {
+    return window.localStorage.getItem(`exo:remote-images:${senderEmail.toLowerCase()}`) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function trustRemoteImageSender(senderEmail: string): void {
+  if (!senderEmail.includes("@")) return;
+  try {
+    window.localStorage.setItem(`exo:remote-images:${senderEmail.toLowerCase()}`, "true");
+  } catch {
+    // localStorage can be unavailable in hardened test contexts.
+  }
 }
 
 /**
@@ -749,6 +808,10 @@ function ThreadMessage({
 
   // Check if this is from current user
   const isFromMe = currentUserEmail && senderEmail.toLowerCase() === currentUserEmail.toLowerCase();
+  const normalizedSenderEmail = senderEmail.toLowerCase();
+  const [allowRemoteImages, setAllowRemoteImages] = useState(() =>
+    email.id.startsWith("demo-") || getTrustedRemoteImageSender(normalizedSenderEmail),
+  );
 
   // Format date
   const formatDate = (dateStr: string) => {
@@ -777,6 +840,10 @@ function ThreadMessage({
     if (!email.body) return null;
     return stripLargeDataUris(email.body, !isDark);
   }, [email.body, isDark]);
+  const remoteImageCount = useMemo(
+    () => (lightBody ? countRemoteImages([lightBody]) : 0),
+    [lightBody],
+  );
 
   // Get snippet for collapsed view (decode HTML entities from Gmail API)
   const decodeEntities = (text: string): string => {
@@ -1024,6 +1091,37 @@ function ThreadMessage({
           <div className="animate-pulse exo-text-muted text-sm py-4 px-2">Loading…</div>
         ) : (
           <>
+            {remoteImageCount > 0 && !allowRemoteImages && (
+              <div className="mb-4 rounded-2xl border border-[var(--exo-capsule-border)] bg-[var(--exo-capsule-card)] px-4 py-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-sm font-semibold exo-text-primary">
+                      {remoteImageCount} remote image{remoteImageCount === 1 ? "" : "s"} blocked
+                    </div>
+                    <div className="mt-0.5 text-xs leading-relaxed exo-text-secondary">
+                      Load them for this message, or trust future images from {senderName}.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setAllowRemoteImages(true)}
+                      className="exo-capsule-chip rounded-full px-3 py-1.5 text-sm font-medium"
+                    >
+                      Load images
+                    </button>
+                    <button
+                      onClick={() => {
+                        trustRemoteImageSender(normalizedSenderEmail);
+                        setAllowRemoteImages(true);
+                      }}
+                      className="exo-capsule-chip rounded-full px-3 py-1.5 text-sm"
+                    >
+                      Always for sender
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Cache key uses `:trimmed` suffix so stripped and full body are cached separately.
                 The LRU cache keys on emailId — since the same email has two body variants,
                 the suffix prevents one from overwriting the other on toggle. */}
@@ -1031,6 +1129,7 @@ function ThreadMessage({
               emailId={hasQuotedContent && !showQuotedBody ? `${email.id}:trimmed` : email.id}
               body={hasQuotedContent && !showQuotedBody ? newContent : lightBody}
               useLightMode={!useDarkContent}
+              allowRemoteImages={allowRemoteImages}
             />
           </>
         )}
@@ -2421,6 +2520,8 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
   const showSnoozeMenu = useAppStore((s) => s.showSnoozeMenu);
   const setShowSnoozeMenu = useAppStore((s) => s.setShowSnoozeMenu);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isCapsuleCommandOpen, setIsCapsuleCommandOpen] = useState(false);
+  const commandSheetRef = useRef<HTMLDivElement>(null);
   const isInlineReplyOpen = useAppStore((s) => s.isInlineReplyOpen);
   const setInlineReplyOpen = useAppStore((s) => s.setInlineReplyOpen);
   const focusedThreadEmailId = useAppStore((s) => s.focusedThreadEmailId);
@@ -2466,6 +2567,50 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
   // Anchor ref: tracks the expanded email's position in scrollable content so we can
   // compensate when new messages are inserted above (e.g. fullThreadEmails loading).
   const scrollAnchorRef = useRef<{ emailId: string; scrollOffset: number } | null>(null);
+
+  useEffect(() => {
+    if (!isCapsuleCommandOpen) return;
+
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusableSelector =
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    const focusFirst = () => {
+      const first = commandSheetRef.current?.querySelector<HTMLElement>(focusableSelector);
+      first?.focus();
+    };
+
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsCapsuleCommandOpen(false);
+        return;
+      }
+
+      if (e.key !== "Tab" || !commandSheetRef.current) return;
+      const focusable = Array.from(
+        commandSheetRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    window.setTimeout(focusFirst, 0);
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+      previouslyFocused?.focus();
+    };
+  }, [isCapsuleCommandOpen]);
 
   // Clear post-send scroll timeout on unmount
   useEffect(() => {
@@ -3303,6 +3448,14 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
       ? oldestEmail.subject.replace(/^(Re:\s*)+/i, "")
       : oldestEmail.subject,
   );
+  const senderIdentity = getSenderIdentity(latestEmail);
+  const capsule = classifyEmailCapsule({
+    threadEmails,
+    latestEmail,
+    sender: senderIdentity,
+    unsubscribeUrl,
+    trackingCount: trackingNumbers.length,
+  });
 
   const handleBackToSplit = () => {
     useAppStore.setState({
@@ -3314,6 +3467,18 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
   };
 
   const isStarred = threadEmails.some((e) => e.labelIds?.includes("STARRED"));
+
+  const handleOpenReply = () => {
+    openCompose("reply", focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id);
+  };
+
+  const handleOpenReplyAll = () => {
+    openCompose("reply-all", focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id);
+  };
+
+  const handleOpenForward = () => {
+    openCompose("forward", focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id);
+  };
 
   const handleArchive = () => {
     if (!threadAccountId || !selectedThreadId) return;
@@ -3489,107 +3654,90 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col exo-surface exo-scanline overflow-hidden">
-      {/* Back button for full view */}
-      {isFullView && (
-        <div className="h-12 px-5 exo-surface flex items-center flex-shrink-0">
+    <div className="flex-1 flex flex-col exo-capsule-shell overflow-hidden">
+      <div className="exo-capsule-topbar px-5 flex items-center justify-between flex-shrink-0">
+        {isFullView ? (
           <button
             onClick={handleBackToSplit}
-            className="flex items-center gap-1 exo-text-secondary hover:text-[var(--exo-text-primary)] transition-colors text-sm"
+            className="exo-capsule-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
           >
             <ChevronLeft className="w-4 h-4" />
             Back
           </button>
+        ) : (
+          <div />
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCapsuleCommandOpen(true)}
+            className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
+            title="Open capsule command sheet"
+          >
+            <Command className="w-4 h-4" />
+            Capsule
+          </button>
+          <button
+            onClick={handleArchive}
+            className="exo-capsule-icon-btn p-2 rounded-full"
+            title="Archive"
+          >
+            <Archive className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleOpenReplyAll}
+            className="exo-capsule-icon-btn p-2 rounded-full"
+            title="Reply All"
+          >
+            <ReplyAll className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleOpenForward}
+            className="exo-capsule-icon-btn p-2 rounded-full"
+            title="Forward"
+          >
+            <Forward className="w-4 h-4" />
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* Single scroll container for entire thread */}
+      {/* Single scroll container for entire capsule/thread */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-        {/* Thread header */}
-        <div className="px-8 pt-8 pb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-semibold exo-text-primary leading-tight">
-                {cleanSubject}
-              </h1>
-              <div className="flex items-center gap-2 mt-2 text-sm exo-text-muted flex-wrap">
-                {threadEmails.length > 1 && <span>{threadEmails.length} messages</span>}
-                {(() => {
-                  const snoozeInfo = snoozedThreads.get(latestEmail.threadId);
-                  return snoozeInfo ? (
-                    <>
-                      {threadEmails.length > 1 && <span>·</span>}
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Snoozed until {formatSnoozeTime(snoozeInfo.snoozeUntil)}
-                      </span>
-                    </>
-                  ) : null;
-                })()}
-                {trackingNumbers.map((t, i) => (
-                  <React.Fragment key={i}>
-                    <span>·</span>
-                    <button
-                      onClick={() => window.open(t.url, "_blank")}
-                      className="inline-flex items-center gap-1 hover:text-[var(--exo-text-primary)] transition-colors"
-                      title={`Track ${t.carrier} package ${t.trackingNumber}`}
-                    >
-                      <Package className="w-3 h-3" />
-                      Track {t.carrier}
-                    </button>
-                  </React.Fragment>
+        <div className="exo-capsule-stage" data-mode={capsule.mode}>
+          <header className="exo-capsule-hero">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="exo-capsule-mode">
+                <Sparkles className="w-3.5 h-3.5" />
+                {capsule.label}
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {capsule.actionLabels.map((label) => (
+                  <button
+                    key={label}
+                    onClick={
+                      label === "Draft reply"
+                        ? handleOpenReply
+                        : label === "Unsubscribe" && unsubscribeUrl
+                          ? () => window.open(unsubscribeUrl, "_blank")
+                          : () => setIsCapsuleCommandOpen(true)
+                    }
+                    className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
+                  >
+                    {label === "Draft reply" ? (
+                      <Reply className="w-3.5 h-3.5" />
+                    ) : label === "Schedule" ? (
+                      <CalendarDays className="w-3.5 h-3.5" />
+                    ) : label === "Unsubscribe" ? (
+                      <Link2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <Bot className="w-3.5 h-3.5" />
+                    )}
+                    {label}
+                  </button>
                 ))}
-                {unsubscribeUrl && (
-                  <>
-                    <span>·</span>
-                    <button
-                      onClick={() => window.open(unsubscribeUrl!, "_blank")}
-                      className="hover:text-[var(--exo-text-primary)] transition-colors"
-                      title="Unsubscribe from this mailing list"
-                    >
-                      Unsubscribe
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center ml-6 flex-shrink-0">
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleArchive}
-                  className="p-2 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
-                  title="Archive"
-                >
-                  <Archive className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    openCompose(
-                      "reply-all",
-                      focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
-                    )
-                  }
-                  className="p-2 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
-                  title="Reply All"
-                >
-                  <ReplyAll className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    openCompose(
-                      "forward",
-                      focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
-                    )
-                  }
-                  className="p-1.5 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-md transition-colors"
-                  title="Forward"
-                >
-                  <Forward className="w-4 h-4" />
-                </button>
                 <div className="relative">
                   <button
                     onClick={() => setShowMoreMenu(!showMoreMenu)}
-                    className="p-2 exo-text-muted hover:text-[var(--exo-text-primary)] hover:bg-[var(--exo-bg-surface-hover)] rounded-lg transition-colors"
+                    className="exo-capsule-icon-btn p-2 rounded-full"
                     title="More actions"
                   >
                     <MoreHorizontal className="w-4 h-4" />
@@ -3685,117 +3833,300 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Thread messages - single scroll, no nested scrolls */}
-        <div className="px-8">
-          {threadEmails.map((email, idx) => (
-            <div
-              key={email.id}
-              data-email-id={email.id}
-              className={idx < threadEmails.length - 1 ? "mb-2" : ""}
-            >
-              <ThreadMessage
-                email={email}
-                isExpanded={expandedMessagesRef.current.has(email.id)}
-                isFocused={focusedThreadEmailId === email.id}
-                onToggle={() => toggleMessage(email.id)}
-                onReply={() => openCompose("reply", email.id)}
-                onReplyAll={() => openCompose("reply-all", email.id)}
-                onForward={() => openCompose("forward", email.id)}
-                onBlockSender={handleBlockSender}
-                currentUserEmail={currentUserEmail}
-                accountId={threadAccountId ?? undefined}
-                threadEmails={threadEmails}
-                onPreviewAttachment={(attachment, data) =>
-                  setPreviewAttachment({ attachment, data })
-                }
-              />
-              {/* Loading indicator for inline reply — stays inside map for positioning */}
-              {inlineReplyToEmailId === email.id && isLoadingReplyInfo && (
-                <div className="py-4 text-sm exo-text-muted">Loading...</div>
+            <h1 className="exo-capsule-title font-semibold">{cleanSubject}</h1>
+            <div className="exo-capsule-meta text-sm">
+              <button
+                onClick={() => setIsCapsuleCommandOpen(true)}
+                className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+                title={`${senderIdentity.name} ${senderIdentity.email}`}
+              >
+                <UserRound className="w-3.5 h-3.5" />
+                <span className="font-medium exo-text-primary">{senderIdentity.name}</span>
+                <span>{senderIdentity.domain || senderIdentity.email}</span>
+              </button>
+              <span className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                {capsule.trustLabel}
+              </span>
+              {threadEmails.length > 1 && (
+                <span className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+                  <FileText className="w-3.5 h-3.5" />
+                  {threadEmails.length} messages
+                </span>
               )}
-              {/* Inline reply/forward — rendered inside the map right below the email being replied to.
+              {(() => {
+                const snoozeInfo = snoozedThreads.get(latestEmail.threadId);
+                return snoozeInfo ? (
+                  <span className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Snoozed until {formatSnoozeTime(snoozeInfo.snoozeUntil)}
+                  </span>
+                ) : null;
+              })()}
+            </div>
+          </header>
+
+          <section className="exo-capsule-context" aria-label="Email context">
+            {capsule.contextCards.map((card) => (
+              <div key={card.key} className="exo-capsule-context-card">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
+                  {renderCapsuleIcon(card.icon)}
+                  {card.label}
+                </div>
+                <div className="mt-3 text-sm font-semibold exo-text-primary">{card.title}</div>
+                <p className="mt-1 text-sm leading-relaxed exo-text-secondary">{card.body}</p>
+              </div>
+            ))}
+          </section>
+
+          {trackingNumbers.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {trackingNumbers.map((t) => (
+                <button
+                  key={`${t.carrier}-${t.trackingNumber}`}
+                  onClick={() => window.open(t.url, "_blank")}
+                  className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
+                  title={`Track ${t.carrier} package ${t.trackingNumber}`}
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  Track {t.carrier}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Thread messages - single scroll, no nested scrolls */}
+          <div className="space-y-4">
+            {threadEmails.map((email) => (
+              <div key={email.id} data-email-id={email.id} className="exo-capsule-message">
+                <ThreadMessage
+                  email={email}
+                  isExpanded={expandedMessagesRef.current.has(email.id)}
+                  isFocused={focusedThreadEmailId === email.id}
+                  onToggle={() => toggleMessage(email.id)}
+                  onReply={() => openCompose("reply", email.id)}
+                  onReplyAll={() => openCompose("reply-all", email.id)}
+                  onForward={() => openCompose("forward", email.id)}
+                  onBlockSender={handleBlockSender}
+                  currentUserEmail={currentUserEmail}
+                  accountId={threadAccountId ?? undefined}
+                  threadEmails={threadEmails}
+                  onPreviewAttachment={(attachment, data) =>
+                    setPreviewAttachment({ attachment, data })
+                  }
+                />
+                {/* Loading indicator for inline reply — stays inside map for positioning */}
+                {inlineReplyToEmailId === email.id && isLoadingReplyInfo && (
+                  <div className="py-4 text-sm exo-text-muted">Loading...</div>
+                )}
+                {/* Inline reply/forward — rendered inside the map right below the email being replied to.
                   When undo-send replaces an optimistic email ID, UndoSendToast atomically updates
                   inlineReplyToEmailId in the store so this condition keeps matching. */}
-              {inlineReplyToEmailId === email.id &&
-                inlineReplyInfo &&
-                threadAccountId &&
-                currentUserEmail &&
-                inlineComposeMode && (
-                  <InlineReply
-                    key={`${inlineComposeMode}-${inlineReplyToEmailId}`}
-                    replyInfo={inlineReplyInfo}
-                    accountId={threadAccountId}
-                    accountEmail={currentUserEmail}
-                    composeMode={inlineComposeMode}
-                    replyToEmailId={inlineReplyToEmailId}
-                    onSend={handleInlineReplySent}
-                    onCancel={handleInlineReplyCancel}
-                    onContentChange={(content) => {
-                      inlineReplyContentRef.current = {
-                        ...inlineReplyContentRef.current,
-                        ...content,
-                      };
-                    }}
-                    onToChange={(to) => {
-                      if (inlineReplyContentRef.current) {
-                        inlineReplyContentRef.current.to = to;
-                      } else {
-                        inlineReplyContentRef.current = { bodyHtml: "", bodyText: "", to };
+                {inlineReplyToEmailId === email.id &&
+                  inlineReplyInfo &&
+                  threadAccountId &&
+                  currentUserEmail &&
+                  inlineComposeMode && (
+                    <InlineReply
+                      key={`${inlineComposeMode}-${inlineReplyToEmailId}`}
+                      replyInfo={inlineReplyInfo}
+                      accountId={threadAccountId}
+                      accountEmail={currentUserEmail}
+                      composeMode={inlineComposeMode}
+                      replyToEmailId={inlineReplyToEmailId}
+                      onSend={handleInlineReplySent}
+                      onCancel={handleInlineReplyCancel}
+                      onContentChange={(content) => {
+                        inlineReplyContentRef.current = {
+                          ...inlineReplyContentRef.current,
+                          ...content,
+                        };
+                      }}
+                      onToChange={(to) => {
+                        if (inlineReplyContentRef.current) {
+                          inlineReplyContentRef.current.to = to;
+                        } else {
+                          inlineReplyContentRef.current = { bodyHtml: "", bodyText: "", to };
+                        }
+                      }}
+                      onCcChange={(cc) => {
+                        if (inlineReplyContentRef.current) {
+                          inlineReplyContentRef.current.cc = cc;
+                        } else {
+                          inlineReplyContentRef.current = { bodyHtml: "", bodyText: "", cc };
+                        }
+                      }}
+                      onBccChange={(bcc) => {
+                        if (inlineReplyContentRef.current) {
+                          inlineReplyContentRef.current.bcc = bcc;
+                        } else {
+                          inlineReplyContentRef.current = { bodyHtml: "", bodyText: "", bcc };
+                        }
+                      }}
+                      restoredDraft={restoredDraft}
+                      draftEmailId={
+                        draftEmail?.draft && draftEmail.draft.status !== "edited"
+                          ? draftEmail.id
+                          : undefined
                       }
-                    }}
-                    onCcChange={(cc) => {
-                      if (inlineReplyContentRef.current) {
-                        inlineReplyContentRef.current.cc = cc;
-                      } else {
-                        inlineReplyContentRef.current = { bodyHtml: "", bodyText: "", cc };
-                      }
-                    }}
-                    onBccChange={(bcc) => {
-                      if (inlineReplyContentRef.current) {
-                        inlineReplyContentRef.current.bcc = bcc;
-                      } else {
-                        inlineReplyContentRef.current = { bodyHtml: "", bodyText: "", bcc };
-                      }
-                    }}
-                    restoredDraft={restoredDraft}
-                    draftEmailId={
-                      draftEmail?.draft && draftEmail.draft.status !== "edited"
-                        ? draftEmail.id
-                        : undefined
-                    }
-                    watchedDraftEmailId={draftEmail?.id}
-                    onDiscardDraft={handleDiscardDraft}
-                    nameMap={nameMap}
-                  />
-                )}
-            </div>
-          ))}
-        </div>
+                      watchedDraftEmailId={draftEmail?.id}
+                      onDiscardDraft={handleDiscardDraft}
+                      nameMap={nameMap}
+                    />
+                  )}
+              </div>
+            ))}
+          </div>
 
-        {/* Analysis section with Priority/Other override. Picks the latest
+          {/* Analysis section with Priority/Other override. Picks the latest
              email in the thread that carries analysis so the user sees the
              most recent classification. */}
-        {(() => {
-          const analysisEmail = [...threadEmails].reverse().find((e) => e.analysis);
-          if (!analysisEmail?.analysis) return null;
-          return (
-            <AnalysisPrioritySection
-              email={analysisEmail}
-              onAnalysisUpdated={(newNeedsReply) => {
-                updateEmail(analysisEmail.id, {
-                  analysis: {
-                    ...analysisEmail.analysis!,
-                    needsReply: newNeedsReply,
-                  },
-                });
-              }}
-            />
-          );
-        })()}
+          {(() => {
+            const analysisEmail = [...threadEmails].reverse().find((e) => e.analysis);
+            if (!analysisEmail?.analysis) return null;
+            return (
+              <div className="mt-4">
+                <AnalysisPrioritySection
+                  email={analysisEmail}
+                  onAnalysisUpdated={(newNeedsReply) => {
+                    updateEmail(analysisEmail.id, {
+                      analysis: {
+                        ...analysisEmail.analysis!,
+                        needsReply: newNeedsReply,
+                      },
+                    });
+                  }}
+                />
+              </div>
+            );
+          })()}
+        </div>
       </div>
+
+      {isCapsuleCommandOpen && (
+        <div
+          className="exo-capsule-command-backdrop"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setIsCapsuleCommandOpen(false);
+          }}
+        >
+          <div
+            ref={commandSheetRef}
+            className="exo-capsule-command-sheet p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Email capsule commands"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="exo-capsule-mode">
+                  <Command className="w-3.5 h-3.5" />
+                  Command surface
+                </div>
+                <h2 className="mt-4 text-2xl font-semibold exo-text-primary">
+                  What can I do with this email?
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed exo-text-secondary">{capsule.summary}</p>
+              </div>
+              <button
+                onClick={() => setIsCapsuleCommandOpen(false)}
+                className="exo-capsule-icon-btn p-2 rounded-full"
+                aria-label="Close capsule commands"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={() => {
+                  handleOpenReply();
+                  setIsCapsuleCommandOpen(false);
+                }}
+                className="exo-capsule-context-card text-left"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
+                  <Reply className="w-4 h-4" />
+                  Respond
+                </div>
+                <div className="mt-3 text-sm font-semibold exo-text-primary">Draft reply</div>
+                <p className="mt-1 text-sm exo-text-secondary">
+                  Open the inline composer against the current message.
+                </p>
+              </button>
+              <button
+                onClick={() => {
+                  handleOpenReplyAll();
+                  setIsCapsuleCommandOpen(false);
+                }}
+                className="exo-capsule-context-card text-left"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
+                  <ReplyAll className="w-4 h-4" />
+                  Thread
+                </div>
+                <div className="mt-3 text-sm font-semibold exo-text-primary">Reply all</div>
+                <p className="mt-1 text-sm exo-text-secondary">
+                  Keep every participant in the loop.
+                </p>
+              </button>
+              {unsubscribeUrl && (
+                <button
+                  onClick={() => {
+                    window.open(unsubscribeUrl, "_blank");
+                    setIsCapsuleCommandOpen(false);
+                  }}
+                  className="exo-capsule-context-card text-left"
+                >
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
+                    <Link2 className="w-4 h-4" />
+                    Control
+                  </div>
+                  <div className="mt-3 text-sm font-semibold exo-text-primary">Unsubscribe</div>
+                  <p className="mt-1 text-sm exo-text-secondary">
+                    Leave this sender's list in a browser.
+                  </p>
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  handleArchive();
+                  setIsCapsuleCommandOpen(false);
+                }}
+                className="exo-capsule-context-card text-left"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
+                  <Archive className="w-4 h-4" />
+                  Clear
+                </div>
+                <div className="mt-3 text-sm font-semibold exo-text-primary">Archive</div>
+                <p className="mt-1 text-sm exo-text-secondary">
+                  Done with this capsule. Move to the next thread.
+                </p>
+              </button>
+            </div>
+
+            <div className="mt-5 border-t border-[var(--exo-capsule-border)] pt-4">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
+                <UserRound className="w-4 h-4" />
+                Sender object
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <span className="exo-capsule-chip rounded-full px-3 py-1.5">
+                  {senderIdentity.name}
+                </span>
+                <span className="exo-capsule-chip rounded-full px-3 py-1.5">
+                  {senderIdentity.email}
+                </span>
+                <span className="exo-capsule-chip rounded-full px-3 py-1.5">
+                  {capsule.trustLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Attachment preview modal */}
       {previewAttachment && (
