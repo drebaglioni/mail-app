@@ -29,7 +29,7 @@ async function selectFirstThread(page: Page): Promise<string> {
   return selectedThreadId!;
 }
 
-test.describe("Arrow keys keep native scroll behavior", () => {
+test.describe("Arrow keys navigate inbox rows without sidebars", () => {
   test.describe.configure({ mode: "serial" });
   let electronApp: ElectronApplication;
   let page: Page;
@@ -52,27 +52,29 @@ test.describe("Arrow keys keep native scroll behavior", () => {
     }
   });
 
-  test("ArrowDown does not select or open mail from the inbox", async () => {
+  test("ArrowDown selects the first inbox row without opening mail or sidebars", async () => {
     await waitForEmailListReady(page);
     await clearSelection(page);
 
     await page.keyboard.press("ArrowDown");
     await page.waitForTimeout(300);
 
-    expect(await getSelectedThreadId(page)).toBeNull();
+    expect(await getSelectedThreadId(page)).not.toBeNull();
     await expect(page.locator("button[title='Reply All']").first()).toBeHidden({ timeout: 3000 });
     await expect(page.locator(".w-96.exo-preview-shell")).toBeHidden({ timeout: 3000 });
     await expect(page.locator(".w-64.exo-preview-shell")).toBeHidden({ timeout: 3000 });
   });
 
-  test("ArrowUp and ArrowDown do not move the highlighted inbox row", async () => {
+  test("ArrowUp and ArrowDown move the highlighted inbox row", async () => {
     await waitForEmailListReady(page);
     await clearSelection(page);
     const selectedBefore = await selectFirstThread(page);
 
     await page.keyboard.press("ArrowDown");
     await page.waitForTimeout(300);
-    expect(await getSelectedThreadId(page)).toBe(selectedBefore);
+    const selectedAfterDown = await getSelectedThreadId(page);
+    expect(selectedAfterDown).not.toBeNull();
+    expect(selectedAfterDown).not.toBe(selectedBefore);
 
     await page.keyboard.press("ArrowUp");
     await page.waitForTimeout(300);

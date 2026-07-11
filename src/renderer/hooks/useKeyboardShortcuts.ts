@@ -663,15 +663,19 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
         return;
       }
 
-      // --- Shift+J/K: extend selection up/down ---
-      if (e.shiftKey && (e.key === "J" || e.key === "K") && !activeSearchQuery) {
+      // --- Shift+J/K/Arrow: extend selection up/down ---
+      if (
+        e.shiftKey &&
+        (e.key === "J" || e.key === "K" || e.key === "ArrowDown" || e.key === "ArrowUp") &&
+        !activeSearchQuery
+      ) {
         e.preventDefault();
         markNavigationActive();
         if (visibleThreads.length === 0) return;
         const currentIndex = visibleThreads.findIndex((t) => t.threadId === selectedThreadId);
         if (currentIndex < 0) return;
 
-        const direction = e.key === "J" ? 1 : -1;
+        const direction = e.key === "J" || e.key === "ArrowDown" ? 1 : -1;
         const nextIndex = currentIndex + direction;
         if (nextIndex < 0 || nextIndex >= visibleThreads.length) return;
 
@@ -738,6 +742,8 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       switch (e.key) {
         // Navigation
         case "j":
+        case "ArrowDown":
+          if (e.shiftKey && e.key.startsWith("Arrow")) break;
           e.preventDefault();
           // Defer any pending sync-driven store updates while navigating
           markNavigationActive();
@@ -749,6 +755,8 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           break;
 
         case "k":
+        case "ArrowUp":
+          if (e.shiftKey && e.key.startsWith("Arrow")) break;
           e.preventDefault();
           markNavigationActive();
           if (activeSearchQuery) {
@@ -1151,7 +1159,7 @@ export function getKeyboardShortcuts(bindings: "superhuman" | "gmail") {
           ]
         : []),
       { key: "x", description: "Select / deselect thread" },
-      { key: "Shift+J/K", description: "Extend selection down/up" },
+      { key: "Shift+J/K/↑/↓", description: "Extend selection down/up" },
       { key: "Cmd+A", description: "Select all threads" },
     ],
     compose: [

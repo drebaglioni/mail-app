@@ -89,7 +89,7 @@ test.describe("Keyboard Navigation - j/k Movement", () => {
     }
   });
 
-  test("ArrowDown does not move the selected email", async () => {
+  test("ArrowDown moves selection down to next email", async () => {
     const before = await getSelectedThreadId(page);
     expect(before).not.toBeNull();
 
@@ -97,10 +97,11 @@ test.describe("Keyboard Navigation - j/k Movement", () => {
     await page.waitForTimeout(300);
 
     const after = await getSelectedThreadId(page);
-    expect(after).toBe(before);
+    expect(after).not.toBeNull();
+    expect(after).not.toBe(before);
   });
 
-  test("ArrowUp does not move the selected email", async () => {
+  test("ArrowUp moves selection up", async () => {
     const before = await getSelectedThreadId(page);
     expect(before).not.toBeNull();
 
@@ -108,7 +109,8 @@ test.describe("Keyboard Navigation - j/k Movement", () => {
     await page.waitForTimeout(300);
 
     const after = await getSelectedThreadId(page);
-    expect(after).toBe(before);
+    expect(after).not.toBeNull();
+    expect(after).not.toBe(before);
   });
 
   test("j at the bottom of list stays at last email", async () => {
