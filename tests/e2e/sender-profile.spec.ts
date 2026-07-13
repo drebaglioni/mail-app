@@ -268,30 +268,11 @@ test.describe("Sender Profile - Full View", () => {
     const replyButton = page.locator("button[title='Reply All']").first();
     await pressKeyUntilVisible(page, "Enter", replyButton, { timeout: 10000 });
 
-    // The email header area should show sender name
-    const bodyText = await page.textContent("body");
-    expect(bodyText).toBeTruthy();
-
-    // At least one known demo sender should be visible
-    const knownSenders = [
-      "Garry",
-      "Jared",
-      "Michael",
-      "GitHub",
-      "Gustaf",
-      "Diana",
-      "Tom",
-      "Nicolas",
-      "Dalton",
-    ];
-    let found = false;
-    for (const sender of knownSenders) {
-      if (bodyText?.includes(sender)) {
-        found = true;
-        break;
-      }
-    }
-    expect(found).toBe(true);
+    // Assert the actual message header contract instead of a brittle list of
+    // whichever demo senders happen to be in the current inbox bucket.
+    const messageHeader = page.getByTestId("thread-message-header").first();
+    await expect(messageHeader).toBeVisible({ timeout: 5000 });
+    await expect(messageHeader).not.toHaveText("");
 
     // Return to split view
     await page.keyboard.press("Escape");

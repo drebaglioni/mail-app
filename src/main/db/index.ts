@@ -18,7 +18,10 @@ import type {
   AutomatedCategory,
 } from "../../shared/types";
 import { createLogger } from "../services/logger";
-import { classifySenderByHeuristics } from "../services/sender-classifier";
+import {
+  classifySenderByHeuristics,
+  hasDefinitiveAutomatedSignal,
+} from "../services/sender-classifier";
 import { parseAutoDraftTaskId, AUTO_DRAFT_TASK_ID_LIKE_PATTERN } from "../agents/task-id";
 import { runMigrations } from "./migrations";
 
@@ -372,17 +375,36 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
   // senders (noreply@, GitHub notifications, marketing newsletters, ...) sit
   // in the People tab because the filter treats "no analysis" as person.
   // Insert a lightweight analysis row for the obvious cases so the UI is
-  // correct from the moment the email lands. Skip if an analysis already
-  // exists (e.g. label-only re-save of an already-analyzed email).
-  const existing = db.prepare("SELECT 1 FROM analyses WHERE email_id = ?").get(email.id);
+  // correct from the moment the email lands.
+  const existing = db
+    .prepare("SELECT sender_type FROM analyses WHERE email_id = ?")
+    .get(email.id) as { sender_type: string | null } | undefined;
+  const senderHeaders = {
+    from: email.from,
+    listUnsubscribe: email.listUnsubscribe,
+    xMailer: email.xMailer,
+    precedence: email.precedence,
+  };
   if (!existing) {
-    const heuristic = classifySenderByHeuristics({ from: email.from });
+    const heuristic = classifySenderByHeuristics(senderHeaders);
     if (heuristic === "automated") {
       db.prepare(
-        `INSERT INTO analyses (email_id, needs_reply, reason, sender_type, analyzed_at)
-         VALUES (?, 0, ?, 'automated', ?)`,
+        `INSERT INTO analyses
+         (email_id, needs_reply, reason, sender_type, automated_category, analyzed_at)
+         VALUES (?, 0, ?, 'automated', 'other', ?)`,
       ).run(email.id, "Auto-classified by sender pattern", Date.now());
     }
+  } else if (existing.sender_type !== "automated" && hasDefinitiveAutomatedSignal(senderHeaders)) {
+    // Fresh Gmail headers can repair historical LLM mistakes. Restrict
+    // overrides to definitive signals so a human at a corporate domain is not
+    // reclassified merely because their domain is also used for notifications.
+    db.prepare(
+      `UPDATE analyses
+       SET sender_type = 'automated',
+           automated_category = COALESCE(automated_category, 'other'),
+           analyzed_at = ?
+       WHERE email_id = ?`,
+    ).run(Date.now(), email.id);
   }
 }
 

@@ -527,11 +527,97 @@ export const NUMBERED_MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    // Some released installations already recorded schema version 12 while
+    // the corresponding source change was later removed. Keep the slot so
+    // fresh databases remain sequential and existing databases can advance.
+    version: 12,
+    name: "reserved_released_schema_version",
+    up: () => {},
+  },
+  {
+    version: 13,
+    name: "recover_unknown_sender_classifications",
+    up: (db) => {
+      const analysesExist = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analyses'")
+        .get();
+      const emailsExist = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='emails'")
+        .get();
+      if (!analysesExist || !emailsExist) return;
+
+      // Older builds persisted malformed LLM output as a successful person
+      // classification. Remove that synthetic result so normal prefetch can
+      // retry it instead of keeping it in People forever.
+      const removed = db
+        .prepare(
+          `DELETE FROM analyses
+           WHERE reason = 'Failed to parse analysis - skipping for safety'`,
+        )
+        .run().changes;
+
+      const categoriesBackfilled = db
+        .prepare(
+          `UPDATE analyses
+           SET automated_category = 'other'
+           WHERE sender_type = 'automated' AND automated_category IS NULL`,
+        )
+        .run().changes;
+
+      const rows = db
+        .prepare(
+          `SELECT e.id, e.from_address, a.email_id, a.sender_type
+           FROM emails e
+           LEFT JOIN analyses a ON a.email_id = e.id
+           WHERE a.email_id IS NULL OR a.sender_type = 'person' OR a.sender_type IS NULL`,
+        )
+        .all() as Array<{
+        id: string;
+        from_address: string;
+        email_id: string | null;
+        sender_type: string | null;
+      }>;
+
+      const update = db.prepare(
+        `UPDATE analyses
+         SET sender_type = 'automated', automated_category = COALESCE(automated_category, 'other')
+         WHERE email_id = ?`,
+      );
+      const insert = db.prepare(
+        `INSERT INTO analyses (email_id, needs_reply, reason, sender_type, automated_category, analyzed_at)
+         VALUES (?, 0, 'Auto-classified by sender pattern', 'automated', 'other', ?)`,
+      );
+      const now = Date.now();
+      let reclassified = 0;
+      for (const row of rows) {
+        // Broad domain/local-part rules are useful for unknown rows, but are
+        // not safe enough to overwrite an explicit person result. Real support
+        // staff and employees share those addresses and domains. Only embedded
+        // no-reply patterns are definitive without the original Gmail headers.
+        if (
+          row.sender_type === "person" &&
+          !/(noreply|no-reply|no\.reply|donotreply|do-not-reply|do\.not\.reply|no_reply)/i.test(
+            row.from_address,
+          )
+        ) {
+          continue;
+        }
+        if (classifyObviousAutomatedSenderForRecovery(row.from_address) !== "automated") continue;
+        if (row.email_id) update.run(row.id);
+        else insert.run(row.id, now);
+        reclassified++;
+      }
+
+      log.info(
+        { removedParseFailures: removed, categoriesBackfilled, reclassified },
+        "Recovered unknown sender classifications",
+      );
+    },
+  },
 ];
 
-// Migration-local copy of the heuristic classifier so this file can run in
-// non-Electron contexts (migration replay tests). Mirrors the rules in
-// services/email-analyzer.ts:classifySenderByHeuristics. Keep in sync.
+// Frozen migration-local classifier used by migration 9.
 function classifySenderByHeuristicsForMigration(from: string): "person" | "automated" | null {
   if (!from) return null;
   const lower = from.toLowerCase();
@@ -554,6 +640,62 @@ function classifySenderByHeuristicsForMigration(from: string): "person" | "autom
     "bounce@",
   ];
   if (automatedKeywords.some((k) => lower.includes(k))) return "automated";
+  return null;
+}
+
+// Frozen migration-local snapshot used by migration 13. Migrations must not
+// import the live classifier because later classifier changes would make a
+// historical migration produce different results on a fresh database.
+function classifyObviousAutomatedSenderForRecovery(from: string): "person" | "automated" | null {
+  if (!from) return null;
+  const lower = from.toLowerCase();
+  if (/(noreply|no-reply|no\.reply|donotreply|do-not-reply|do\.not\.reply|no_reply)/.test(lower)) {
+    return "automated";
+  }
+
+  const domainMatch = lower.match(/@([^\s>]+)/);
+  if (domainMatch) {
+    const domain = domainMatch[1];
+    const automatedDomains = [
+      "github.com",
+      "gitlab.com",
+      "bitbucket.org",
+      "linear.app",
+      "atlassian.net",
+      "jira.com",
+      "slack.com",
+      "notion.so",
+      "figma.com",
+      "google.com",
+      "linkedin.com",
+      "twitter.com",
+      "facebook.com",
+      "facebookmail.com",
+      "instagram.com",
+    ];
+    if (
+      automatedDomains.some((candidate) => domain === candidate || domain.endsWith(`.${candidate}`))
+    ) {
+      return "automated";
+    }
+    if (
+      /^(notifications?|alerts?|mailer|mail|bounce|email|updates?|info|news|newsletter|marketing|promo|campaigns?|transactional|system|service|support|billing|receipts?|orders?)\./.test(
+        domain,
+      )
+    ) {
+      return "automated";
+    }
+  }
+
+  const local = lower.match(/([^<\s]+)@/)?.[1];
+  if (
+    local &&
+    /^(customerservice|customer-service|customer_service|customersupport|customer-support|customer_support|support|info|newsletter|news|marketing|billing|sales|admin|system|automated|robot|bot|notifications?|alerts?|updates?|subscriptions?|surveys?)$/.test(
+      local,
+    )
+  ) {
+    return "automated";
+  }
   return null;
 }
 

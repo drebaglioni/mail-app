@@ -56,7 +56,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() returns correct AnalysisResult for a needs-reply email", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": true, "reason": "Direct question about document review"}',
+      text: '{"needs_reply": true, "reason": "Direct question about document review", "sender_type": "person"}',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail();
@@ -69,7 +69,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() returns correct result for newsletter (no reply needed)", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": false, "reason": "Newsletter/marketing content"}',
+      text: '{"needs_reply": false, "reason": "Newsletter/marketing content", "sender_type": "automated"}',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail({
@@ -86,7 +86,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() with custom prompt appends ANALYSIS_JSON_FORMAT", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": true, "reason": "Custom prompt test"}',
+      text: '{"needs_reply": true, "reason": "Custom prompt test", "sender_type": "person"}',
     });
     const customPrompt = "You are a custom email analyzer. Analyze this email.";
     const analyzer = createAnalyzerWithMock(customPrompt);
@@ -103,7 +103,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() with default prompt uses ANALYSIS_SYSTEM_PROMPT (not appending JSON format)", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": false, "reason": "test"}',
+      text: '{"needs_reply": false, "reason": "test", "sender_type": "person"}',
     });
     // Pass the default prompt explicitly — should NOT be treated as custom
     const { DEFAULT_ANALYSIS_PROMPT } = await import("../../src/shared/types");
@@ -122,7 +122,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() handles JSON fenced in markdown code blocks", async () => {
     mockAnthropicResponse({
-      text: '```json\n{"needs_reply": true, "reason": "Fenced JSON"}\n```',
+      text: '```json\n{"needs_reply": true, "reason": "Fenced JSON", "sender_type": "person"}\n```',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail();
@@ -133,22 +133,44 @@ test.describe("EmailAnalyzer", () => {
     expect(result.reason).toBe("Fenced JSON");
   });
 
-  test("analyze() handles parse failure gracefully (returns default no-reply)", async () => {
+  test("analyze() rejects malformed output so the email remains retryable", async () => {
     mockAnthropicResponse({
       text: "I'm not sure how to analyze this email, here are some thoughts...",
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail();
 
-    const result = await analyzer.analyze(email);
+    await expect(analyzer.analyze(email)).rejects.toThrow("Failed to parse analysis response");
+  });
 
-    expect(result.needs_reply).toBe(false);
-    expect(result.reason).toBe("Failed to parse analysis - skipping for safety");
+  test("analyze() rejects missing sender_type instead of defaulting to person", async () => {
+    mockAnthropicResponse({
+      text: '{"needs_reply": false, "reason": "No sender classification returned"}',
+    });
+    const analyzer = createAnalyzerWithMock();
+
+    await expect(analyzer.analyze(makeEmail())).rejects.toThrow(
+      "Failed to parse analysis response",
+    );
+  });
+
+  test("analyze() uses bulk headers as a deterministic automated override", async () => {
+    mockAnthropicResponse({
+      text: '{"needs_reply": false, "reason": "Ambiguous", "sender_type": "person"}',
+    });
+    const analyzer = createAnalyzerWithMock();
+
+    const result = await analyzer.analyze(
+      makeEmail({ listUnsubscribe: "<mailto:unsubscribe@example.com>" }),
+    );
+
+    expect(result.sender_type).toBe("automated");
+    expect(result.automated_category).toBe("other");
   });
 
   test("analyze() includes userEmail in the prompt when provided", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": false, "reason": "test"}',
+      text: '{"needs_reply": false, "reason": "test", "sender_type": "person"}',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail();
@@ -162,7 +184,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() omits userEmail line when not provided", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": false, "reason": "test"}',
+      text: '{"needs_reply": false, "reason": "test", "sender_type": "person"}',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail();
@@ -176,7 +198,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("formatEmailForAnalysis truncates body at 4000 chars", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": false, "reason": "test"}',
+      text: '{"needs_reply": false, "reason": "test", "sender_type": "person"}',
     });
     const analyzer = createAnalyzerWithMock();
     const longBody = "A".repeat(5000);
@@ -194,7 +216,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() wraps email content in <untrusted_email> tags", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": true, "reason": "test"}',
+      text: '{"needs_reply": true, "reason": "test", "sender_type": "person"}',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail();
@@ -210,7 +232,7 @@ test.describe("EmailAnalyzer", () => {
 
   test("analyze() strips quoted content from email body", async () => {
     mockAnthropicResponse({
-      text: '{"needs_reply": true, "reason": "Direct question"}',
+      text: '{"needs_reply": true, "reason": "Direct question", "sender_type": "person"}',
     });
     const analyzer = createAnalyzerWithMock();
     const email = makeEmail({

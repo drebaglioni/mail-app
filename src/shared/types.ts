@@ -27,6 +27,9 @@ export const EmailSchema = z.object({
   attachments: z.array(AttachmentMetaSchema).optional(),
   messageIdHeader: z.string().optional(), // RFC 5322 Message-ID header
   inReplyTo: z.string().optional(), // RFC 5322 In-Reply-To header
+  listUnsubscribe: z.string().optional(), // RFC 2369 bulk-mail signal
+  xMailer: z.string().optional(), // Sending platform signal
+  precedence: z.string().optional(), // Commonly "bulk" or "list"
 });
 
 export type Email = z.infer<typeof EmailSchema>;

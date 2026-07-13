@@ -257,7 +257,12 @@ ${userIdentityLine}${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nS
       const result = AnalysisResultSchema.parse(parsed);
 
       // Apply heuristic sender classification as an override when it's definitive
-      const heuristicType = classifySenderByHeuristics({ from: email.from });
+      const heuristicType = classifySenderByHeuristics({
+        from: email.from,
+        listUnsubscribe: email.listUnsubscribe,
+        xMailer: email.xMailer,
+        precedence: email.precedence,
+      });
       if (heuristicType === "automated") {
         result.sender_type = "automated";
         // Keep the LLM's category if it also said automated, otherwise default to "other"
@@ -265,21 +270,18 @@ ${userIdentityLine}${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nS
           result.automated_category = "other";
         }
       }
-      // If heuristics are null (ambiguous), trust the LLM's classification
-      // If the LLM didn't return sender_type (old prompt / parsing issue), default to "person"
+      // A response without sender_type is incomplete. Reject it so callers do
+      // not persist a half-analysis that would suppress future retries.
       if (!result.sender_type) {
-        result.sender_type = "person";
+        throw new Error("Analysis response omitted sender_type");
       }
 
       return result;
-    } catch (_error) {
-      log.error({ err: textBlock.text }, "Failed to parse analysis response");
-      // Default to not needing reply if parsing fails
-      return {
-        needs_reply: false,
-        reason: "Failed to parse analysis - skipping for safety",
-        sender_type: "person", // Conservative default
-      };
+    } catch (error) {
+      log.error({ err: error }, "Failed to parse analysis response");
+      // Parsing failure is not an analysis result. Reject it so the email stays
+      // unanalyzed and the next prefetch pass can retry after provider recovery.
+      throw new Error("Failed to parse analysis response", { cause: error });
     }
   }
 

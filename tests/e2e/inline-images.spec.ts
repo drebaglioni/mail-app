@@ -93,6 +93,11 @@ test.describe("Inline Images - Reading", () => {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(500);
 
+    await page
+      .locator("button[data-variant='switch']")
+      .filter({ hasText: /^Uncategorized/ })
+      .click();
+
     // Click the Q3 report email which contains a remote image in the HTML body
     const emailItem = page
       .locator("button")

@@ -27,9 +27,8 @@ import { SCHEMA } from "../../src/main/db/schema";
 const require = createRequire(import.meta.url);
 
 type DB = BetterSqlite3.Database;
-let DatabaseCtor:
-  | (new (filename: string | Buffer, options?: BetterSqlite3.Options) => DB)
-  | null = null;
+let DatabaseCtor: (new (filename: string | Buffer, options?: BetterSqlite3.Options) => DB) | null =
+  null;
 let nativeModuleError: string | null = null;
 try {
   DatabaseCtor = require("better-sqlite3");
@@ -106,13 +105,7 @@ test.describe("Migration replay + symmetry", () => {
     }
 
     const draftCols = listTableColumns(db, "drafts");
-    for (const col of [
-      "agent_task_id",
-      "cc",
-      "bcc",
-      "compose_mode",
-      "to_recipients",
-    ]) {
+    for (const col of ["agent_task_id", "cc", "bcc", "compose_mode", "to_recipients"]) {
       expect(draftCols.has(col), `drafts should have column ${col}`).toBe(true);
     }
 
@@ -181,9 +174,8 @@ test.describe("Migration replay + symmetry", () => {
     expect(tables.has("schema_version")).toBe(true);
 
     // Original data should still be present and intact.
-    const accountCount = (
-      db.prepare("SELECT COUNT(*) as c FROM accounts").get() as { c: number }
-    ).c;
+    const accountCount = (db.prepare("SELECT COUNT(*) as c FROM accounts").get() as { c: number })
+      .c;
     expect(accountCount).toBe(1);
 
     // All numbered migrations should be applied.
@@ -208,5 +200,76 @@ test.describe("Migration replay + symmetry", () => {
     for (let i = 1; i < versions.length; i++) {
       expect(versions[i] - versions[i - 1]).toBe(1);
     }
+  });
+
+  test("v13 removes synthetic person results and backfills obvious automation", () => {
+    const db = freshDb();
+    db.exec(SCHEMA);
+    db.exec(`
+      CREATE TABLE schema_version (
+        version INTEGER NOT NULL UNIQUE,
+        applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO schema_version (version) VALUES (12);
+    `);
+
+    const insertEmail = db.prepare(
+      `INSERT INTO emails
+       (id, thread_id, subject, from_address, to_address, body, date, fetched_at)
+       VALUES (?, ?, 'Subject', ?, 'user@example.com', 'Body', '2026-07-12', 1)`,
+    );
+    insertEmail.run("parse-failure", "t1", "Alice <alice@example.com>");
+    insertEmail.run("embedded-noreply", "t2", "Gusto <gustonoreply@example.com>");
+    insertEmail.run("subscription", "t3", "subscriptions@example.com");
+    insertEmail.run("ambiguous", "t4", "Bob <bob@example.com>");
+    insertEmail.run("corporate-person", "t5", "Employee <person@google.com>");
+    insertEmail.run("automated-no-category", "t6", "alerts@example.com");
+
+    const insertAnalysis = db.prepare(
+      `INSERT INTO analyses
+       (email_id, needs_reply, reason, analyzed_at, sender_type)
+       VALUES (?, 0, ?, 1, 'person')`,
+    );
+    insertAnalysis.run("parse-failure", "Failed to parse analysis - skipping for safety");
+    insertAnalysis.run("embedded-noreply", "Old classification");
+    insertAnalysis.run("corporate-person", "Direct message from an employee");
+    db.prepare(
+      `INSERT INTO analyses
+       (email_id, needs_reply, reason, analyzed_at, sender_type)
+       VALUES ('automated-no-category', 0, 'Old heuristic', 1, 'automated')`,
+    ).run();
+
+    runMigrations(db);
+
+    const rows = db
+      .prepare("SELECT email_id, sender_type, automated_category FROM analyses ORDER BY email_id")
+      .all() as Array<{
+      email_id: string;
+      sender_type: string | null;
+      automated_category: string | null;
+    }>;
+    expect(rows).toEqual([
+      {
+        email_id: "automated-no-category",
+        sender_type: "automated",
+        automated_category: "other",
+      },
+      { email_id: "corporate-person", sender_type: "person", automated_category: null },
+      {
+        email_id: "embedded-noreply",
+        sender_type: "automated",
+        automated_category: "other",
+      },
+      { email_id: "subscription", sender_type: "automated", automated_category: "other" },
+    ]);
+    expect(
+      (
+        db.prepare("SELECT MAX(version) AS version FROM schema_version").get() as {
+          version: number;
+        }
+      ).version,
+    ).toBe(13);
+
+    db.close();
   });
 });

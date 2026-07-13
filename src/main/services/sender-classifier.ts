@@ -1,47 +1,39 @@
 import type { SenderType } from "../../shared/types";
 
+export interface SenderClassificationHeaders {
+  from: string;
+  listUnsubscribe?: string;
+  xMailer?: string;
+  precedence?: string;
+}
+
+/** Signals strong enough to correct an existing person classification. */
+export function hasDefinitiveAutomatedSignal(headers: SenderClassificationHeaders): boolean {
+  const from = headers.from.toLowerCase();
+  if (/(noreply|no-reply|no\.reply|donotreply|do-not-reply|do\.not\.reply|no_reply)/.test(from)) {
+    return true;
+  }
+  if (headers.listUnsubscribe) return true;
+  if (headers.precedence && /^(bulk|list)$/i.test(headers.precedence.trim())) return true;
+  return Boolean(
+    headers.xMailer &&
+    /mailchimp|sendgrid|mailgun|constantcontact|postmark|mandrill|sendinblue|brevo|hubspot|marketo|pardot|campaign.monitor|intercom|customer\.io/i.test(
+      headers.xMailer,
+    ),
+  );
+}
+
 /**
  * Heuristic sender classification based on email headers.
  * Returns "automated" for obvious non-person senders,
  * or null when ambiguous (let the LLM decide).
  */
-export function classifySenderByHeuristics(headers: {
-  from: string;
-  listUnsubscribe?: string;
-  xMailer?: string;
-  precedence?: string;
-}): SenderType | null {
+export function classifySenderByHeuristics(
+  headers: SenderClassificationHeaders,
+): SenderType | null {
   const from = headers.from.toLowerCase();
 
-  // noreply / do-not-reply addresses
-  if (/\b(noreply|no-reply|donotreply|do-not-reply|no_reply)\b/.test(from)) {
-    return "automated";
-  }
-
-  // List-Unsubscribe header = bulk/marketing email
-  if (headers.listUnsubscribe) {
-    return "automated";
-  }
-
-  // Precedence: bulk or list
-  if (headers.precedence) {
-    const prec = headers.precedence.toLowerCase();
-    if (prec === "bulk" || prec === "list") {
-      return "automated";
-    }
-  }
-
-  // Known bulk email platform x-mailer headers
-  if (headers.xMailer) {
-    const mailer = headers.xMailer.toLowerCase();
-    if (
-      /mailchimp|sendgrid|mailgun|constantcontact|postmark|mandrill|sendinblue|brevo|hubspot|marketo|pardot|campaign.monitor|intercom|customer\.io/.test(
-        mailer,
-      )
-    ) {
-      return "automated";
-    }
-  }
+  if (hasDefinitiveAutomatedSignal(headers)) return "automated";
 
   // Known automated sender domains
   const automatedDomains = [
@@ -88,7 +80,7 @@ export function classifySenderByHeuristics(headers: {
   if (localMatch) {
     const local = localMatch[1].toLowerCase();
     if (
-      /^(customerservice|customer-service|customer_service|support|info|newsletter|news|marketing|billing|sales|admin|system|automated|robot|bot|notifications?|alerts?|updates?)$/.test(
+      /^(customerservice|customer-service|customer_service|customersupport|customer-support|customer_support|support|info|newsletter|news|marketing|billing|sales|admin|system|automated|robot|bot|notifications?|alerts?|updates?|subscriptions?|surveys?)$/.test(
         local,
       )
     ) {

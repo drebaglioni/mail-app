@@ -304,16 +304,18 @@ test.describe("Keyboard Actions - Archive (e)", () => {
     const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
     await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 15000 });
     const selectedBefore = await getSelectedThreadId(page);
+    expect(selectedBefore).not.toBeNull();
 
     // Press 'e' to archive
     await page.keyboard.press("e");
     await page.waitForTimeout(500);
 
-    // Thread count should decrease (CI can be slow to update DOM)
-    await expect(async () => {
-      const countAfter = await threadRows.count();
-      expect(countAfter).toBe(countBefore - 1);
-    }).toPass({ timeout: 10000 });
+    // The exact archived thread must disappear. Total People count is not a
+    // stable assertion here because pending sender analyses can complete while
+    // this test runs and legitimately move additional threads into the mode.
+    await expect(
+      page.locator(`.overflow-y-auto div[data-thread-id='${selectedBefore}']`),
+    ).toHaveCount(0, { timeout: 10000 });
 
     // Selection should advance to next thread (not null)
     const selectedAfter = await getSelectedThreadId(page);

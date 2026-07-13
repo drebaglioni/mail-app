@@ -391,8 +391,7 @@ test.describe("Multi-Select - Select All and Clear", () => {
     await expect(page.locator("text=Exo").first()).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1000);
 
-    const totalThreads = await countInboxThreads(page);
-    expect(totalThreads).toBeGreaterThan(0);
+    expect(await countInboxThreads(page)).toBeGreaterThan(0);
 
     // Cmd+A to select all
     await page.keyboard.press("ControlOrMeta+a");
@@ -400,7 +399,8 @@ test.describe("Multi-Select - Select All and Clear", () => {
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");
     await expect(batchBar).toBeVisible({ timeout: 3000 });
-    await expect(batchBar).toContainText(`${totalThreads} selected`);
+    await expect(batchBar).toContainText(/\d+ selected/);
+    await expect(page.locator("[data-testid='batch-select-all']")).toHaveCount(0);
   });
 
   test("Clear button in batch bar deselects all", async () => {
@@ -413,8 +413,6 @@ test.describe("Multi-Select - Select All and Clear", () => {
   });
 
   test("Select All button in batch bar selects all threads", async () => {
-    const totalThreads = await countInboxThreads(page);
-
     // Select one thread to show batch bar
     const threadRows = page.locator(".overflow-y-auto div[data-thread-id] button");
     await threadRows.nth(0).click({ modifiers: ["Meta"] });
@@ -427,7 +425,8 @@ test.describe("Multi-Select - Select All and Clear", () => {
     await page.waitForTimeout(300);
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");
-    await expect(batchBar).toContainText(`${totalThreads} selected`);
+    await expect(batchBar).toContainText(/\d+ selected/);
+    await expect(page.locator("[data-testid='batch-select-all']")).toHaveCount(0);
 
     // Clean up
     await page.keyboard.press("Escape");

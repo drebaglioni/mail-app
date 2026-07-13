@@ -169,6 +169,7 @@ function EmailListImpl() {
   const accountIdsKey = [...targetAccountIds].sort().join(",");
 
   const isAutomatedView = currentSplitId === "__automated__";
+  const isUncategorizedView = currentSplitId === "__uncategorized__";
   const isSnoozedView = currentSplitId === "__snoozed__";
   const isSentView = currentSplitId === "__sent__";
 
@@ -561,8 +562,8 @@ function EmailListImpl() {
 
   const items = useMemo((): ListItem[] => {
     const result: ListItem[] = [];
-    // Drafts at top (except in automated and sent views)
-    if (localDrafts.length > 0 && !isAutomatedView && !isSentView) {
+    // Drafts belong to the human workflow, never the automated or recovery queues.
+    if (localDrafts.length > 0 && !isAutomatedView && !isUncategorizedView && !isSentView) {
       let draftsToShow: LocalDraft[];
       if (isSnoozedView) {
         draftsToShow = localDrafts.filter((d) => d.threadId && snoozedThreads.has(d.threadId));
@@ -588,6 +589,7 @@ function EmailListImpl() {
     threads,
     localDrafts,
     isAutomatedView,
+    isUncategorizedView,
     isSentView,
     isSnoozedView,
     snoozedThreads,
@@ -898,7 +900,13 @@ function EmailListImpl() {
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--exo-bg-surface)]">
               <PixelWave />
               <p className="text-sm exo-text-muted relative z-10">
-                {isSnoozedView ? "No snoozed emails" : isSentView ? "No sent emails" : "Inbox zero"}
+                {isSnoozedView
+                  ? "No snoozed emails"
+                  : isSentView
+                    ? "No sent emails"
+                    : isUncategorizedView
+                      ? "No uncategorized emails"
+                      : "Inbox zero"}
               </p>
             </div>
           )

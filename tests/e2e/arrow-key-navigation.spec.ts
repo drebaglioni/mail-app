@@ -1,5 +1,10 @@
 import { test, expect, Page, ElectronApplication } from "@playwright/test";
-import { launchElectronApp, closeApp, waitForEmailListReady } from "./launch-helpers";
+import {
+  launchElectronApp,
+  closeApp,
+  waitForEmailListReady,
+  pressKeyUntilVisible,
+} from "./launch-helpers";
 
 /** Get the data-thread-id of the currently selected (highlighted) row */
 async function getSelectedThreadId(page: Page): Promise<string | null> {
@@ -22,8 +27,7 @@ async function clearSelection(page: Page): Promise<void> {
 
 async function selectFirstThread(page: Page): Promise<string> {
   const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
-  await page.keyboard.press("j");
-  await expect(selectedRow).toBeVisible({ timeout: 5000 });
+  await pressKeyUntilVisible(page, "j", selectedRow, { timeout: 10000 });
   const selectedThreadId = await getSelectedThreadId(page);
   expect(selectedThreadId).not.toBeNull();
   return selectedThreadId!;
@@ -56,8 +60,8 @@ test.describe("Arrow keys navigate inbox rows without sidebars", () => {
     await waitForEmailListReady(page);
     await clearSelection(page);
 
-    await page.keyboard.press("ArrowDown");
-    await page.waitForTimeout(300);
+    const selectedRow = page.locator("div[data-thread-id][data-selected='true']");
+    await pressKeyUntilVisible(page, "ArrowDown", selectedRow, { timeout: 10000 });
 
     expect(await getSelectedThreadId(page)).not.toBeNull();
     await expect(page.locator("button[title='Reply All']").first()).toBeHidden({ timeout: 3000 });

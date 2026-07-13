@@ -1,4 +1,4 @@
-import type { Email, SentEmail } from "../../shared/types";
+import type { AutomatedCategory, Email, SentEmail } from "../../shared/types";
 
 // Comprehensive fake inbox for demo and testing
 // Includes threading, various email types, and realistic scenarios
@@ -867,7 +867,7 @@ Kevin`,
 ];
 
 // Expected analysis results for demo emails
-export const DEMO_EXPECTED_ANALYSIS: Record<string, { needsReply: boolean; reason: string }> = {
+const RAW_DEMO_EXPECTED_ANALYSIS: Record<string, { needsReply: boolean; reason: string }> = {
   "demo-001": { needsReply: false, reason: "Initial email in thread, already has follow-ups" },
   "demo-002": { needsReply: false, reason: "Middle of thread, not the latest message" },
   "demo-003": {
@@ -962,6 +962,36 @@ export const DEMO_EXPECTED_ANALYSIS: Record<string, { needsReply: boolean; reaso
     reason: "Direct technical questions addressed to user requiring personal expertise",
   },
 };
+
+const DEMO_AUTOMATED_CATEGORIES: Record<string, AutomatedCategory> = {
+  "demo-006": "notifications",
+  "demo-007": "newsletters",
+  "demo-008": "orders",
+  "demo-011": "notifications",
+  "demo-html-email": "newsletters",
+};
+
+export const DEMO_EXPECTED_ANALYSIS = Object.fromEntries(
+  Object.entries(RAW_DEMO_EXPECTED_ANALYSIS).map(([emailId, analysis]) => {
+    const automatedCategory = DEMO_AUTOMATED_CATEGORIES[emailId];
+    return [
+      emailId,
+      {
+        ...analysis,
+        senderType: automatedCategory ? ("automated" as const) : ("person" as const),
+        ...(automatedCategory && { automatedCategory }),
+      },
+    ];
+  }),
+) as Record<
+  string,
+  {
+    needsReply: boolean;
+    reason: string;
+    senderType: "person" | "automated";
+    automatedCategory?: AutomatedCategory;
+  }
+>;
 
 // Demo sent emails for style learning
 export const DEMO_SENT_EMAILS: SentEmail[] = [

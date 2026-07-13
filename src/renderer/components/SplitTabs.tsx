@@ -102,7 +102,8 @@ function SplitTabsImpl() {
   const setCurrentAutomatedCategory = useAppStore((state) => state.setCurrentAutomatedCategory);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const splitAssignments = useAppStore((state) => state.splitAssignments);
-  const { peopleThreads, automatedThreads, snoozedCount } = useThreadedEmails();
+  const { peopleThreads, automatedThreads, uncategorizedThreads, snoozedCount } =
+    useThreadedEmails();
 
   // Filter splits for current account. In unified mode (currentAccountId
   // === null) include every account's splits — threadMatchesSplit enforces
@@ -132,6 +133,9 @@ function SplitTabsImpl() {
     () => automatedThreads.filter(isNonExclusive).length,
     [automatedThreads, isNonExclusive],
   );
+  // Recovery must include every unknown thread, even if it happens to match an
+  // exclusive Automated split. Custom splits only consume classified automation.
+  const uncategorizedCount = uncategorizedThreads.length;
 
   // Sort splits by order. In unified mode, two accounts may have splits with
   // the same name (e.g. both have "Newsletter") — disambiguate with a "(2)",
@@ -151,13 +155,16 @@ function SplitTabsImpl() {
   const isAutomatedView =
     currentSplitId === "__automated__" || customSplitIds.has(currentSplitId ?? "");
   const isPeopleView = currentSplitId === "__people__";
+  const isUncategorizedView = currentSplitId === "__uncategorized__";
   const isSnoozedView = currentSplitId === "__snoozed__";
 
   const currentMode = isAutomatedView
     ? { id: "__automated__", label: "Automated", count: automatedCount }
-    : isSnoozedView
-      ? { id: "__snoozed__", label: "Snoozed", count: snoozedCount }
-      : { id: "__people__", label: "People", count: peopleCount };
+    : isUncategorizedView
+      ? { id: "__uncategorized__", label: "Uncategorized", count: uncategorizedCount }
+      : isSnoozedView
+        ? { id: "__snoozed__", label: "Snoozed", count: snoozedCount }
+        : { id: "__people__", label: "People", count: peopleCount };
 
   return (
     <div className="flex flex-col">
@@ -192,6 +199,17 @@ function SplitTabsImpl() {
               count={automatedCount}
             >
               Automated
+            </Tab>
+          )}
+
+          {!isUncategorizedView && (
+            <Tab
+              active={false}
+              variant="switch"
+              onClick={() => setCurrentSplitId("__uncategorized__")}
+              count={uncategorizedCount}
+            >
+              Uncategorized
             </Tab>
           )}
 

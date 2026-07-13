@@ -10,9 +10,8 @@ const log = createLogger("snooze-ipc");
 
 /**
  * When threads come out of snooze, ensure they have sender_type classification
- * so they route to the correct tab (People vs Automated). Runs heuristics
- * synchronously (instant, zero API cost). For ambiguous cases, the email
- * defaults to People until the next analysis cycle picks it up.
+ * so obvious automation routes correctly. Ambiguous senders remain unknown
+ * and visible in Uncategorized until the next analysis cycle succeeds.
  */
 function reclassifyUnsnoozedThreads(snoozedEmails: SnoozedEmail[]): void {
   for (const snoozed of snoozedEmails) {
@@ -32,15 +31,6 @@ function reclassifyUnsnoozedThreads(snoozedEmails: SnoozedEmail[]): void {
           );
           log.info(
             `[Snooze] Heuristic reclassified ${email.id} as automated (from: ${email.from})`,
-          );
-        } else {
-          // Ambiguous or person — set to "person" so it routes to People tab
-          saveAnalysis(
-            email.id,
-            email.analysis.needsReply,
-            email.analysis.reason,
-            email.analysis.priority,
-            "person",
           );
         }
       }

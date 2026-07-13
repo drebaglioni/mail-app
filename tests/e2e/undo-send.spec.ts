@@ -1,4 +1,4 @@
-import { test, expect, Page, ElectronApplication } from "@playwright/test";
+import { test, expect, Page, ElectronApplication, Locator } from "@playwright/test";
 import path from "path";
 import { existsSync, unlinkSync, readdirSync } from "fs";
 import {
@@ -80,6 +80,57 @@ async function closeAnyOpenModal(page: Page) {
   await page.waitForTimeout(300);
 }
 
+async function openUncategorized(page: Page) {
+  const tab = page.locator("button[data-variant='switch']").filter({ hasText: /^Uncategorized/ });
+  if (await tab.isVisible().catch(() => false)) await tab.click();
+  await expect(
+    page.locator("button[data-active='true']").filter({ hasText: /^Uncategorized/ }),
+  ).toBeVisible({ timeout: 5000 });
+}
+
+async function ensureUndoSendEnabled(page: Page) {
+  const delay = await page.evaluate(async () => {
+    // Persist first so App's asynchronous settings hydration cannot race this
+    // test and overwrite the renderer store with a stale shared value.
+    await window.api.settings.set({ undoSendDelay: 5 });
+    const store = (
+      window as Window & {
+        __ZUSTAND_STORE__?: {
+          getState: () => {
+            undoSendDelaySeconds: number;
+            setUndoSendDelay: (seconds: number) => void;
+          };
+        };
+      }
+    ).__ZUSTAND_STORE__;
+    if (!store) return null;
+    store.getState().setUndoSendDelay(5);
+    return store.getState().undoSendDelaySeconds;
+  });
+  expect(delay).toBe(5);
+}
+
+async function clickSendUntilQueued(page: Page, sendButton: Locator) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    await ensureUndoSendEnabled(page);
+    await sendButton.click();
+    const queueLength = await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __ZUSTAND_STORE__?: {
+              getState: () => { undoSendQueue: unknown[] };
+            };
+          }
+        ).__ZUSTAND_STORE__?.getState().undoSendQueue.length ?? 0,
+    );
+    if (queueLength > 0) return;
+    await page.waitForTimeout(150);
+  }
+  throw new Error("Send action did not enter the undo-send queue");
+}
+
 test.describe("Undo Send - Inline Reply", () => {
   test.describe.configure({ mode: "serial" });
   let electronApp: ElectronApplication;
@@ -106,6 +157,7 @@ test.describe("Undo Send - Inline Reply", () => {
   test("app loads with inbox emails", async () => {
     await expect(page.getByRole("heading", { name: "Exo" })).toBeVisible();
     await expect(page.locator("text=Exo").first()).toBeVisible();
+    await openUncategorized(page);
     await expect(page.locator("button").filter({ hasText: "Garry Tan" }).first()).toBeVisible({
       timeout: 5000,
     });
@@ -114,6 +166,7 @@ test.describe("Undo Send - Inline Reply", () => {
   });
 
   test("inline reply shows undo toast with Undo button on send", async () => {
+    await ensureUndoSendEnabled(page);
     await page.waitForTimeout(500);
 
     // Select Garry Tan's email
@@ -146,7 +199,7 @@ test.describe("Undo Send - Inline Reply", () => {
     // Click the Send button (non-disabled)
     const sendButton = page.locator("button:has-text('Send'):not([disabled])").first();
     await expect(sendButton).toBeVisible({ timeout: 5000 });
-    await sendButton.click();
+    await clickSendUntilQueued(page, sendButton);
 
     // IMPORTANT: Check for toast IMMEDIATELY — it auto-dismisses after 5s
     await page.waitForTimeout(300);
@@ -193,7 +246,9 @@ test.describe("Undo Send - Inline Reply Undo Action", () => {
   });
 
   test("clicking Undo restores the draft with content", async () => {
+    await ensureUndoSendEnabled(page);
     await page.waitForTimeout(500);
+    await openUncategorized(page);
 
     // Select Garry Tan's email
     const emailItem = page.locator("button").filter({ hasText: "Garry Tan" }).first();
@@ -220,7 +275,7 @@ test.describe("Undo Send - Inline Reply Undo Action", () => {
     // Send the reply
     const sendButton = page.locator("button:has-text('Send'):not([disabled])").first();
     await expect(sendButton).toBeVisible({ timeout: 5000 });
-    await sendButton.click();
+    await clickSendUntilQueued(page, sendButton);
     await page.waitForTimeout(300);
 
     // Click the Undo button — must be immediate (toast auto-dismisses after 5s)
@@ -270,6 +325,7 @@ test.describe("Undo Send - New Email Compose", () => {
   });
 
   test("new email compose shows undo toast on send", async () => {
+    await ensureUndoSendEnabled(page);
     const composeButton = page.locator("button:has-text('Compose')");
     await expect(composeButton).toBeVisible();
     await composeButton.click();
@@ -307,7 +363,7 @@ test.describe("Undo Send - New Email Compose", () => {
     // Click Send
     const sendButton = page.locator("button:has-text('Send'):not([disabled])").first();
     await expect(sendButton).toBeVisible({ timeout: 5000 });
-    await sendButton.click();
+    await clickSendUntilQueued(page, sendButton);
     await page.waitForTimeout(300);
 
     // Check toast IMMEDIATELY (auto-dismisses after 5s)
@@ -327,6 +383,7 @@ test.describe("Undo Send - New Email Compose", () => {
   });
 
   test("undo from new compose restores subject field", async () => {
+    await ensureUndoSendEnabled(page);
     const testSubject = "Undo restore subject test";
 
     const composeButton = page.locator("button:has-text('Compose')");
@@ -355,7 +412,7 @@ test.describe("Undo Send - New Email Compose", () => {
 
     const sendButton = page.locator("button:has-text('Send'):not([disabled])").first();
     await expect(sendButton).toBeVisible({ timeout: 5000 });
-    await sendButton.click();
+    await clickSendUntilQueued(page, sendButton);
     await page.waitForTimeout(300);
 
     // Click Undo immediately (toast auto-dismisses after 5s)
@@ -406,7 +463,9 @@ test.describe("Undo Send - Forward", () => {
   });
 
   test("forward with undo-send shows toast and Undo button", async () => {
+    await ensureUndoSendEnabled(page);
     await page.waitForTimeout(500);
+    await openUncategorized(page);
 
     const emailItem = page.locator("button").filter({ hasText: "Garry Tan" }).first();
     await expect(emailItem).toBeVisible({ timeout: 5000 });
@@ -438,7 +497,7 @@ test.describe("Undo Send - Forward", () => {
 
     const sendButton = page.locator("button:has-text('Send'):not([disabled])").first();
     if (await sendButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await sendButton.click();
+      await clickSendUntilQueued(page, sendButton);
       await page.waitForTimeout(500);
 
       await takeScreenshot(electronApp, page, "undo-send-17-forward-sent");

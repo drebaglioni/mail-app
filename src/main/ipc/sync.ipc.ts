@@ -597,6 +597,8 @@ export function registerSyncIpc(): void {
                 ? {
                     needsReply: expectedAnalysis.needsReply,
                     reason: expectedAnalysis.reason,
+                    senderType: expectedAnalysis.senderType,
+                    automatedCategory: expectedAnalysis.automatedCategory,
                     analyzedAt: Date.now(),
                   }
                 : undefined),
@@ -701,7 +703,14 @@ export function registerSyncIpc(): void {
       // Save demo analysis data for each email so archive-ready checks pass
       const { DEMO_EXPECTED_ANALYSIS } = await import("../demo/fake-inbox");
       for (const [emailId, analysis] of Object.entries(DEMO_EXPECTED_ANALYSIS)) {
-        saveAnalysis(emailId, analysis.needsReply, analysis.reason, "low", "person");
+        saveAnalysis(
+          emailId,
+          analysis.needsReply,
+          analysis.reason,
+          "low",
+          analysis.senderType,
+          analysis.automatedCategory,
+        );
       }
 
       // Seed demo AI drafts so draft-edit learning can be tested
@@ -1586,6 +1595,8 @@ export function registerSyncIpc(): void {
                 ? {
                     needsReply: analysis.needsReply,
                     reason: analysis.reason,
+                    senderType: analysis.senderType,
+                    automatedCategory: analysis.automatedCategory,
                     analyzedAt: Date.now(),
                   }
                 : undefined,

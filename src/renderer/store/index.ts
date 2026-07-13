@@ -16,6 +16,7 @@ import type {
   LocalDraft,
 } from "../../shared/types";
 import { KEEP_BY_DEFAULT_CATEGORIES } from "../../shared/types";
+import { senderBucket } from "../../shared/sender-bucket";
 import { threadMatchesSplit as threadMatchesSplitShared } from "../utils/split-conditions";
 import type {
   AgentProviderConfig,
@@ -1019,7 +1020,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Reset account-scoped and conditionally-rendered splits. Only preserve
     // virtual splits that are always visible regardless of account data.
     // Default to __people__ when resetting (matches main's convention).
-    const ALWAYS_VISIBLE_SPLITS = new Set(["__people__", "__automated__", "__sent__"]);
+    const ALWAYS_VISIBLE_SPLITS = new Set([
+      "__people__",
+      "__automated__",
+      "__uncategorized__",
+      "__sent__",
+    ]);
     const { currentSplitId } = get();
     const nextSplitId =
       currentSplitId !== null && !ALWAYS_VISIBLE_SPLITS.has(currentSplitId)
@@ -2135,11 +2141,17 @@ export function useThreadedEmails() {
     );
     const unanalyzed = activeThreads.filter((t) => !t.analysis && !effectiveUserReplied(t));
 
-    // Split by sender type for People / Automated tabs (fork-specific).
+    // Only explicit classifications enter People / Automated. Missing analysis
+    // stays recoverable and visible without being mislabeled as a person.
     const peopleThreads = activeThreads.filter(
-      (t) => !t.analysis?.senderType || t.analysis.senderType === "person",
+      (t) => senderBucket(t.analysis?.senderType) === "people",
     );
-    const automatedThreads = activeThreads.filter((t) => t.analysis?.senderType === "automated");
+    const automatedThreads = activeThreads.filter(
+      (t) => senderBucket(t.analysis?.senderType) === "automated",
+    );
+    const uncategorizedThreads = activeThreads.filter(
+      (t) => senderBucket(t.analysis?.senderType) === "uncategorized",
+    );
 
     // Ordered threads: unanalyzed → needs reply → done → skipped.
     // Within needsReply, preserve the chronological order produced by groupByThread.
@@ -2150,6 +2162,7 @@ export function useThreadedEmails() {
       chronologicalThreads: activeThreads, // sorted by latestReceivedDate desc (from groupByThread)
       peopleThreads,
       automatedThreads,
+      uncategorizedThreads,
       needsReply,
       done,
       skipped,
@@ -2240,6 +2253,7 @@ export function useSplitFilteredThreads() {
         threads: sortedSnoozed,
         peopleThreads: [],
         automatedThreads: [],
+        uncategorizedThreads: [],
         needsReply: [],
         done: [],
         skipped: [],
@@ -2272,6 +2286,7 @@ export function useSplitFilteredThreads() {
         threads: sentThreads,
         peopleThreads: [],
         automatedThreads: [],
+        uncategorizedThreads: [],
         needsReply: [],
         done: [],
         skipped: [],
@@ -2299,11 +2314,31 @@ export function useSplitFilteredThreads() {
         threads,
         peopleThreads: threads,
         automatedThreads: [],
+        uncategorizedThreads: [],
         needsReply: threads.filter((t) => t.analysis?.needsReply && t.draft?.status !== "created"),
         done: threads.filter((t) => t.analysis?.needsReply && t.draft?.status === "created"),
         skipped: [],
         skippedCount: 0,
         unanalyzed: threads.filter((t) => !t.analysis),
+        snoozed: baseResult.snoozed,
+        snoozedCount: baseResult.snoozedCount,
+      };
+    }
+
+    // Analysis failures and incomplete model output remain visible here and
+    // are retried by the prefetcher; they never leak into People.
+    if (currentSplitId === "__uncategorized__") {
+      const threads = baseResult.uncategorizedThreads;
+      return {
+        threads,
+        peopleThreads: [],
+        automatedThreads: [],
+        uncategorizedThreads: threads,
+        needsReply: [],
+        done: [],
+        skipped: [],
+        skippedCount: 0,
+        unanalyzed: threads,
         snoozed: baseResult.snoozed,
         snoozedCount: baseResult.snoozedCount,
       };
@@ -2340,6 +2375,7 @@ export function useSplitFilteredThreads() {
         threads,
         peopleThreads: [],
         automatedThreads: threads,
+        uncategorizedThreads: [],
         needsReply: [],
         done: [],
         skipped: [],
@@ -2363,6 +2399,7 @@ export function useSplitFilteredThreads() {
         threads,
         peopleThreads: [],
         automatedThreads: threads,
+        uncategorizedThreads: [],
         needsReply: [],
         done: [],
         skipped: [],
