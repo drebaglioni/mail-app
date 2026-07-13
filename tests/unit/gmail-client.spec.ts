@@ -7,6 +7,7 @@
  * the Gmail API endpoints.
  */
 import { test, expect } from "@playwright/test";
+import { extractSenderClassificationHeaders } from "../../src/main/services/gmail-headers";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -241,6 +242,9 @@ function parseGmailMessage(message: GmailApiMessage): {
   attachments?: AttachmentMeta[];
   messageIdHeader?: string;
   inReplyTo?: string;
+  listUnsubscribe?: string;
+  xMailer?: string;
+  precedence?: string;
 } {
   const headers = message.payload?.headers || [];
   const body = extractBody(message.payload);
@@ -250,6 +254,9 @@ function parseGmailMessage(message: GmailApiMessage): {
   const bcc = getHeader(headers, "bcc");
   const messageIdHeader = getHeader(headers, "message-id");
   const inReplyToHeader = getHeader(headers, "in-reply-to");
+  const listUnsubscribe = getHeader(headers, "list-unsubscribe");
+  const xMailer = getHeader(headers, "x-mailer");
+  const precedence = getHeader(headers, "precedence");
 
   return {
     id: message.id,
@@ -266,6 +273,9 @@ function parseGmailMessage(message: GmailApiMessage): {
     ...(attachments.length > 0 && { attachments }),
     ...(messageIdHeader && { messageIdHeader }),
     ...(inReplyToHeader && { inReplyTo: inReplyToHeader }),
+    ...(listUnsubscribe && { listUnsubscribe }),
+    ...(xMailer && { xMailer }),
+    ...(precedence && { precedence }),
   };
 }
 
@@ -948,6 +958,35 @@ test.describe("parseGmailMessage", () => {
 
     const parsed = parseGmailMessage(msg);
     expect(parsed.cc).toBeUndefined();
+  });
+
+  test("preserves bulk-mail headers used for sender classification", () => {
+    const msg = makeGmailMessage({
+      id: "msg-bulk",
+      threadId: "thread-bulk",
+      from: "digest@example.com",
+      to: "user@example.com",
+      subject: "Weekly digest",
+      body: "News",
+    });
+    msg.payload!.headers!.push(
+      { name: "List-Unsubscribe", value: "<mailto:unsubscribe@example.com>" },
+      { name: "X-Mailer", value: "Mailchimp" },
+      { name: "Precedence", value: "bulk" },
+    );
+
+    const parsed = parseGmailMessage(msg);
+    expect(parsed.listUnsubscribe).toBe("<mailto:unsubscribe@example.com>");
+    expect(parsed.xMailer).toBe("Mailchimp");
+    expect(parsed.precedence).toBe("bulk");
+
+    // Exercise the same pure extractor used by GmailClient.readEmail/getThread,
+    // not only this test file's broader message-parser mirror.
+    expect(extractSenderClassificationHeaders(msg.payload!.headers!)).toEqual({
+      listUnsubscribe: "<mailto:unsubscribe@example.com>",
+      xMailer: "Mailchimp",
+      precedence: "bulk",
+    });
   });
 
   test("omits empty messageIdHeader and inReplyTo", () => {

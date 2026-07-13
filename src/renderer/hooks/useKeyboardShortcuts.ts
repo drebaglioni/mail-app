@@ -374,14 +374,19 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
           | { type: "thread"; threadId: string; emailId: string }
         )[] = [];
 
-        // Add drafts if we're in inbox view (People, custom splits, snoozed)
+        // Add drafts only in views where EmailList renders them.
         const accountDrafts = localDrafts.filter(
           (d) => !currentAccountId || d.accountId === currentAccountId,
         );
 
         const isSnoozedView = currentSplitId === "__snoozed__";
         const isSentView = currentSplitId === "__sent__";
-        if (accountDrafts.length > 0 && currentSplitId !== "__automated__" && !isSentView) {
+        if (
+          accountDrafts.length > 0 &&
+          currentSplitId !== "__automated__" &&
+          currentSplitId !== "__uncategorized__" &&
+          !isSentView
+        ) {
           let draftsForNav: typeof accountDrafts;
           if (isSnoozedView) {
             draftsForNav = accountDrafts.filter(
@@ -706,7 +711,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       // view that hides the tab bar entirely.
       // Custom splits are filter chips within Automated, not top-level tabs.
       const getOrderedSplitIds = (): string[] => {
-        const ids: string[] = ["__people__", "__automated__"];
+        const ids: string[] = ["__people__", "__automated__", "__uncategorized__"];
         // Custom splits sorted by order. In unified ("All Inboxes") mode
         // include EVERY account's custom splits — SplitTabs renders them all
         // so this keyboard cycle must match, or backtick/tilde would skip

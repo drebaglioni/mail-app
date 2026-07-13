@@ -810,7 +810,7 @@ function ThreadMessage({
   const isFromMe = currentUserEmail && senderEmail.toLowerCase() === currentUserEmail.toLowerCase();
   const normalizedSenderEmail = senderEmail.toLowerCase();
   const [allowRemoteImages, setAllowRemoteImages] = useState(() =>
-    email.id.startsWith("demo-") || getTrustedRemoteImageSender(normalizedSenderEmail),
+    getTrustedRemoteImageSender(normalizedSenderEmail),
   );
 
   // Format date
@@ -912,6 +912,7 @@ function ThreadMessage({
       {/* Header */}
       <button
         onClick={onToggle}
+        data-testid="thread-message-header"
         className="w-full flex items-center gap-3 py-4 px-3 transition-colors text-left hover:bg-[var(--exo-bg-surface-hover)]"
       >
         <span className={`min-w-0 truncate text-sm font-medium exo-text-primary`}>

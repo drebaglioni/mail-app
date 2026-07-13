@@ -22,6 +22,7 @@ import { getAccounts } from "../db";
 import { getDataDir } from "../data-dir";
 import { extractEmail } from "../utils/address-formatting";
 import { createLogger } from "./logger";
+import { extractSenderClassificationHeaders } from "./gmail-headers";
 
 const log = createLogger("gmail");
 
@@ -626,6 +627,7 @@ export class GmailClient {
     const bcc = getHeader("bcc");
     const messageIdHeader = getHeader("message-id");
     const inReplyToHeader = getHeader("in-reply-to");
+    const { listUnsubscribe, xMailer, precedence } = extractSenderClassificationHeaders(headers);
     return {
       id: message.id!,
       threadId: message.threadId!,
@@ -641,6 +643,9 @@ export class GmailClient {
       ...(attachments.length > 0 && { attachments }),
       ...(messageIdHeader && { messageIdHeader }),
       ...(inReplyToHeader && { inReplyTo: inReplyToHeader }),
+      ...(listUnsubscribe && { listUnsubscribe }),
+      ...(xMailer && { xMailer }),
+      ...(precedence && { precedence }),
     };
   }
 
@@ -676,6 +681,7 @@ export class GmailClient {
       const bcc = getHeader("bcc");
       const messageIdHeader = getHeader("message-id");
       const inReplyToHeader = getHeader("in-reply-to");
+      const { listUnsubscribe, xMailer, precedence } = extractSenderClassificationHeaders(headers);
       emails.push({
         id: message.id!,
         threadId: message.threadId!,
@@ -691,6 +697,9 @@ export class GmailClient {
         ...(attachments.length > 0 && { attachments }),
         ...(messageIdHeader && { messageIdHeader }),
         ...(inReplyToHeader && { inReplyTo: inReplyToHeader }),
+        ...(listUnsubscribe && { listUnsubscribe }),
+        ...(xMailer && { xMailer }),
+        ...(precedence && { precedence }),
       });
     }
 

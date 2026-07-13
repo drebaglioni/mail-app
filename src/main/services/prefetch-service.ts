@@ -219,7 +219,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       // Skip sent emails - they don't need reply analysis
       if (email.labelIds?.includes("SENT")) continue;
 
-      if (!email.analysis && !this.processedAnalysis.has(emailId)) {
+      if ((!email.analysis || !email.analysis.senderType) && !this.processedAnalysis.has(emailId)) {
         this.queue.push({
           emailId,
           type: "analysis",
@@ -297,7 +297,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       `[PERF] processAllPending getInboxEmails took ${(performance.now() - tGetEmails).toFixed(1)}ms, returned ${inboxEmails.length} emails (cache=${usedCache})`,
     );
 
-    const unanalyzed = inboxEmails.filter((e) => !e.analysis);
+    const unanalyzed = inboxEmails.filter((e) => !e.analysis || !e.analysis.senderType);
 
     // Queue analysis for unanalyzed emails
     if (unanalyzed.length > 0) {
@@ -316,9 +316,9 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
     if (config.enableSenderLookup ?? true) {
       const needsSenderProfile = inboxEmails.filter((e) => {
         if (!e.analysis) return false; // Not analyzed yet
-        // Only look up people. When senderType is missing (older rows) fall
-        // through to the lookup — safer than over-filtering.
-        if (e.analysis.senderType && e.analysis.senderType !== "person") return false;
+        // Only look up explicitly classified people. Incomplete historical
+        // rows are requeued for analysis above.
+        if (e.analysis.senderType !== "person") return false;
         const senderEmail = this.extractSenderEmail(e.from);
         if (this.processedSenderProfiles.has(senderEmail)) return false;
         return true;
@@ -396,10 +396,9 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       : inboxEmails.filter(
           (e) =>
             e.analysis?.needsReply &&
-            // Fork-only filters: drop automated senders + honor the configured
-            // priority allowlist. Both guards collapse to no-op when the
-            // fields aren't populated.
-            (!e.analysis?.senderType || e.analysis.senderType === "person") &&
+            // Draft only for explicitly classified people. Unknown sender
+            // types stay in the recovery queue until analysis succeeds.
+            e.analysis?.senderType === "person" &&
             (!e.analysis?.priority || allowedPriorities.includes(e.analysis.priority)) &&
             !this.processedDrafts.has(e.id) &&
             !this.queue.some((t) => t.type === "agent-draft" && t.emailId === e.id) &&
@@ -780,8 +779,9 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       return;
     }
 
-    // If already analyzed (e.g. by autoAnalyzeEmails), still queue sender-profile
-    if (email.analysis) {
+    // A row without senderType is incomplete and must be analyzed again.
+    // Only complete analyses can take the already-analyzed fast path.
+    if (email.analysis?.senderType) {
       this.processedAnalysis.add(emailId);
       const config = getConfig();
       if (config.enableSenderLookup ?? true) {
@@ -911,7 +911,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
           autoDraftAllowed &&
           !isTest &&
           !isDemo &&
-          (!result.sender_type || result.sender_type === "person") &&
+          result.sender_type === "person" &&
           (!result.priority || autoDraftPriorities.includes(result.priority)) &&
           !email.draft &&
           !this.processedDrafts.has(emailId) &&

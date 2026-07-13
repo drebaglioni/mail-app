@@ -208,6 +208,8 @@ export function registerGmailIpc(): void {
                   ? {
                       needsReply: expectedAnalysis.needsReply,
                       reason: expectedAnalysis.reason,
+                      senderType: expectedAnalysis.senderType,
+                      automatedCategory: expectedAnalysis.automatedCategory,
                       analyzedAt: Date.now(),
                     }
                   : undefined),
@@ -275,6 +277,8 @@ export function registerGmailIpc(): void {
               ? {
                   needsReply: expectedAnalysis.needsReply,
                   reason: expectedAnalysis.reason,
+                  senderType: expectedAnalysis.senderType,
+                  automatedCategory: expectedAnalysis.automatedCategory,
                   analyzedAt: Date.now(),
                 }
               : undefined,

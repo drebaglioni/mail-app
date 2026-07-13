@@ -555,6 +555,8 @@ test.describe("Automated - Thread Archive via 'e' key", () => {
     const firstRow = page.locator(".overflow-y-auto div[data-thread-id]").first();
     await expect(firstRow).toBeVisible({ timeout: 3000 });
     const archivedText = await firstRow.textContent();
+    const archivedThreadId = await firstRow.getAttribute("data-thread-id");
+    expect(archivedThreadId).toBeTruthy();
     await firstRow.click();
     await page.waitForTimeout(500);
 
@@ -587,18 +589,14 @@ test.describe("Automated - Thread Archive via 'e' key", () => {
     const stillPresent = allRowTexts.some((t) => t === archivedText);
     expect(stillPresent).toBe(false);
 
-    // Now switch back to the "All" inbox view to verify the thread is gone there too
-    const splitTabsBar = page.locator("div.overflow-x-auto");
-    const allTab = splitTabsBar.locator("button").first();
-    await allTab.click();
-    await page.waitForTimeout(500);
-
-    // Project Alpha should not appear in the main inbox either
-    const inboxRowTexts = await page
-      .locator(".overflow-y-auto div[data-thread-id]")
-      .allTextContents();
-    const inInbox = inboxRowTexts.some((t) => t.includes("Project Alpha"));
-    expect(inInbox).toBe(false);
+    // Wait for the undo window to close, then re-fetch from the DB. The exact
+    // automated thread must stay archived; unrelated People rows are expected
+    // to remain visible in their own mode.
+    await page.waitForTimeout(6000);
+    await page.locator("button[title='Refresh']").click();
+    await expect(
+      page.locator(`.overflow-y-auto div[data-thread-id='${archivedThreadId}']`),
+    ).toHaveCount(0, { timeout: 3000 });
   });
 });
 

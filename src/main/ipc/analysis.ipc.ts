@@ -82,6 +82,8 @@ export function registerAnalysisIpc(): void {
           analysis: {
             needsReply: expectedAnalysis.needsReply,
             reason: expectedAnalysis.reason,
+            senderType: expectedAnalysis.senderType,
+            automatedCategory: expectedAnalysis.automatedCategory,
             analyzedAt: Date.now(),
           },
         };
@@ -154,6 +156,8 @@ export function registerAnalysisIpc(): void {
               ? {
                   needsReply: expectedAnalysis.needsReply,
                   reason: expectedAnalysis.reason,
+                  senderType: expectedAnalysis.senderType,
+                  automatedCategory: expectedAnalysis.automatedCategory,
                   analyzedAt: Date.now(),
                 }
               : undefined,

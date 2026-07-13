@@ -239,8 +239,7 @@ test.describe("Batch Actions - Select All (Cmd+A)", () => {
   test("Cmd+A selects all threads", async () => {
     await page.waitForTimeout(1000);
 
-    const totalThreads = await countInboxThreads(page);
-    expect(totalThreads).toBeGreaterThan(0);
+    expect(await countInboxThreads(page)).toBeGreaterThan(0);
 
     // Cmd+A to select all
     await page.keyboard.press("ControlOrMeta+a");
@@ -248,7 +247,10 @@ test.describe("Batch Actions - Select All (Cmd+A)", () => {
 
     const batchBar = page.locator("[data-testid='batch-action-bar']");
     await expect(batchBar).toBeVisible({ timeout: 3000 });
-    await expect(batchBar).toContainText(`${totalThreads} selected`);
+    // The list is virtualized, so mounted DOM rows are not the total. When all
+    // visible-mode threads are selected, the bar hides its "Select all" link.
+    await expect(batchBar).toContainText(/\d+ selected/);
+    await expect(page.locator("[data-testid='batch-select-all']")).toHaveCount(0);
 
     await screenshot(page, "batch-09-select-all");
   });
@@ -593,8 +595,7 @@ test.describe("Batch Actions - Select All Button", () => {
   test("Select All button in batch bar selects all threads", async () => {
     await page.waitForTimeout(1000);
 
-    const totalThreads = await countInboxThreads(page);
-    expect(totalThreads).toBeGreaterThan(2);
+    expect(await countInboxThreads(page)).toBeGreaterThan(2);
 
     // Select one thread to show batch bar
     const threadRows = page.locator(".overflow-y-auto div[data-thread-id] button");
@@ -609,7 +610,8 @@ test.describe("Batch Actions - Select All Button", () => {
 
     // All threads should be selected
     const batchBar = page.locator("[data-testid='batch-action-bar']");
-    await expect(batchBar).toContainText(`${totalThreads} selected`);
+    await expect(batchBar).toContainText(/\d+ selected/);
+    await expect(page.locator("[data-testid='batch-select-all']")).toHaveCount(0);
 
     await screenshot(page, "batch-21-select-all-button");
 

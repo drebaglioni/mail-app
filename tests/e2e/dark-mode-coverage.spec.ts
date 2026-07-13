@@ -265,6 +265,10 @@ test.describe("Dark Mode Coverage Gaps", () => {
   });
 
   test("attachment chips have dark borders and text", async () => {
+    await page
+      .locator("button[data-variant='switch']")
+      .filter({ hasText: /^Uncategorized/ })
+      .click();
     // Click the Q3 Quarterly Report email (has attachments in demo data)
     const reportEmail = page.locator("button").filter({ hasText: "Q3 Quarterly Report" }).first();
     await expect(reportEmail).toBeVisible({ timeout: 5000 });
