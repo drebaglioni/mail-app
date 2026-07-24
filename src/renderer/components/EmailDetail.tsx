@@ -3,7 +3,6 @@ import { useAppStore, useSplitFilteredThreads } from "../store";
 import DOMPurify from "dompurify";
 import {
   Archive,
-  Bot,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
@@ -67,6 +66,7 @@ import {
   classifyEmailCapsule,
   countRemoteImages,
   getSenderIdentity,
+  stripHtmlForCapsule,
   type CapsuleIconKey,
 } from "../services/email-capsule";
 
@@ -528,6 +528,139 @@ function detectUnsubscribeUrl(bodies: string[]): string | null {
     }
   }
   return null;
+}
+
+interface KeyDetail {
+  key: string;
+  label: string;
+  title: string;
+  body: string;
+  icon: CapsuleIconKey;
+}
+
+function detectKeyDetails(
+  threadEmails: DashboardEmail[],
+  trackingNumbers: TrackingInfo[],
+  capsuleMode: string,
+  contextCards: Array<{
+    key: string;
+    label: string;
+    title: string;
+    body: string;
+    icon: CapsuleIconKey;
+  }>,
+): KeyDetail[] {
+  const text = stripHtmlForCapsule(
+    threadEmails
+      .map((e) => `${e.subject ?? ""} ${e.body ?? ""}`)
+      .filter(Boolean)
+      .join(" "),
+  );
+  const details: KeyDetail[] = [];
+  const seen = new Set<string>();
+
+  const addDetail = (detail: KeyDetail) => {
+    const fingerprint = `${detail.label}:${detail.title}`.toLowerCase();
+    if (seen.has(fingerprint)) return;
+    seen.add(fingerprint);
+    details.push(detail);
+  };
+
+  const labeledPatterns: Array<{
+    key: string;
+    label: string;
+    icon: CapsuleIconKey;
+    regex: RegExp;
+  }> = [
+    {
+      key: "order",
+      label: "Order",
+      icon: "package",
+      regex: /\border\s*(?:number|no\.?|#|id)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/gi,
+    },
+    {
+      key: "confirmation",
+      label: "Confirmation",
+      icon: "shield",
+      regex: /\bconfirmation\s*(?:number|no\.?|#|code)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/gi,
+    },
+    {
+      key: "reservation",
+      label: "Reservation",
+      icon: "calendar",
+      regex: /\breservation\s*(?:number|no\.?|#|id)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/gi,
+    },
+    {
+      key: "booking",
+      label: "Booking",
+      icon: "calendar",
+      regex: /\bbooking\s*(?:number|no\.?|#|id)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/gi,
+    },
+    {
+      key: "ticket",
+      label: "Ticket",
+      icon: "paperclip",
+      regex: /\bticket\s*(?:number|no\.?|#|id)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/gi,
+    },
+    {
+      key: "invoice",
+      label: "Invoice",
+      icon: "paperclip",
+      regex: /\binvoice\s*(?:number|no\.?|#|id)?\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{4,})\b/gi,
+    },
+    {
+      key: "code",
+      label: "Code",
+      icon: "shield",
+      regex:
+        /\b(?:access|entry|verification|security|claim|promo)\s+code\s*[:#-]?\s*([A-Z0-9][A-Z0-9-]{3,})\b/gi,
+    },
+  ];
+
+  for (const pattern of labeledPatterns) {
+    for (const match of text.matchAll(pattern.regex)) {
+      addDetail({
+        key: `${pattern.key}-${match[1]}`,
+        label: pattern.label,
+        title: match[1],
+        body: "Detected from this thread.",
+        icon: pattern.icon,
+      });
+      if (details.length >= 5) return details;
+    }
+  }
+
+  const totalMatch = text.match(
+    /\b(?:total|amount paid|grand total)\s*[:#-]?\s*(\$[0-9][0-9,.]*)/i,
+  );
+  if (totalMatch) {
+    addDetail({
+      key: "total",
+      label: "Total",
+      title: totalMatch[1],
+      body: "Detected payment amount.",
+      icon: "sparkles",
+    });
+  }
+
+  for (const tracking of trackingNumbers.slice(0, 2)) {
+    addDetail({
+      key: `tracking-${tracking.carrier}-${tracking.trackingNumber}`,
+      label: `${tracking.carrier} Tracking`,
+      title: tracking.trackingNumber,
+      body: "Open carrier tracking from the action below.",
+      icon: "package",
+    });
+  }
+
+  if (capsuleMode === "transactional" || capsuleMode === "meeting") {
+    for (const card of contextCards) {
+      if (card.key !== "deadline" && card.key !== "attachments") continue;
+      addDetail(card);
+    }
+  }
+
+  return details.slice(0, 5);
 }
 
 function renderCapsuleIcon(icon: CapsuleIconKey): React.ReactNode {
@@ -3457,6 +3590,12 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
     unsubscribeUrl,
     trackingCount: trackingNumbers.length,
   });
+  const keyDetails = detectKeyDetails(
+    threadEmails,
+    trackingNumbers,
+    capsule.mode,
+    capsule.contextCards,
+  );
 
   const handleBackToSplit = () => {
     useAppStore.setState({
@@ -3670,34 +3809,142 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
         )}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsCapsuleCommandOpen(true)}
-            className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
-            title="Open capsule command sheet"
-          >
-            <Command className="w-4 h-4" />
-            Capsule
-          </button>
-          <button
             onClick={handleArchive}
-            className="exo-capsule-icon-btn p-2 rounded-full"
+            className="exo-capsule-icon-btn p-2 rounded-lg"
             title="Archive"
           >
             <Archive className="w-4 h-4" />
           </button>
           <button
+            onClick={handleOpenReply}
+            className="exo-capsule-icon-btn p-2 rounded-lg"
+            title="Reply"
+          >
+            <Reply className="w-4 h-4" />
+          </button>
+          <button
             onClick={handleOpenReplyAll}
-            className="exo-capsule-icon-btn p-2 rounded-full"
+            className="exo-capsule-icon-btn p-2 rounded-lg"
             title="Reply All"
           >
             <ReplyAll className="w-4 h-4" />
           </button>
           <button
             onClick={handleOpenForward}
-            className="exo-capsule-icon-btn p-2 rounded-full"
+            className="exo-capsule-icon-btn p-2 rounded-lg"
             title="Forward"
           >
             <Forward className="w-4 h-4" />
           </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="exo-capsule-icon-btn p-2 rounded-lg"
+              title="More actions"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {showMoreMenu && (
+              <div
+                className="absolute right-0 top-full mt-2 w-64 exo-elevated border exo-border-subtle rounded-xl shadow-2xl z-50 py-2"
+                onMouseLeave={() => setShowMoreMenu(false)}
+              >
+                <button
+                  onClick={() => {
+                    setIsCapsuleCommandOpen(true);
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Command className="w-4 h-4" /> Assistant actions
+                  </span>
+                </button>
+                <div className="h-px exo-border-subtle my-1" />
+                <button
+                  onClick={() => {
+                    openCompose(
+                      "reply",
+                      focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
+                    );
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Reply className="w-4 h-4" /> Reply
+                  </span>
+                  <span className="text-xs exo-text-muted">r</span>
+                </button>
+                <button
+                  onClick={() => {
+                    openCompose(
+                      "forward",
+                      focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
+                    );
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Forward className="w-4 h-4" /> Forward
+                  </span>
+                  <span className="text-xs exo-text-muted">f</span>
+                </button>
+                <div className="h-px exo-border-subtle my-1" />
+                <button
+                  onClick={() => {
+                    handleToggleStar();
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Star className="w-4 h-4" fill={isStarred ? "currentColor" : "none"} />
+                    {isStarred ? "Unstar" : "Star"}
+                  </span>
+                  <span className="text-xs exo-text-muted">s</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleMarkUnread();
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <MailOpen className="w-4 h-4" /> Mark as unread
+                  </span>
+                  <span className="text-xs exo-text-muted">&#8679;U</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSnoozeMenu(!showSnoozeMenu);
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> Snooze
+                  </span>
+                  <span className="text-xs exo-text-muted">h</span>
+                </button>
+                <div className="h-px exo-border-subtle my-1" />
+                <button
+                  onClick={() => {
+                    handleTrash();
+                    setShowMoreMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-[var(--exo-bg-surface-hover)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" /> Trash
+                  </span>
+                  <span className="text-xs exo-text-muted">#</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -3705,135 +3952,6 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="exo-capsule-stage" data-mode={capsule.mode}>
           <header className="exo-capsule-hero">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="exo-capsule-mode">
-                <Sparkles className="w-3.5 h-3.5" />
-                {capsule.label}
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
-                {capsule.actionLabels.map((label) => (
-                  <button
-                    key={label}
-                    onClick={
-                      label === "Draft reply"
-                        ? handleOpenReply
-                        : label === "Unsubscribe" && unsubscribeUrl
-                          ? () => window.open(unsubscribeUrl, "_blank")
-                          : () => setIsCapsuleCommandOpen(true)
-                    }
-                    className="exo-capsule-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm"
-                  >
-                    {label === "Draft reply" ? (
-                      <Reply className="w-3.5 h-3.5" />
-                    ) : label === "Schedule" ? (
-                      <CalendarDays className="w-3.5 h-3.5" />
-                    ) : label === "Unsubscribe" ? (
-                      <Link2 className="w-3.5 h-3.5" />
-                    ) : (
-                      <Bot className="w-3.5 h-3.5" />
-                    )}
-                    {label}
-                  </button>
-                ))}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowMoreMenu(!showMoreMenu)}
-                    className="exo-capsule-icon-btn p-2 rounded-full"
-                    title="More actions"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  {showMoreMenu && (
-                    <div
-                      className="absolute right-0 top-full mt-2 w-64 exo-elevated border exo-border-subtle rounded-xl shadow-2xl z-50 py-2"
-                      onMouseLeave={() => setShowMoreMenu(false)}
-                    >
-                      <button
-                        onClick={() => {
-                          openCompose(
-                            "reply",
-                            focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
-                          );
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Reply className="w-4 h-4" /> Reply
-                        </span>
-                        <span className="text-xs exo-text-muted">r</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          openCompose(
-                            "forward",
-                            focusedThreadEmailId ?? replyTargetEmailId ?? latestEmail.id,
-                          );
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Forward className="w-4 h-4" /> Forward
-                        </span>
-                        <span className="text-xs exo-text-muted">f</span>
-                      </button>
-                      <div className="h-px exo-border-subtle my-1" />
-                      <button
-                        onClick={() => {
-                          handleToggleStar();
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Star className="w-4 h-4" fill={isStarred ? "currentColor" : "none"} />
-                          {isStarred ? "Unstar" : "Star"}
-                        </span>
-                        <span className="text-xs exo-text-muted">s</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleMarkUnread();
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <MailOpen className="w-4 h-4" /> Mark as unread
-                        </span>
-                        <span className="text-xs exo-text-muted">&#8679;U</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowSnoozeMenu(!showSnoozeMenu);
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm exo-text-secondary hover:bg-[var(--exo-bg-surface-hover)]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" /> Snooze
-                        </span>
-                        <span className="text-xs exo-text-muted">h</span>
-                      </button>
-                      <div className="h-px exo-border-subtle my-1" />
-                      <button
-                        onClick={() => {
-                          handleTrash();
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-[var(--exo-bg-surface-hover)]"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Trash2 className="w-4 h-4" /> Trash
-                        </span>
-                        <span className="text-xs exo-text-muted">#</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
             <h1 className="exo-capsule-title font-semibold">{cleanSubject}</h1>
             <div className="exo-capsule-meta text-sm">
               <button
@@ -3867,18 +3985,23 @@ function EmailDetailInner({ isFullView = false }: EmailDetailProps) {
             </div>
           </header>
 
-          <section className="exo-capsule-context" aria-label="Email context">
-            {capsule.contextCards.map((card) => (
-              <div key={card.key} className="exo-capsule-context-card">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] exo-text-muted">
-                  {renderCapsuleIcon(card.icon)}
-                  {card.label}
-                </div>
-                <div className="mt-3 text-sm font-semibold exo-text-primary">{card.title}</div>
-                <p className="mt-1 text-sm leading-relaxed exo-text-secondary">{card.body}</p>
+          {keyDetails.length > 0 && (
+            <section className="exo-key-details" aria-label="Key details">
+              <div className="exo-key-details-label">Key Details</div>
+              <div className="exo-key-details-grid">
+                {keyDetails.map((detail) => (
+                  <div key={detail.key} className="exo-key-detail">
+                    <div className="exo-key-detail-label">
+                      {renderCapsuleIcon(detail.icon)}
+                      {detail.label}
+                    </div>
+                    <div className="exo-key-detail-value">{detail.title}</div>
+                    <p>{detail.body}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </section>
+            </section>
+          )}
 
           {trackingNumbers.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
