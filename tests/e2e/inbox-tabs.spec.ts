@@ -54,8 +54,7 @@ test.describe("Inbox Modes", () => {
       timeout: 5000,
     });
 
-    const rows = await visibleThreadCount(page);
-    expect(rows).toBeGreaterThanOrEqual(0);
+    expect(await visibleThreadCount(page)).toBe(5);
   });
 
   test("Uncategorized mode is a separate recovery queue", async () => {
@@ -84,17 +83,36 @@ test.describe("Inbox Modes", () => {
   test("Automated mode exposes category chips without changing the global mode", async () => {
     await expect(modeTitle(page, "Automated")).toBeVisible({ timeout: 5000 });
 
-    const allChip = page.locator("button").filter({ hasText: /^All$/ }).first();
+    const allChip = page
+      .locator("button")
+      .filter({ hasText: /^All\s+\d+$/ })
+      .first();
     await expect(allChip).toBeVisible({ timeout: 5000 });
 
     const notificationsChip = page
       .locator("button")
-      .filter({ hasText: /^Notifications$/ })
+      .filter({ hasText: /^Notifications\s+\d+$/ })
       .first();
-    if (await notificationsChip.isVisible().catch(() => false)) {
-      await notificationsChip.click();
-      await expect(modeTitle(page, "Automated")).toBeVisible({ timeout: 5000 });
-    }
+    await notificationsChip.click();
+    await expect(modeTitle(page, "Automated")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("[ankitvgupta/exo] CI workflow failed on main")).toBeVisible();
+    await expect(page.getByText("Accepted: Weekly Team Sync", { exact: false })).toBeVisible();
+    await expect(page.getByText("Your Amazon order has shipped!")).toHaveCount(0);
+    await expect(page.getByText("This Week in Tech", { exact: false })).toHaveCount(0);
+    expect(await visibleThreadCount(page)).toBe(2);
+
+    const newslettersChip = page
+      .locator("button")
+      .filter({ hasText: /^Newsletters\s+\d+$/ })
+      .first();
+    await newslettersChip.click();
+    await expect(page.getByText("This Week in Tech", { exact: false })).toBeVisible();
+    await expect(page.getByText("Weekly Product Update", { exact: false })).toBeVisible();
+    await expect(page.getByText("[ankitvgupta/exo] CI workflow failed on main")).toHaveCount(0);
+    expect(await visibleThreadCount(page)).toBe(2);
+
+    await allChip.click();
+    await expect(page.locator("div[data-thread-id]")).toHaveCount(5);
   });
 
   test("can switch back to People mode", async () => {

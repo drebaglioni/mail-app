@@ -174,7 +174,7 @@ Output: {"needs_reply": false, "reason": "Automated Jira notification", "sender_
 Example 13 - Action-required task (priority):
 Email Subject: "Please update the team roster spreadsheet"
 Email Body: "Hi, could you add the two new hires to the shared roster spreadsheet by end of week? The link is in the pinned message in our Slack channel. Thanks!"
-Output: {"needs_reply": true, "reason": "Action required - update external document by end of week"}
+Output: {"needs_reply": true, "reason": "Action required - update external document by end of week", "priority": "low", "sender_type": "person"}
 
 Now analyze the following email:`;
 
@@ -265,15 +265,16 @@ ${userIdentityLine}${wrapUntrustedEmail(`From: ${email.from}\nTo: ${email.to}\nS
       });
       if (heuristicType === "automated") {
         result.sender_type = "automated";
-        // Keep the LLM's category if it also said automated, otherwise default to "other"
-        if (!result.automated_category) {
-          result.automated_category = "other";
-        }
       }
       // A response without sender_type is incomplete. Reject it so callers do
       // not persist a half-analysis that would suppress future retries.
       if (!result.sender_type) {
         throw new Error("Analysis response omitted sender_type");
+      }
+      // Automated without a category would appear in All but in none of the
+      // visible category chips. Normalize incomplete model output to Other.
+      if (result.sender_type === "automated" && !result.automated_category) {
+        result.automated_category = "other";
       }
 
       return result;

@@ -712,16 +712,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
       // Custom splits are filter chips within Automated, not top-level tabs.
       const getOrderedSplitIds = (): string[] => {
         const ids: string[] = ["__people__", "__automated__", "__uncategorized__"];
-        // Custom splits sorted by order. In unified ("All Inboxes") mode
-        // include EVERY account's custom splits — SplitTabs renders them all
-        // so this keyboard cycle must match, or backtick/tilde would skip
-        // tabs that are visibly present.
-        const visibleSplits =
-          currentAccountId === null
-            ? state.splits
-            : state.splits.filter((s) => s.accountId === currentAccountId);
-        const customSplits = [...visibleSplits].sort((a, b) => a.order - b.order);
-        for (const s of customSplits) ids.push(s.id);
         // Only include snoozed when there are snoozed threads with loaded email data
         // for the current account (matches SplitTabs.tsx snoozedCount from useThreadedEmails)
         const hasSnoozed = state.emails.some(

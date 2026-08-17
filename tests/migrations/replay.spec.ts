@@ -260,7 +260,7 @@ test.describe("Migration replay + symmetry", () => {
         sender_type: "automated",
         automated_category: "other",
       },
-      { email_id: "subscription", sender_type: "automated", automated_category: "other" },
+      { email_id: "subscription", sender_type: "automated", automated_category: null },
     ]);
     expect(
       (
@@ -268,8 +268,41 @@ test.describe("Migration replay + symmetry", () => {
           version: number;
         }
       ).version,
-    ).toBe(13);
+    ).toBe(14);
 
+    db.close();
+  });
+
+  test("v14 resets only provisional heuristic categories for semantic reanalysis", () => {
+    const db = freshDb();
+    db.exec(SCHEMA);
+    db.exec(`
+      CREATE TABLE schema_version (
+        version INTEGER NOT NULL UNIQUE,
+        applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO schema_version (version) VALUES (13);
+      INSERT INTO emails
+        (id, thread_id, subject, from_address, to_address, body, date, fetched_at)
+      VALUES
+        ('provisional', 't1', 'Receipt', 'billing@example.com', 'user@example.com', '', '2026-08-01', 1),
+        ('semantic-other', 't2', 'Alert', 'alerts@example.com', 'user@example.com', '', '2026-08-01', 1);
+      INSERT INTO analyses
+        (email_id, needs_reply, reason, analyzed_at, sender_type, automated_category)
+      VALUES
+        ('provisional', 0, 'Auto-classified by sender pattern', 1, 'automated', 'other'),
+        ('semantic-other', 0, 'Automated email outside known categories', 1, 'automated', 'other');
+    `);
+
+    runMigrations(db);
+
+    const rows = db
+      .prepare("SELECT email_id, automated_category FROM analyses ORDER BY email_id")
+      .all();
+    expect(rows).toEqual([
+      { email_id: "provisional", automated_category: null },
+      { email_id: "semantic-other", automated_category: "other" },
+    ]);
     db.close();
   });
 });

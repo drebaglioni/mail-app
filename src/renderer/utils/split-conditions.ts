@@ -18,6 +18,20 @@ function matchesPattern(value: string, pattern: string): boolean {
   return value.toLowerCase().includes(pattern.toLowerCase());
 }
 
+// Users commonly paste a comma-separated sender/domain list into one rule.
+// Treat commas and newlines as alternatives instead of one impossible literal
+// glob. Empty entries are ignored.
+export function splitConditionPatterns(input: string): string[] {
+  return input
+    .split(/[\n,]+/)
+    .map((pattern) => pattern.trim())
+    .filter(Boolean);
+}
+
+function matchesAnyPattern(value: string, input: string): boolean {
+  return splitConditionPatterns(input).some((pattern) => matchesPattern(value, pattern));
+}
+
 // Extract email address from "Name <email>" format
 function extractEmailAddress(fromField: string): string {
   const match = fromField.match(/<([^>]+)>/);
@@ -34,26 +48,29 @@ export function evaluateCondition(
     case "from": {
       const emailAddr = extractEmailAddress(email.from);
       matches =
-        matchesPattern(email.from, condition.value) || matchesPattern(emailAddr, condition.value);
+        matchesAnyPattern(email.from, condition.value) ||
+        matchesAnyPattern(emailAddr, condition.value);
       break;
     }
     case "to": {
       const emailAddr = extractEmailAddress(email.to);
       matches =
-        matchesPattern(email.to, condition.value) || matchesPattern(emailAddr, condition.value);
+        matchesAnyPattern(email.to, condition.value) ||
+        matchesAnyPattern(emailAddr, condition.value);
       break;
     }
     case "subject": {
-      matches = matchesPattern(email.subject, condition.value);
+      matches = matchesAnyPattern(email.subject, condition.value);
       break;
     }
     case "label": {
-      matches = email.labelIds?.includes(condition.value) ?? false;
+      const labels = new Set(email.labelIds ?? []);
+      matches = splitConditionPatterns(condition.value).some((label) => labels.has(label));
       break;
     }
     case "has_attachment": {
       matches =
-        email.attachments?.some((a) => matchesPattern(a.filename, condition.value)) ?? false;
+        email.attachments?.some((a) => matchesAnyPattern(a.filename, condition.value)) ?? false;
       break;
     }
   }
@@ -99,13 +116,13 @@ function evaluateConditionForDraft(
       const allRecipients = [...draft.to, ...(draft.cc ?? []), ...(draft.bcc ?? [])];
       matches = allRecipients.some(
         (r) =>
-          matchesPattern(r, condition.value) ||
-          matchesPattern(extractEmailAddress(r), condition.value),
+          matchesAnyPattern(r, condition.value) ||
+          matchesAnyPattern(extractEmailAddress(r), condition.value),
       );
       break;
     }
     case "subject":
-      matches = matchesPattern(draft.subject, condition.value);
+      matches = matchesAnyPattern(draft.subject, condition.value);
       break;
     case "label":
       // Drafts don't have Gmail labels

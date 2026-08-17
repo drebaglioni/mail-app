@@ -124,8 +124,8 @@ function saveEmail(
   const bodyText = stripHtmlForSearch(email.body);
   db.prepare(
     `
-    INSERT OR REPLACE INTO emails (id, account_id, thread_id, subject, from_address, to_address, cc_address, bcc_address, body, body_text, snippet, date, fetched_at, label_ids, attachments, message_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO emails (id, account_id, thread_id, subject, from_address, to_address, cc_address, bcc_address, body, body_text, snippet, date, fetched_at, label_ids, attachments, message_id, archive_kept)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT archive_kept FROM emails WHERE id = ?), 0))
   `,
   ).run(
     email.id,
@@ -144,6 +144,7 @@ function saveEmail(
     email.labelIds ? JSON.stringify(email.labelIds) : null,
     email.attachments?.length ? JSON.stringify(email.attachments) : null,
     email.messageIdHeader || null,
+    email.id,
   );
 }
 
@@ -1110,6 +1111,18 @@ test.describe("Database CRUD operations", () => {
       saveEmail(db, makeEmail({ id: "e1", threadId: "t1", subject: "Updated" }), "acct1");
       const result = getEmail(db, "e1");
       expect(result.subject).toBe("Updated");
+    });
+
+    test("saveEmail preserves a persisted archive keep override on resync", () => {
+      saveEmail(db, makeEmail({ id: "e1", threadId: "t1", subject: "Original" }), "acct1");
+      db.prepare("UPDATE emails SET archive_kept = -1 WHERE id = 'e1'").run();
+
+      saveEmail(db, makeEmail({ id: "e1", threadId: "t1", subject: "Updated" }), "acct1");
+
+      const row = db.prepare("SELECT archive_kept FROM emails WHERE id = 'e1'").get() as {
+        archive_kept: number;
+      };
+      expect(row.archive_kept).toBe(-1);
     });
 
     test("getAllEmails returns all emails", () => {

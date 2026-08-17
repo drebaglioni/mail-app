@@ -17,6 +17,7 @@ import type {
   SendAsAlias,
   AutomatedCategory,
 } from "../../shared/types";
+import { HEURISTIC_ANALYSIS_REASON } from "../../shared/types";
 import { createLogger } from "../services/logger";
 import {
   classifySenderByHeuristics,
@@ -342,8 +343,8 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
   const db = getDatabase();
   const bodyText = stripHtmlForSearch(email.body);
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO emails (id, account_id, thread_id, subject, from_address, to_address, cc_address, bcc_address, body, body_text, snippet, date, fetched_at, label_ids, attachments, message_id, in_reply_to)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO emails (id, account_id, thread_id, subject, from_address, to_address, cc_address, bcc_address, body, body_text, snippet, date, fetched_at, label_ids, attachments, message_id, in_reply_to, archive_kept)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT archive_kept FROM emails WHERE id = ?), 0))
   `);
   stmt.run(
     email.id,
@@ -363,6 +364,7 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
     email.attachments?.length ? JSON.stringify(email.attachments) : null,
     email.messageIdHeader || null,
     email.inReplyTo || null,
+    email.id,
   );
 
   // New email may create new In-Reply-To links that change thread merge groups
@@ -391,8 +393,8 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
       db.prepare(
         `INSERT INTO analyses
          (email_id, needs_reply, reason, sender_type, automated_category, analyzed_at)
-         VALUES (?, 0, ?, 'automated', 'other', ?)`,
-      ).run(email.id, "Auto-classified by sender pattern", Date.now());
+         VALUES (?, 0, ?, 'automated', NULL, ?)`,
+      ).run(email.id, HEURISTIC_ANALYSIS_REASON, Date.now());
     }
   } else if (existing.sender_type !== "automated" && hasDefinitiveAutomatedSignal(senderHeaders)) {
     // Fresh Gmail headers can repair historical LLM mistakes. Restrict
@@ -401,10 +403,11 @@ export function saveEmail(email: Email, accountId: string = "default"): void {
     db.prepare(
       `UPDATE analyses
        SET sender_type = 'automated',
-           automated_category = COALESCE(automated_category, 'other'),
+           automated_category = NULL,
+           reason = ?,
            analyzed_at = ?
        WHERE email_id = ?`,
-    ).run(Date.now(), email.id);
+    ).run(HEURISTIC_ANALYSIS_REASON, Date.now(), email.id);
   }
 }
 
@@ -427,7 +430,7 @@ export function getEmail(emailId: string): DashboardEmail | null {
     SELECT
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", e.body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
-      e.message_id as messageId, e.in_reply_to as inReplyTo,
+      e.message_id as messageId, e.in_reply_to as inReplyTo, e.archive_kept as archiveKept,
       a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
@@ -452,7 +455,7 @@ export function getAllEmails(accountId?: string): DashboardEmail[] {
     SELECT
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", '' as body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
-      e.message_id as messageId, e.in_reply_to as inReplyTo,
+      e.message_id as messageId, e.in_reply_to as inReplyTo, e.archive_kept as archiveKept,
       a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
@@ -499,7 +502,7 @@ export function getInboxEmails(accountId?: string): DashboardEmail[] {
   const selectCols = `
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", '' as body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
-      e.message_id as messageId, e.in_reply_to as inReplyTo,
+      e.message_id as messageId, e.in_reply_to as inReplyTo, e.archive_kept as archiveKept,
       a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode`;
   const fromJoins = `
@@ -637,7 +640,7 @@ export function getSentEmails(accountId: string): DashboardEmail[] {
     SELECT
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", '' as body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
-      e.message_id as messageId, e.in_reply_to as inReplyTo,
+      e.message_id as messageId, e.in_reply_to as inReplyTo, e.archive_kept as archiveKept,
       a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
@@ -669,7 +672,7 @@ export function getEmailsByThread(threadId: string, accountId?: string): Dashboa
     SELECT
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", e.body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
-      e.message_id as messageId, e.in_reply_to as inReplyTo,
+      e.message_id as messageId, e.in_reply_to as inReplyTo, e.archive_kept as archiveKept,
       a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
@@ -702,7 +705,7 @@ export function getEmailsByIds(ids: string[]): DashboardEmail[] {
     SELECT
       e.id, e.account_id as accountId, e.thread_id as threadId, e.subject, e.from_address as "from",
       e.to_address as "to", e.cc_address as "cc", e.bcc_address as "bcc", e.body, e.snippet, e.date, e.label_ids as labelIds, e.attachments as attachmentsJson,
-      e.message_id as messageId, e.in_reply_to as inReplyTo,
+      e.message_id as messageId, e.in_reply_to as inReplyTo, e.archive_kept as archiveKept,
       a.needs_reply as needsReply, a.reason, a.sender_type as senderType, a.automated_category as automatedCategory, a.analyzed_at as analyzedAt,
       d.draft_body as draftBody, d.gmail_draft_id as gmailDraftId, d.status as draftStatus, d.created_at as draftCreatedAt, d.agent_task_id as agentTaskId, d.to_recipients as draftTo, d.cc as draftCc, d.bcc as draftBcc, d.compose_mode as draftComposeMode
     FROM emails e
@@ -1212,6 +1215,12 @@ function rowToDashboardEmail(row: Record<string, unknown>): DashboardEmail {
     ...(row.inReplyTo ? { inReplyTo: row.inReplyTo as string } : {}),
   };
 
+  // archive_kept is a tri-state override: 0 = category default, 1 = keep,
+  // -1 = archive. Older databases contain only 0/1 and remain compatible.
+  const archiveKeepValue = Number(row.archiveKept ?? 0);
+  if (archiveKeepValue === 1) email.archiveKeepOverride = true;
+  if (archiveKeepValue === -1) email.archiveKeepOverride = false;
+
   if (row.analyzedAt != null) {
     email.analysis = {
       needsReply: Boolean(row.needsReply),
@@ -1296,6 +1305,20 @@ export function saveAnalysis(
     senderType || null,
     automatedCategory || null,
     Date.now(),
+  );
+}
+
+export function setThreadArchiveKeepOverride(
+  threadId: string,
+  accountId: string,
+  keep: boolean | null,
+): void {
+  const db = getDatabase();
+  const storedValue = keep === null ? 0 : keep ? 1 : -1;
+  db.prepare("UPDATE emails SET archive_kept = ? WHERE thread_id = ? AND account_id = ?").run(
+    storedValue,
+    threadId,
+    accountId,
   );
 }
 

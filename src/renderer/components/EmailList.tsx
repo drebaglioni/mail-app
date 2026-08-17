@@ -117,6 +117,7 @@ function EmailListImpl() {
   const currentAccountId = useDeferredValue(_liveAccountId);
   const selectedThreadIds = useAppStore((s) => s.selectedThreadIds);
   const currentSplitId = useAppStore((s) => s.currentSplitId);
+  const automatedFilter = useAppStore((s) => s.automatedFilter);
   const selectedDraftId = useAppStore((s) => s.selectedDraftId);
   const allEmails = useAppStore((s) => s.emails);
   const allLocalDrafts = useAppStore((s) => s.localDrafts);
@@ -146,7 +147,7 @@ function EmailListImpl() {
     removeRecentlyUnsnoozedThread,
     markThreadAsRead,
     openCompose,
-    toggleKeptThread,
+    setThreadArchiveKeepOverride,
   } = useAppStore.getState();
   const _sft = useSplitFilteredThreads();
   // useDeferredValue marks `threads` as non-urgent so the (heavy) render
@@ -154,6 +155,10 @@ function EmailListImpl() {
   // chrome (header / split tabs) with the new account immediately, and
   // updates the thread list in a separate concurrent pass.
   const threads = useDeferredValue(_sft.threads);
+  const archivableThreadCount = useMemo(
+    () => threads.filter((thread) => !thread.archiveKept).length,
+    [threads],
+  );
 
   // In unified ("All Inboxes") mode we fan out per-account loaders + listeners.
   // The list of account IDs to load is recomputed each render but its identity
@@ -172,6 +177,16 @@ function EmailListImpl() {
   const isUncategorizedView = currentSplitId === "__uncategorized__";
   const isSnoozedView = currentSplitId === "__snoozed__";
   const isSentView = currentSplitId === "__sent__";
+  const automatedEmptyLabel = useMemo(() => {
+    if (automatedFilter.kind === "category") {
+      return `No ${automatedFilter.category} emails`;
+    }
+    if (automatedFilter.kind === "split") {
+      const split = splits.find((candidate) => candidate.id === automatedFilter.splitId);
+      return split ? `No emails match ${split.name} · Rule` : "This rule no longer exists";
+    }
+    return "No automated emails";
+  }, [automatedFilter, splits]);
 
   // Filter local drafts for the current account
   const localDrafts = useMemo(
@@ -411,7 +426,9 @@ function EmailListImpl() {
       if (!aid) continue;
       const entry = byAccount.get(aid) ?? { threads: [], emails: [] };
       entry.threads.push(thread);
-      for (const email of currentEmails.filter((e) => e.threadId === thread.threadId)) {
+      for (const email of currentEmails.filter(
+        (e) => e.threadId === thread.threadId && e.accountId === aid,
+      )) {
         entry.emails.push(email);
       }
       byAccount.set(aid, entry);
@@ -435,7 +452,7 @@ function EmailListImpl() {
         archiveReadyThreadIds: group.threads.map((t) => t.threadId),
       });
     }
-  }, [threads, removeEmails, setCurrentSplitId, addUndoAction]);
+  }, [threads, removeEmails, addUndoAction]);
 
   // In unified mode (currentAccountId === null) surface the first account
   // that's still mid-initial-sync, so the progress banner doesn't go invisible
@@ -687,7 +704,9 @@ function EmailListImpl() {
           {isAutomatedView && threads.length > 0 && (
             <button
               onClick={handleArchiveAll}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5"
+              disabled={archivableThreadCount === 0}
+              title={`${threads.length - archivableThreadCount} kept`}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 dark:bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -697,7 +716,7 @@ function EmailListImpl() {
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              Archive All
+              Archive All ({archivableThreadCount})
             </button>
           )}
           {isAnalyzingTask && (
@@ -862,6 +881,7 @@ function EmailListImpl() {
                 );
               }
               const thread = item.thread;
+              const threadAccountId = thread.latestEmail.accountId;
               const isSelected = thread.threadId === selectedThreadId;
               const isChecked = selectedThreadIds.has(thread.threadId);
               return (
@@ -885,7 +905,14 @@ function EmailListImpl() {
                     onClick={(e) => handleThreadClick(thread, e)}
                     onCheckboxChange={() => handleCheckboxToggle(thread.threadId)}
                     onKeepToggle={
-                      isAutomatedView ? () => toggleKeptThread(thread.threadId) : undefined
+                      isAutomatedView && threadAccountId
+                        ? () =>
+                            setThreadArchiveKeepOverride(
+                              thread.threadId,
+                              threadAccountId,
+                              !thread.archiveKept,
+                            )
+                        : undefined
                     }
                     snoozeInfo={isSnoozedView ? snoozedThreads.get(thread.threadId) : undefined}
                     returnTime={unsnoozedReturnTimes.get(thread.threadId)}
@@ -906,7 +933,9 @@ function EmailListImpl() {
                     ? "No sent emails"
                     : isUncategorizedView
                       ? "No uncategorized emails"
-                      : "Inbox zero"}
+                      : isAutomatedView
+                        ? automatedEmptyLabel
+                        : "Inbox zero"}
               </p>
             </div>
           )

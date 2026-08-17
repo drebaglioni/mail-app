@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS emails (
   attachments TEXT,
   message_id TEXT,
   in_reply_to TEXT,
-  -- archive_kept: per-thread toggle that pins a Priority/Other classification
-  -- so the user's override survives re-analysis. Fork-specific (see migration v8).
+  -- archive_kept is a tri-state per-thread override: 0 = category default,
+  -- 1 = force keep, -1 = force archive. Fork-specific (see migration v8).
   archive_kept INTEGER DEFAULT 0
 );
 

@@ -615,6 +615,29 @@ export const NUMBERED_MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    version: 14,
+    name: "reanalyze_provisional_automated_categories",
+    up: (db) => {
+      const analysesExist = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analyses'")
+        .get();
+      if (!analysesExist) return;
+
+      // Earlier ingest heuristics stamped every obvious automated sender as
+      // category Other. Clear only those synthetic categories; the prefetcher
+      // recognizes their reason marker and semantically reanalyzes inbox mail.
+      const reset = db
+        .prepare(
+          `UPDATE analyses
+           SET automated_category = NULL
+           WHERE sender_type = 'automated'
+             AND reason = 'Auto-classified by sender pattern'`,
+        )
+        .run().changes;
+      log.info({ reset }, "Reset provisional automated categories for reanalysis");
+    },
+  },
 ];
 
 // Frozen migration-local classifier used by migration 9.

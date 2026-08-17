@@ -127,6 +127,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     assignThreadToSplit,
     clearThreadSplitAssignment,
     setCurrentSplitId,
+    setAutomatedFilter,
   } = useAppStore();
 
   const { threads } = useThreadedEmails();
@@ -605,7 +606,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                 const r = result as IpcResponse<void>;
                 if (r.success) {
                   assignThreadToSplit(selectedThreadId, split.id);
-                  setCurrentSplitId(split.id);
+                  setAutomatedFilter({ kind: "split", splitId: split.id });
                 }
               })
               .catch(console.error);
@@ -714,6 +715,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     assignThreadToSplit,
     clearThreadSplitAssignment,
     setCurrentSplitId,
+    setAutomatedFilter,
   ]);
 
   // Filter actions by query
