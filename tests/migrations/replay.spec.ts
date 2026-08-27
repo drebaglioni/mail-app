@@ -202,7 +202,7 @@ test.describe("Migration replay + symmetry", () => {
     }
   });
 
-  test("v13 removes synthetic person results and backfills obvious automation", () => {
+  test("v13 recovers obvious automation and v14 queues its semantic categorization", () => {
     const db = freshDb();
     db.exec(SCHEMA);
     db.exec(`
@@ -252,13 +252,13 @@ test.describe("Migration replay + symmetry", () => {
       {
         email_id: "automated-no-category",
         sender_type: "automated",
-        automated_category: "other",
+        automated_category: null,
       },
       { email_id: "corporate-person", sender_type: "person", automated_category: null },
       {
         email_id: "embedded-noreply",
         sender_type: "automated",
-        automated_category: "other",
+        automated_category: null,
       },
       { email_id: "subscription", sender_type: "automated", automated_category: null },
     ]);
@@ -273,7 +273,7 @@ test.describe("Migration replay + symmetry", () => {
     db.close();
   });
 
-  test("v14 resets only provisional heuristic categories for semantic reanalysis", () => {
+  test("v14 requeues the legacy Other cohort while preserving semantic categories", () => {
     const db = freshDb();
     db.exec(SCHEMA);
     db.exec(`
@@ -286,12 +286,14 @@ test.describe("Migration replay + symmetry", () => {
         (id, thread_id, subject, from_address, to_address, body, date, fetched_at)
       VALUES
         ('provisional', 't1', 'Receipt', 'billing@example.com', 'user@example.com', '', '2026-08-01', 1),
-        ('semantic-other', 't2', 'Alert', 'alerts@example.com', 'user@example.com', '', '2026-08-01', 1);
+        ('semantic-other', 't2', 'Alert', 'alerts@example.com', 'user@example.com', '', '2026-08-01', 1),
+        ('semantic-travel', 't3', 'Flight', 'travel@example.com', 'user@example.com', '', '2026-08-01', 1);
       INSERT INTO analyses
         (email_id, needs_reply, reason, analyzed_at, sender_type, automated_category)
       VALUES
         ('provisional', 0, 'Auto-classified by sender pattern', 1, 'automated', 'other'),
-        ('semantic-other', 0, 'Automated email outside known categories', 1, 'automated', 'other');
+        ('semantic-other', 0, 'Automated email outside known categories', 1, 'automated', 'other'),
+        ('semantic-travel', 0, 'Flight confirmation', 1, 'automated', 'travel');
     `);
 
     runMigrations(db);
@@ -301,7 +303,8 @@ test.describe("Migration replay + symmetry", () => {
       .all();
     expect(rows).toEqual([
       { email_id: "provisional", automated_category: null },
-      { email_id: "semantic-other", automated_category: "other" },
+      { email_id: "semantic-other", automated_category: null },
+      { email_id: "semantic-travel", automated_category: "travel" },
     ]);
     db.close();
   });

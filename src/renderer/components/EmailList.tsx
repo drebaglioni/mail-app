@@ -413,13 +413,24 @@ function EmailListImpl() {
     // thread carries its own accountId for per-account undo grouping below.
     if (threads.length === 0) return;
 
-    // Fork-specific: skip threads the user has explicitly kept.
-    const archivableThreads = threads.filter((t) => !t.archiveKept);
+    // Resolve the override from the live store. `threads` is intentionally
+    // deferred for rendering, so its archiveKept value can lag a click by one
+    // frame; bulk archive must still honor a Keep click immediately.
+    const { emails: currentEmails } = useAppStore.getState();
+    const archivableThreads = threads.filter((thread) => {
+      const accountId = thread.latestEmail.accountId;
+      const liveOverride = currentEmails.find(
+        (email) =>
+          email.threadId === thread.threadId &&
+          email.accountId === accountId &&
+          email.archiveKeepOverride !== undefined,
+      )?.archiveKeepOverride;
+      return !(liveOverride ?? thread.archiveKept);
+    });
     if (archivableThreads.length === 0) return;
 
     // Group threads by their owning account so each undo entry stays scoped
     // to a single account (the undo IPC path is per-account).
-    const { emails: currentEmails } = useAppStore.getState();
     const byAccount = new Map<string, { threads: EmailThread[]; emails: DashboardEmail[] }>();
     for (const thread of archivableThreads) {
       const aid = thread.latestEmail.accountId;

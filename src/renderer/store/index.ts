@@ -570,6 +570,15 @@ interface AppState {
   markThreadAsRead: (threadId: string) => void;
 }
 
+type ArchiveKeepMutation = {
+  revision: number;
+  persisted: boolean | undefined;
+  desired: boolean | null;
+  running: boolean;
+};
+
+const archiveKeepMutations = new Map<string, ArchiveKeepMutation>();
+
 export const useAppStore = create<AppState>((set, get) => ({
   emails: [],
   selectedEmailId: null,
@@ -1254,7 +1263,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       (email) => email.threadId === threadId && email.accountId === accountId,
     );
     if (matching.length === 0) return;
-    const previous = new Map(matching.map((email) => [email.id, email.archiveKeepOverride]));
+    const mutationKey = `${accountId}\0${threadId}`;
+    let mutation = archiveKeepMutations.get(mutationKey);
+    if (!mutation) {
+      mutation = {
+        revision: 0,
+        persisted: matching.find((email) => email.archiveKeepOverride !== undefined)
+          ?.archiveKeepOverride,
+        desired: keep,
+        running: false,
+      };
+      archiveKeepMutations.set(mutationKey, mutation);
+    }
+    mutation.revision++;
+    mutation.desired = keep;
     set((state) => ({
       emails: state.emails.map((email) =>
         email.threadId === threadId && email.accountId === accountId
@@ -1262,30 +1284,44 @@ export const useAppStore = create<AppState>((set, get) => ({
           : email,
       ),
     }));
-    void window.api.splits
-      .setArchiveKeep(accountId, threadId, keep)
-      .then((result: unknown) => {
-        const response = result as { success: boolean; error?: string };
-        if (response.success) return;
-        set((state) => ({
-          emails: state.emails.map((email) =>
-            previous.has(email.id)
-              ? { ...email, archiveKeepOverride: previous.get(email.id) }
-              : email,
-          ),
-        }));
-        console.error("Failed to persist Automated Keep override:", response.error);
-      })
-      .catch((error: unknown) => {
-        set((state) => ({
-          emails: state.emails.map((email) =>
-            previous.has(email.id)
-              ? { ...email, archiveKeepOverride: previous.get(email.id) }
-              : email,
-          ),
-        }));
-        console.error("Failed to persist Automated Keep override:", error);
-      });
+    if (mutation.running) return;
+    mutation.running = true;
+    void (async () => {
+      while (archiveKeepMutations.get(mutationKey) === mutation) {
+        const attemptedRevision = mutation.revision;
+        const attemptedKeep = mutation.desired;
+        let failure: unknown;
+        try {
+          const result = (await window.api.splits.setArchiveKeep(
+            accountId,
+            threadId,
+            attemptedKeep,
+          )) as { success: boolean; error?: string };
+          if (!result.success) failure = result.error ?? "Unknown error";
+        } catch (error) {
+          failure = error;
+        }
+
+        if (failure === undefined) {
+          mutation.persisted = attemptedKeep === null ? undefined : attemptedKeep;
+        }
+        if (mutation.revision !== attemptedRevision) continue;
+
+        archiveKeepMutations.delete(mutationKey);
+        if (failure !== undefined) {
+          const persisted = mutation.persisted;
+          set((state) => ({
+            emails: state.emails.map((email) =>
+              email.threadId === threadId && email.accountId === accountId
+                ? { ...email, archiveKeepOverride: persisted }
+                : email,
+            ),
+          }));
+          console.error("Failed to persist Automated Keep override:", failure);
+        }
+        return;
+      }
+    })();
   },
   setSplitAssignments: (assignments) =>
     set({

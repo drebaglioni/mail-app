@@ -6,6 +6,7 @@ import {
   type InboxSplit,
 } from "../../src/shared/types";
 import {
+  evaluateCondition,
   splitConditionPatterns,
   threadMatchesSplit,
 } from "../../src/renderer/utils/split-conditions";
@@ -109,6 +110,15 @@ test.describe("comma-separated split alternatives", () => {
     expect(threadMatchesSplit(email({ from: "Airline <alerts@delta.com>" }), split)).toBe(true);
     expect(threadMatchesSplit(email({ from: "Person <person@example.com>" }), split)).toBe(false);
   });
+
+  test("preserves literal commas in subject rules", () => {
+    const condition: InboxSplit["conditions"][number] = {
+      type: "subject",
+      value: "Quarterly report, Q3",
+    };
+    expect(evaluateCondition(email({ subject: "Quarterly report, Q3" }), condition)).toBe(true);
+    expect(evaluateCondition(email({ subject: "Q3 planning" }), condition)).toBe(false);
+  });
 });
 
 test.describe("Automated filter state", () => {
@@ -133,5 +143,37 @@ test.describe("Automated filter state", () => {
 
     useAppStore.getState().setCurrentSplitId("__automated__");
     expect(useAppStore.getState().automatedFilter).toEqual({ kind: "all" });
+  });
+});
+
+test.describe("Automated Keep persistence", () => {
+  test("serializes rapid toggles and restores the persisted value when both writes fail", async () => {
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    const pending: Array<(result: { success: boolean; error?: string }) => void> = [];
+    const setArchiveKeep = () =>
+      new Promise<{ success: boolean; error?: string }>((resolve) => pending.push(resolve));
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { api: { splits: { setArchiveKeep } } },
+    });
+
+    try {
+      useAppStore.setState({ emails: [email()] });
+      useAppStore.getState().setThreadArchiveKeepOverride("thread-1", "account-1", false);
+      useAppStore.getState().setThreadArchiveKeepOverride("thread-1", "account-1", true);
+      expect(pending).toHaveLength(1);
+
+      pending[0]({ success: false, error: "first failed" });
+      await expect.poll(() => pending.length).toBe(2);
+      pending[1]({ success: false, error: "second failed" });
+
+      await expect
+        .poll(() => useAppStore.getState().emails[0]?.archiveKeepOverride)
+        .toBeUndefined();
+    } finally {
+      useAppStore.setState({ emails: [] });
+      if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow);
+      else Reflect.deleteProperty(globalThis, "window");
+    }
   });
 });

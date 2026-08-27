@@ -40,6 +40,31 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Materialize and validate Electron before Playwright starts parallel workers.
+# Electron 42 may defer its binary download until first use; concurrent first
+# launches can otherwise race while extracting the same framework.
+ensure_electron_binary() {
+    local electron_path=""
+    electron_path=$(node -e "try { process.stdout.write(require('electron')) } catch {}" 2>/dev/null || true)
+    if [ -n "$electron_path" ] && [ -x "$electron_path" ] && "$electron_path" --version >/dev/null 2>&1; then
+        return 0
+    fi
+
+    log_warn "Electron binary missing or invalid, installing it serially..."
+    rm -rf node_modules/electron/dist
+    rm -f node_modules/electron/path.txt
+    node node_modules/electron/install.js || {
+        log_error "Failed to install Electron binary"
+        exit 1
+    }
+    electron_path=$(node -e "process.stdout.write(require('electron'))")
+    "$electron_path" --version >/dev/null 2>&1 || {
+        log_error "Installed Electron binary failed validation"
+        exit 1
+    }
+    log_info "Electron binary is installed and valid"
+}
+
 # Rebuild better-sqlite3 for system Node
 rebuild_for_node() {
     log_info "Rebuilding better-sqlite3 for system Node..."
@@ -177,6 +202,7 @@ run_unit_tests() {
 run_e2e_tests() {
     log_info "=== Running E2E Tests ==="
     check_display
+    ensure_electron_binary
     ensure_build
     rebuild_for_electron
     clean_test_dbs
@@ -188,6 +214,7 @@ run_integration_tests() {
     log_info "=== Running Integration Tests ==="
     # Integration tests include Electron launch tests, so need Electron-compiled better-sqlite3
     check_display
+    ensure_electron_binary
     ensure_build
     rebuild_for_electron
     run_playwright_tolerant integration
@@ -208,6 +235,7 @@ run_all_tests() {
     # already compiled for Electron (e.g. from npm ci postinstall) — skip the ~75s rebuild.
     log_info "=== Phase 1: Integration + E2E Tests (parallel) ==="
     check_display
+    ensure_electron_binary
     ensure_build
     if node -e "require('better-sqlite3')" 2>/dev/null; then
         log_warn "better-sqlite3 compiled for system Node, rebuilding for Electron..."

@@ -20,6 +20,12 @@ import type {
 import { HEURISTIC_ANALYSIS_REASON } from "../../shared/types";
 import { createLogger } from "../services/logger";
 import {
+  SAVE_EMAIL_SQL,
+  writeAnalysisIfUnchanged,
+  writeThreadArchiveKeepOverride,
+  type AnalysisSnapshot,
+} from "./statements";
+import {
   classifySenderByHeuristics,
   hasDefinitiveAutomatedSignal,
 } from "../services/sender-classifier";
@@ -342,10 +348,7 @@ export function getAllEmailIds(accountId?: string): string[] {
 export function saveEmail(email: Email, accountId: string = "default"): void {
   const db = getDatabase();
   const bodyText = stripHtmlForSearch(email.body);
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO emails (id, account_id, thread_id, subject, from_address, to_address, cc_address, bcc_address, body, body_text, snippet, date, fetched_at, label_ids, attachments, message_id, in_reply_to, archive_kept)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT archive_kept FROM emails WHERE id = ?), 0))
-  `);
+  const stmt = db.prepare(SAVE_EMAIL_SQL);
   stmt.run(
     email.id,
     accountId,
@@ -1308,18 +1311,36 @@ export function saveAnalysis(
   );
 }
 
+export function saveAnalysisIfUnchanged(
+  emailId: string,
+  needsReply: boolean,
+  reason: string,
+  senderType: string | undefined,
+  automatedCategory: string | undefined,
+  expected?: AnalysisSnapshot,
+): boolean {
+  return writeAnalysisIfUnchanged(
+    getDatabase(),
+    {
+      emailId,
+      needsReply,
+      reason,
+      senderType,
+      automatedCategory,
+      analyzedAt: Date.now(),
+    },
+    expected,
+  );
+}
+
 export function setThreadArchiveKeepOverride(
   threadId: string,
   accountId: string,
   keep: boolean | null,
 ): void {
   const db = getDatabase();
-  const storedValue = keep === null ? 0 : keep ? 1 : -1;
-  db.prepare("UPDATE emails SET archive_kept = ? WHERE thread_id = ? AND account_id = ?").run(
-    storedValue,
-    threadId,
-    accountId,
-  );
+  const threadIds = getMergedGmailThreadIds(threadId, accountId);
+  writeThreadArchiveKeepOverride(db, threadIds, accountId, keep);
 }
 
 // Draft operations

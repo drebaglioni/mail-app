@@ -7,7 +7,7 @@ import {
   getFirstEmailIdForThread,
   isThreadFullyAnalyzed,
   getInboxEmails,
-  saveAnalysis,
+  saveAnalysisIfUnchanged,
   saveArchiveReady,
   getAnalyzedArchiveThreadIds,
   getAccounts,
@@ -835,15 +835,19 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       const userEmail = account?.email;
 
       const result = await analyzer.analyze(emailForAnalysis, userEmail, email.accountId);
-      saveAnalysis(
+      const saved = saveAnalysisIfUnchanged(
         emailId,
         result.needs_reply,
         result.reason,
-        result.priority,
         result.sender_type,
         result.automated_category,
+        email.analysis,
       );
       this.processedAnalysis.add(emailId);
+      if (!saved) {
+        log.info(`[Prefetch] Preserved newer analysis for ${emailId}`);
+        return;
+      }
       this.processedCounts.analysis++;
 
       log.info(`[Prefetch] Analyzed ${emailId}: needs_reply=${result.needs_reply}`);

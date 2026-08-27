@@ -3,10 +3,18 @@ import type { InboxSplit, DashboardEmail, LocalDraft } from "../../shared/types"
 // Convert a glob-like pattern to a regex
 // Supports: * (matches anything), ? (matches single char)
 function patternToRegex(pattern: string): RegExp {
+  const cached = patternRegexCache.get(pattern);
+  if (cached) return cached;
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   const regexStr = escaped.replace(/\*/g, ".*").replace(/\?/g, ".");
-  return new RegExp(`^${regexStr}$`, "i");
+  const regex = new RegExp(`^${regexStr}$`, "i");
+  patternRegexCache.set(pattern, regex);
+  return regex;
 }
+
+const patternRegexCache = new Map<string, RegExp>();
+const alternativePatternCache = new Map<string, readonly string[]>();
+const emailSplitMatchCache = new WeakMap<DashboardEmail, WeakMap<InboxSplit, boolean>>();
 
 // Check if a value matches a pattern (supports wildcards)
 // If pattern has no wildcards, does a case-insensitive substring match
@@ -22,14 +30,25 @@ function matchesPattern(value: string, pattern: string): boolean {
 // Treat commas and newlines as alternatives instead of one impossible literal
 // glob. Empty entries are ignored.
 export function splitConditionPatterns(input: string): string[] {
-  return input
-    .split(/[\n,]+/)
-    .map((pattern) => pattern.trim())
-    .filter(Boolean);
+  return [...getConditionPatterns(input, true)];
 }
 
-function matchesAnyPattern(value: string, input: string): boolean {
-  return splitConditionPatterns(input).some((pattern) => matchesPattern(value, pattern));
+function getConditionPatterns(input: string, allowCommaAlternatives: boolean): readonly string[] {
+  const cacheKey = `${allowCommaAlternatives ? "comma" : "newline"}\0${input}`;
+  const cached = alternativePatternCache.get(cacheKey);
+  if (cached) return cached;
+  const patterns = input
+    .split(allowCommaAlternatives ? /[\n,]+/ : /\n+/)
+    .map((pattern) => pattern.trim())
+    .filter(Boolean);
+  alternativePatternCache.set(cacheKey, patterns);
+  return patterns;
+}
+
+function matchesAnyPattern(value: string, input: string, allowCommaAlternatives: boolean): boolean {
+  return getConditionPatterns(input, allowCommaAlternatives).some((pattern) =>
+    matchesPattern(value, pattern),
+  );
 }
 
 // Extract email address from "Name <email>" format
@@ -48,29 +67,30 @@ export function evaluateCondition(
     case "from": {
       const emailAddr = extractEmailAddress(email.from);
       matches =
-        matchesAnyPattern(email.from, condition.value) ||
-        matchesAnyPattern(emailAddr, condition.value);
+        matchesAnyPattern(email.from, condition.value, true) ||
+        matchesAnyPattern(emailAddr, condition.value, true);
       break;
     }
     case "to": {
       const emailAddr = extractEmailAddress(email.to);
       matches =
-        matchesAnyPattern(email.to, condition.value) ||
-        matchesAnyPattern(emailAddr, condition.value);
+        matchesAnyPattern(email.to, condition.value, true) ||
+        matchesAnyPattern(emailAddr, condition.value, true);
       break;
     }
     case "subject": {
-      matches = matchesAnyPattern(email.subject, condition.value);
+      matches = matchesAnyPattern(email.subject, condition.value, false);
       break;
     }
     case "label": {
       const labels = new Set(email.labelIds ?? []);
-      matches = splitConditionPatterns(condition.value).some((label) => labels.has(label));
+      matches = getConditionPatterns(condition.value, false).some((label) => labels.has(label));
       break;
     }
     case "has_attachment": {
       matches =
-        email.attachments?.some((a) => matchesAnyPattern(a.filename, condition.value)) ?? false;
+        email.attachments?.some((a) => matchesAnyPattern(a.filename, condition.value, false)) ??
+        false;
       break;
     }
   }
@@ -98,7 +118,16 @@ export function threadMatchesSplit(latestEmail: DashboardEmail, split: InboxSpli
   if (!latestEmail.accountId || latestEmail.accountId !== split.accountId) {
     return false;
   }
-  return emailMatchesSplit(latestEmail, split);
+  let splitMatches = emailSplitMatchCache.get(latestEmail);
+  if (!splitMatches) {
+    splitMatches = new WeakMap();
+    emailSplitMatchCache.set(latestEmail, splitMatches);
+  }
+  const cached = splitMatches.get(split);
+  if (cached !== undefined) return cached;
+  const matches = emailMatchesSplit(latestEmail, split);
+  splitMatches.set(split, matches);
+  return matches;
 }
 
 // Evaluate a split condition against a local draft's available fields.
@@ -116,13 +145,13 @@ function evaluateConditionForDraft(
       const allRecipients = [...draft.to, ...(draft.cc ?? []), ...(draft.bcc ?? [])];
       matches = allRecipients.some(
         (r) =>
-          matchesAnyPattern(r, condition.value) ||
-          matchesAnyPattern(extractEmailAddress(r), condition.value),
+          matchesAnyPattern(r, condition.value, true) ||
+          matchesAnyPattern(extractEmailAddress(r), condition.value, true),
       );
       break;
     }
     case "subject":
-      matches = matchesAnyPattern(draft.subject, condition.value);
+      matches = matchesAnyPattern(draft.subject, condition.value, false);
       break;
     case "label":
       // Drafts don't have Gmail labels

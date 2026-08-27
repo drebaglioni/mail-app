@@ -2,6 +2,11 @@ import { test, expect } from "@playwright/test";
 import { createRequire } from "module";
 import type BetterSqlite3 from "better-sqlite3";
 import { SCHEMA, FTS5_SCHEMA, FTS5_TRIGGERS } from "../../src/main/db/schema";
+import {
+  SAVE_EMAIL_SQL,
+  writeAnalysisIfUnchanged,
+  writeThreadArchiveKeepOverride,
+} from "../../src/main/db/statements";
 import { classifySenderByHeuristics } from "../../src/main/services/sender-classifier";
 
 const require = createRequire(import.meta.url);
@@ -122,12 +127,7 @@ function saveEmail(
   accountId = "default",
 ) {
   const bodyText = stripHtmlForSearch(email.body);
-  db.prepare(
-    `
-    INSERT OR REPLACE INTO emails (id, account_id, thread_id, subject, from_address, to_address, cc_address, bcc_address, body, body_text, snippet, date, fetched_at, label_ids, attachments, message_id, archive_kept)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT archive_kept FROM emails WHERE id = ?), 0))
-  `,
-  ).run(
+  db.prepare(SAVE_EMAIL_SQL).run(
     email.id,
     accountId,
     email.threadId,
@@ -144,6 +144,7 @@ function saveEmail(
     email.labelIds ? JSON.stringify(email.labelIds) : null,
     email.attachments?.length ? JSON.stringify(email.attachments) : null,
     email.messageIdHeader || null,
+    null,
     email.id,
   );
 }
@@ -1123,6 +1124,64 @@ test.describe("Database CRUD operations", () => {
         archive_kept: number;
       };
       expect(row.archive_kept).toBe(-1);
+    });
+
+    test("archive keep override covers every raw Gmail thread in a merged thread", () => {
+      saveEmail(db, makeEmail({ id: "e1", threadId: "canonical" }), "acct1");
+      saveEmail(db, makeEmail({ id: "e2", threadId: "linked" }), "acct1");
+      saveEmail(db, makeEmail({ id: "e3", threadId: "linked" }), "acct2");
+
+      writeThreadArchiveKeepOverride(db, ["canonical", "linked"], "acct1", true);
+
+      const rows = db.prepare("SELECT id, archive_kept FROM emails ORDER BY id").all() as Array<{
+        id: string;
+        archive_kept: number;
+      }>;
+      expect(rows).toEqual([
+        { id: "e1", archive_kept: 1 },
+        { id: "e2", archive_kept: 1 },
+        { id: "e3", archive_kept: 0 },
+      ]);
+    });
+
+    test("semantic analysis does not overwrite a newer user override", () => {
+      saveEmail(db, makeEmail({ id: "e1", threadId: "t1" }), "acct1");
+      db.prepare(
+        `INSERT INTO analyses
+         (email_id, needs_reply, reason, sender_type, automated_category, analyzed_at)
+         VALUES ('e1', 0, 'Provisional', 'automated', NULL, 1)`,
+      ).run();
+      const expected = {
+        needsReply: false,
+        reason: "Provisional",
+        senderType: "automated",
+        automatedCategory: undefined,
+        analyzedAt: 1,
+      };
+      db.prepare(
+        "UPDATE analyses SET needs_reply = 1, analyzed_at = 2 WHERE email_id = 'e1'",
+      ).run();
+
+      const saved = writeAnalysisIfUnchanged(
+        db,
+        {
+          emailId: "e1",
+          needsReply: false,
+          reason: "Newsletter",
+          senderType: "automated",
+          automatedCategory: "newsletters",
+          analyzedAt: 3,
+        },
+        expected,
+      );
+
+      expect(saved).toBe(false);
+      expect(
+        db.prepare("SELECT needs_reply, analyzed_at FROM analyses WHERE email_id = 'e1'").get(),
+      ).toEqual({
+        needs_reply: 1,
+        analyzed_at: 2,
+      });
     });
 
     test("getAllEmails returns all emails", () => {
