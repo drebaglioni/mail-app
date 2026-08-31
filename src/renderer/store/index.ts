@@ -14,6 +14,8 @@ import type {
   ScheduledMessageStats,
   SendMessageOptions,
   LocalDraft,
+  AutomatedCategory,
+  AutomatedFilter,
 } from "../../shared/types";
 import { KEEP_BY_DEFAULT_CATEGORIES } from "../../shared/types";
 import { senderBucket } from "../../shared/sender-bucket";
@@ -90,6 +92,7 @@ export type EmailThread = {
   displaySender: string;
   // User toggle to exclude this thread from bulk archive (Automated tab)
   archiveKept?: boolean;
+  archiveKeepOverride?: boolean;
 };
 
 // Account representation
@@ -263,10 +266,7 @@ interface AppState {
   splits: InboxSplit[];
   currentSplitId: string | null;
   splitAssignments: Map<string, string>; // threadId -> splitId for current account
-  // Automated tab category filter (null = show all)
-  currentAutomatedCategory: string | null;
-  // Thread IDs the user has toggled "Keep" on — excluded from bulk Archive All
-  keptThreadIds: Set<string>;
+  automatedFilter: AutomatedFilter;
 
   // Snippets state
   snippets: Snippet[];
@@ -452,8 +452,8 @@ interface AppState {
   // Inbox splits actions
   setSplits: (splits: InboxSplit[]) => void;
   setCurrentSplitId: (id: string | null) => void;
-  setCurrentAutomatedCategory: (category: string | null) => void;
-  toggleKeptThread: (threadId: string) => void;
+  setAutomatedFilter: (filter: AutomatedFilter) => void;
+  setThreadArchiveKeepOverride: (threadId: string, accountId: string, keep: boolean | null) => void;
   setSplitAssignments: (assignments: Array<{ threadId: string; splitId: string }>) => void;
   assignThreadToSplit: (threadId: string, splitId: string) => void;
   clearThreadSplitAssignment: (threadId: string) => void;
@@ -570,6 +570,15 @@ interface AppState {
   markThreadAsRead: (threadId: string) => void;
 }
 
+type ArchiveKeepMutation = {
+  revision: number;
+  persisted: boolean | undefined;
+  desired: boolean | null;
+  running: boolean;
+};
+
+const archiveKeepMutations = new Map<string, ArchiveKeepMutation>();
+
 export const useAppStore = create<AppState>((set, get) => ({
   emails: [],
   selectedEmailId: null,
@@ -641,8 +650,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Inbox splits state
   splits: [],
   currentSplitId: "__people__",
-  currentAutomatedCategory: null,
-  keptThreadIds: new Set(),
+  automatedFilter: { kind: "all" },
   splitAssignments: new Map(),
 
   // Snippets state
@@ -1026,11 +1034,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       "__uncategorized__",
       "__sent__",
     ]);
-    const { currentSplitId } = get();
+    const { currentSplitId, automatedFilter } = get();
     const nextSplitId =
       currentSplitId !== null && !ALWAYS_VISIBLE_SPLITS.has(currentSplitId)
         ? "__people__"
         : currentSplitId;
+    const nextAutomatedFilter: AutomatedFilter =
+      automatedFilter.kind === "split" ? { kind: "all" } : automatedFilter;
     // Reset ALL per-thread selection state, not just selectedEmailId. Leaving
     // selectedThreadId / focusedThreadEmailId / selectedThreadIds pointing at
     // a thread from the previous account causes stale highlight, stale
@@ -1046,6 +1056,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedDraftId: null,
       globalAgentTaskKey: null,
       currentSplitId: nextSplitId,
+      automatedFilter: nextAutomatedFilter,
       splitAssignments: new Map(),
     });
     // Persist so unified-vs-account selection survives app restart. Same path
@@ -1241,18 +1252,77 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Inbox splits actions
   setSplits: (splits) => set({ splits }),
-  setCurrentSplitId: (id) => set({ currentSplitId: id }),
-  setCurrentAutomatedCategory: (category) => set({ currentAutomatedCategory: category }),
-  toggleKeptThread: (threadId) =>
-    set((state) => {
-      const newKept = new Set(state.keptThreadIds);
-      if (newKept.has(threadId)) {
-        newKept.delete(threadId);
-      } else {
-        newKept.add(threadId);
-      }
-      return { keptThreadIds: newKept };
+  setCurrentSplitId: (id) =>
+    set({
+      currentSplitId: id,
+      ...(id === "__automated__" ? { automatedFilter: { kind: "all" } as const } : {}),
     }),
+  setAutomatedFilter: (filter) => set({ currentSplitId: "__automated__", automatedFilter: filter }),
+  setThreadArchiveKeepOverride: (threadId, accountId, keep) => {
+    const matching = get().emails.filter(
+      (email) => email.threadId === threadId && email.accountId === accountId,
+    );
+    if (matching.length === 0) return;
+    const mutationKey = `${accountId}\0${threadId}`;
+    let mutation = archiveKeepMutations.get(mutationKey);
+    if (!mutation) {
+      mutation = {
+        revision: 0,
+        persisted: matching.find((email) => email.archiveKeepOverride !== undefined)
+          ?.archiveKeepOverride,
+        desired: keep,
+        running: false,
+      };
+      archiveKeepMutations.set(mutationKey, mutation);
+    }
+    mutation.revision++;
+    mutation.desired = keep;
+    set((state) => ({
+      emails: state.emails.map((email) =>
+        email.threadId === threadId && email.accountId === accountId
+          ? { ...email, archiveKeepOverride: keep === null ? undefined : keep }
+          : email,
+      ),
+    }));
+    if (mutation.running) return;
+    mutation.running = true;
+    void (async () => {
+      while (archiveKeepMutations.get(mutationKey) === mutation) {
+        const attemptedRevision = mutation.revision;
+        const attemptedKeep = mutation.desired;
+        let failure: unknown;
+        try {
+          const result = (await window.api.splits.setArchiveKeep(
+            accountId,
+            threadId,
+            attemptedKeep,
+          )) as { success: boolean; error?: string };
+          if (!result.success) failure = result.error ?? "Unknown error";
+        } catch (error) {
+          failure = error;
+        }
+
+        if (failure === undefined) {
+          mutation.persisted = attemptedKeep === null ? undefined : attemptedKeep;
+        }
+        if (mutation.revision !== attemptedRevision) continue;
+
+        archiveKeepMutations.delete(mutationKey);
+        if (failure !== undefined) {
+          const persisted = mutation.persisted;
+          set((state) => ({
+            emails: state.emails.map((email) =>
+              email.threadId === threadId && email.accountId === accountId
+                ? { ...email, archiveKeepOverride: persisted }
+                : email,
+            ),
+          }));
+          console.error("Failed to persist Automated Keep override:", failure);
+        }
+        return;
+      }
+    })();
+  },
   setSplitAssignments: (assignments) =>
     set({
       splitAssignments: new Map(assignments.map((item) => [item.threadId, item.splitId])),
@@ -2047,6 +2117,9 @@ export function groupByThread(
       draft: threadDraft,
       userReplied,
       displaySender,
+      archiveKeepOverride:
+        latestReceivedEmail.archiveKeepOverride ??
+        threadEmails.find((email) => email.archiveKeepOverride !== undefined)?.archiveKeepOverride,
     });
   }
 
@@ -2202,8 +2275,7 @@ export function useSplitFilteredThreads() {
   const currentAccountId = useAppStore((state) => state.currentAccountId);
   const accounts = useAppStore((state) => state.accounts);
   const currentSplitId = useAppStore((state) => state.currentSplitId);
-  const currentAutomatedCategory = useAppStore((state) => state.currentAutomatedCategory);
-  const keptThreadIds = useAppStore((state) => state.keptThreadIds);
+  const automatedFilter = useAppStore((state) => state.automatedFilter);
   const snoozedThreads = useAppStore((state) => state.snoozedThreads);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const unsnoozedReturnTimes = useAppStore((state) => state.unsnoozedReturnTimes);
@@ -2344,56 +2416,36 @@ export function useSplitFilteredThreads() {
       };
     }
 
-    // "Automated" tab: non-person emails with optional subcategory filter + custom split filter
-    if (currentSplitId === "__automated__") {
-      let threads = excludeExclusive(baseResult.automatedThreads);
-
-      // Apply subcategory filter if set
-      if (currentAutomatedCategory) {
-        threads = threads.filter((t) => t.analysis?.automatedCategory === currentAutomatedCategory);
-      }
-
-      // Also apply custom split filters on the Automated tab
-      const currentCustomSplit = splits.find((s) => s.id === currentAutomatedCategory);
-      if (currentCustomSplit) {
-        threads = threads.filter((t) =>
-          threadMatchesSplit(t, currentCustomSplit, getAssignedSplitId(t)),
-        );
-      }
-
-      // Apply archiveKept: default-keep categories + user toggles
-      const keepByDefaultSet = new Set<string>(KEEP_BY_DEFAULT_CATEGORIES);
-      threads = threads.map((t) => {
-        const categoryKept = keepByDefaultSet.has(t.analysis?.automatedCategory ?? "");
-        // User explicit toggle overrides category default
-        const userToggled = keptThreadIds.has(t.threadId);
-        const kept = userToggled ? !categoryKept : categoryKept;
-        return kept !== (t.archiveKept ?? false) ? { ...t, archiveKept: kept } : t;
+    const applyArchiveKeepState = (threads: EmailThread[]) => {
+      const keepByDefaultSet = new Set<AutomatedCategory>(KEEP_BY_DEFAULT_CATEGORIES);
+      return threads.map((thread) => {
+        const categoryKept = thread.analysis?.automatedCategory
+          ? keepByDefaultSet.has(thread.analysis.automatedCategory)
+          : true; // Provisional automation is never bulk-archived by default.
+        const kept = thread.archiveKeepOverride ?? categoryKept;
+        return kept !== (thread.archiveKept ?? false) ? { ...thread, archiveKept: kept } : thread;
       });
+    };
 
-      return {
-        threads,
-        peopleThreads: [],
-        automatedThreads: threads,
-        uncategorizedThreads: [],
-        needsReply: [],
-        done: [],
-        skipped: [],
-        skippedCount: 0,
-        unanalyzed: [],
-        snoozed: baseResult.snoozed,
-        snoozedCount: baseResult.snoozedCount,
-      };
-    }
-
-    // Custom split: filter automated threads by the split's conditions
-    const currentSplit = splits.find((s) => s.id === currentSplitId);
-    if (currentSplit) {
-      const filterBySplit = (threads: EmailThread[]) =>
-        threads.filter((t) => threadMatchesSplit(t, currentSplit, getAssignedSplitId(t)));
-
-      // Custom splits live within the Automated tab — filter automated threads only
-      const threads = filterBySplit(baseResult.automatedThreads);
+    // "Automated" tab: exactly one of All, a semantic category, or a custom rule.
+    if (currentSplitId === "__automated__") {
+      let threads: EmailThread[];
+      if (automatedFilter.kind === "split") {
+        const split = splits.find((candidate) => candidate.id === automatedFilter.splitId);
+        threads = split
+          ? baseResult.automatedThreads.filter((thread) =>
+              threadMatchesSplit(thread, split, getAssignedSplitId(thread)),
+            )
+          : [];
+      } else {
+        threads = excludeExclusive(baseResult.automatedThreads);
+        if (automatedFilter.kind === "category") {
+          threads = threads.filter(
+            (thread) => thread.analysis?.automatedCategory === automatedFilter.category,
+          );
+        }
+      }
+      threads = applyArchiveKeepState(threads);
 
       return {
         threads,
@@ -2422,8 +2474,7 @@ export function useSplitFilteredThreads() {
     currentAccountId,
     accounts,
     currentSplitId,
-    currentAutomatedCategory,
-    keptThreadIds,
+    automatedFilter,
     snoozedThreads,
     recentlyUnsnoozedThreadIds,
     unsnoozedReturnTimes,

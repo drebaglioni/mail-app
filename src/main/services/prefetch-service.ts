@@ -7,7 +7,7 @@ import {
   getFirstEmailIdForThread,
   isThreadFullyAnalyzed,
   getInboxEmails,
-  saveAnalysis,
+  saveAnalysisIfUnchanged,
   saveArchiveReady,
   getAnalyzedArchiveThreadIds,
   getAccounts,
@@ -20,7 +20,7 @@ import { getExtensionHost } from "../extensions";
 import { agentCoordinator } from "../agents/agent-coordinator";
 import { buildAutoDraftTaskId } from "../agents/task-id";
 import type { AgentContext } from "../agents/types";
-import { DEFAULT_AGENT_DRAFTER_PROMPT } from "../../shared/types";
+import { DEFAULT_AGENT_DRAFTER_PROMPT, needsSemanticAnalysis } from "../../shared/types";
 import type { Email, DashboardEmail, SnoozedEmail } from "../../shared/types";
 import { createLogger } from "./logger";
 
@@ -219,7 +219,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       // Skip sent emails - they don't need reply analysis
       if (email.labelIds?.includes("SENT")) continue;
 
-      if ((!email.analysis || !email.analysis.senderType) && !this.processedAnalysis.has(emailId)) {
+      if (needsSemanticAnalysis(email) && !this.processedAnalysis.has(emailId)) {
         this.queue.push({
           emailId,
           type: "analysis",
@@ -297,7 +297,7 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       `[PERF] processAllPending getInboxEmails took ${(performance.now() - tGetEmails).toFixed(1)}ms, returned ${inboxEmails.length} emails (cache=${usedCache})`,
     );
 
-    const unanalyzed = inboxEmails.filter((e) => !e.analysis || !e.analysis.senderType);
+    const unanalyzed = inboxEmails.filter(needsSemanticAnalysis);
 
     // Queue analysis for unanalyzed emails
     if (unanalyzed.length > 0) {
@@ -779,15 +779,16 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       return;
     }
 
-    // A row without senderType is incomplete and must be analyzed again.
-    // Only complete analyses can take the already-analyzed fast path.
-    if (email.analysis?.senderType) {
+    // Heuristic sender rows are provisional until they receive a semantic
+    // Automated category. Only complete analyses take this fast path.
+    if (!needsSemanticAnalysis(email)) {
+      const analysis = email.analysis!;
       this.processedAnalysis.add(emailId);
       const config = getConfig();
       if (config.enableSenderLookup ?? true) {
         let queuePriority = 40;
-        if (email.analysis.needsReply) {
-          switch (email.analysis.priority) {
+        if (analysis.needsReply) {
+          switch (analysis.priority) {
             case "high":
               queuePriority = 10;
               break;
@@ -834,15 +835,19 @@ When you see emails in a thread where ${eaName} is coordinating scheduling with 
       const userEmail = account?.email;
 
       const result = await analyzer.analyze(emailForAnalysis, userEmail, email.accountId);
-      saveAnalysis(
+      const saved = saveAnalysisIfUnchanged(
         emailId,
         result.needs_reply,
         result.reason,
-        result.priority,
         result.sender_type,
         result.automated_category,
+        email.analysis,
       );
       this.processedAnalysis.add(emailId);
+      if (!saved) {
+        log.info(`[Prefetch] Preserved newer analysis for ${emailId}`);
+        return;
+      }
       this.processedCounts.analysis++;
 
       log.info(`[Prefetch] Analyzed ${emailId}: needs_reply=${result.needs_reply}`);

@@ -182,7 +182,7 @@ function SplitEditor({ split, onSave, onCancel, existingCount }: SplitEditorProp
           </button>
           <p className="mt-2 text-xs exo-text-muted">
             Use <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">*</code> as wildcard.
-            Examples:{" "}
+            Separate alternatives with commas. Examples:{" "}
             <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded">*@company.com</code>,
             <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded ml-1">john*</code>,
             <code className="bg-[var(--exo-bg-surface-soft)] px-1 rounded ml-1">*newsletter*</code>
@@ -412,8 +412,9 @@ export function SplitConfigEditor() {
         <div>
           <h3 className="font-medium exo-text-primary">Inbox Splits</h3>
           <p className="text-sm exo-text-muted">
-            Splits for <span className="font-medium">{currentAccount?.email}</span>. Use wildcards
-            (*) in patterns.
+            Rule-based filters inside Automated for{" "}
+            <span className="font-medium">{currentAccount?.email}</span>. Use wildcards (*) and
+            commas between alternatives.
           </p>
         </div>
         {!isCreating && !editingSplit && (
@@ -519,7 +520,7 @@ export function SplitConfigEditor() {
       {sortedSplits.length === 0 && !isCreating ? (
         <div className="text-center py-8 exo-text-muted">
           <p className="text-sm">No splits configured yet.</p>
-          <p className="text-xs mt-1">Create a split to filter your inbox.</p>
+          <p className="text-xs mt-1">Create a rule-based filter inside Automated.</p>
         </div>
       ) : (
         <div className="space-y-2">

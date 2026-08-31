@@ -2,7 +2,12 @@ import { ipcMain, BrowserWindow } from "electron";
 import { EmailAnalyzer } from "../services/email-analyzer";
 import { getEmail, saveAnalysis, getInboxEmails, getAccounts, dismissArchiveReady } from "../db";
 import { getConfig, getFeatureModelConfig } from "./settings.ipc";
-import type { IpcResponse, DashboardEmail, Email } from "../../shared/types";
+import {
+  needsSemanticAnalysis,
+  type IpcResponse,
+  type DashboardEmail,
+  type Email,
+} from "../../shared/types";
 import { DEMO_INBOX_EMAILS, DEMO_EXPECTED_ANALYSIS } from "../demo/fake-inbox";
 import {
   learnFromPriorityOverrideWithReason,
@@ -174,8 +179,8 @@ export function registerAnalysisIpc(): void {
           const email = getEmail(emailId);
           if (!email) continue;
 
-          // Skip if already analyzed
-          if (email.analysis) {
+          // Provisional heuristic rows still need semantic categorization.
+          if (!needsSemanticAnalysis(email)) {
             results.push(email);
             continue;
           }

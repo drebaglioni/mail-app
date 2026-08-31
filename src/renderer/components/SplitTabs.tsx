@@ -1,7 +1,7 @@
 import { useMemo, memo } from "react";
 import { useAppStore, useThreadedEmails, type EmailThread } from "../store";
 import { threadMatchesSplit as threadMatchesSplitShared } from "../utils/split-conditions";
-import type { InboxSplit } from "../../shared/types";
+import type { AutomatedCategory, InboxSplit } from "../../shared/types";
 
 // Thin wrapper around the shared util so the rest of the file can pass
 // EmailThread objects directly. Preserves our fork's per-thread split
@@ -98,8 +98,8 @@ function SplitTabsImpl() {
   const currentAccountId = useAppStore((state) => state.currentAccountId);
   const currentSplitId = useAppStore((state) => state.currentSplitId);
   const setCurrentSplitId = useAppStore((state) => state.setCurrentSplitId);
-  const currentAutomatedCategory = useAppStore((state) => state.currentAutomatedCategory);
-  const setCurrentAutomatedCategory = useAppStore((state) => state.setCurrentAutomatedCategory);
+  const automatedFilter = useAppStore((state) => state.automatedFilter);
+  const setAutomatedFilter = useAppStore((state) => state.setAutomatedFilter);
   const recentlyUnsnoozedThreadIds = useAppStore((state) => state.recentlyUnsnoozedThreadIds);
   const splitAssignments = useAppStore((state) => state.splitAssignments);
   const { peopleThreads, automatedThreads, uncategorizedThreads, snoozedCount } =
@@ -133,6 +133,21 @@ function SplitTabsImpl() {
     () => automatedThreads.filter(isNonExclusive).length,
     [automatedThreads, isNonExclusive],
   );
+  const automatedCategoryCounts = useMemo(() => {
+    const counts = new Map<AutomatedCategory, number>();
+    for (const thread of automatedThreads.filter(isNonExclusive)) {
+      const category = thread.analysis?.automatedCategory;
+      if (category) counts.set(category, (counts.get(category) ?? 0) + 1);
+    }
+    return counts;
+  }, [automatedThreads, isNonExclusive]);
+  const categorizingCount = useMemo(
+    () =>
+      automatedThreads.filter(
+        (thread) => isNonExclusive(thread) && !thread.analysis?.automatedCategory,
+      ).length,
+    [automatedThreads, isNonExclusive],
+  );
   // Recovery must include every unknown thread, even if it happens to match an
   // exclusive Automated split. Custom splits only consume classified automation.
   const uncategorizedCount = uncategorizedThreads.length;
@@ -142,18 +157,23 @@ function SplitTabsImpl() {
   // "(3)" suffix on subsequent occurrences (sort order is preserved).
   const sortedSplits = useMemo(() => {
     const sorted = [...splits].sort((a, b) => a.order - b.order);
-    if (currentAccountId !== null) return sorted.map((s) => ({ split: s, displayName: s.name }));
     const seen = new Map<string, number>();
     return sorted.map((s) => {
-      const n = (seen.get(s.name) ?? 0) + 1;
-      seen.set(s.name, n);
-      return { split: s, displayName: n === 1 ? s.name : `${s.name} (${n})` };
+      const conflictsWithBuiltIn = AUTOMATED_CATEGORIES.some(
+        (category) => category.label.toLowerCase() === s.name.toLowerCase(),
+      );
+      const baseName = conflictsWithBuiltIn ? `${s.name} · Rule` : s.name;
+      const n = (seen.get(baseName) ?? 0) + 1;
+      seen.set(baseName, n);
+      const displayName = n === 1 ? baseName : `${baseName} (${n})`;
+      const count = automatedThreads.filter((thread) =>
+        threadMatchesSplit(thread, s, splitAssignments.get(thread.threadId)),
+      ).length;
+      return { split: s, displayName, count };
     });
-  }, [splits, currentAccountId]);
+  }, [splits, automatedThreads, splitAssignments]);
 
-  const customSplitIds = useMemo(() => new Set(splits.map((s) => s.id)), [splits]);
-  const isAutomatedView =
-    currentSplitId === "__automated__" || customSplitIds.has(currentSplitId ?? "");
+  const isAutomatedView = currentSplitId === "__automated__";
   const isPeopleView = currentSplitId === "__people__";
   const isUncategorizedView = currentSplitId === "__uncategorized__";
   const isSnoozedView = currentSplitId === "__snoozed__";
@@ -242,23 +262,39 @@ function SplitTabsImpl() {
           {AUTOMATED_CATEGORIES.map((cat) => (
             <Chip
               key={cat.id ?? "all"}
-              active={currentAutomatedCategory === cat.id}
-              onClick={() => setCurrentAutomatedCategory(cat.id)}
+              active={
+                cat.id === null
+                  ? automatedFilter.kind === "all"
+                  : automatedFilter.kind === "category" && automatedFilter.category === cat.id
+              }
+              onClick={() =>
+                setAutomatedFilter(
+                  cat.id === null ? { kind: "all" } : { kind: "category", category: cat.id },
+                )
+              }
             >
-              {cat.label}
+              {cat.label}{" "}
+              <span className="exo-text-muted">
+                {cat.id === null ? automatedCount : (automatedCategoryCounts.get(cat.id) ?? 0)}
+              </span>
             </Chip>
           ))}
           {/* Custom splits as additional filter chips */}
-          {sortedSplits.map(({ split, displayName }) => (
+          {sortedSplits.map(({ split, displayName, count }) => (
             <Chip
               key={split.id}
-              active={currentSplitId === split.id}
-              onClick={() => setCurrentSplitId(split.id)}
+              active={automatedFilter.kind === "split" && automatedFilter.splitId === split.id}
+              onClick={() => setAutomatedFilter({ kind: "split", splitId: split.id })}
             >
               {split.icon && <span className="mr-0.5">{split.icon}</span>}
-              {displayName}
+              {displayName} <span className="exo-text-muted">{count}</span>
             </Chip>
           ))}
+          {categorizingCount > 0 && (
+            <span className="whitespace-nowrap text-xs exo-text-muted">
+              Categorizing {categorizingCount}…
+            </span>
+          )}
         </div>
       )}
     </div>

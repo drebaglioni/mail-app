@@ -85,7 +85,8 @@ https://github.com/user-attachments/assets/442f5320-2bec-4348-937d-48ad2100552e
 
 ### Inbox Organization
 
-- **Split inbox** — Priority, Other, and custom split tabs that categorize emails automatically
+- **Split inbox** — People, Automated, and Uncategorized modes keep personal mail, machine-generated mail, and recoverable classification failures separate
+- **Automated categories** — filter orders, travel, receipts, newsletters, notifications, and other automated mail; custom splits appear as rule chips inside Automated
 - **Split import** — import your existing inbox splits
 - **Snoozed tab** — snooze emails to reappear later with natural language time input ("tomorrow morning", "next Monday")
 - **Sent mail view** — dedicated view for sent emails
@@ -114,7 +115,7 @@ https://github.com/user-attachments/assets/442f5320-2bec-4348-937d-48ad2100552e
 - **Gmail bindings** — optional Gmail-standard keybindings, toggleable in settings
 - **Arrow key navigation** — up/down to navigate, enter to open
 - **Cmd+K command palette** — fuzzy search across all app actions
-- **Tab cycling** — backtick/tilde to cycle through inbox split tabs
+- **Tab cycling** — backtick/tilde to cycle through People, Automated, Uncategorized, and Snoozed modes
 - **Batch selection** — Cmd+click, Shift+click, Shift+J/K for multi-select with bulk archive/trash/star
 
 ### Multi-Account

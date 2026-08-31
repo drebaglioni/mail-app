@@ -567,6 +567,8 @@ const api = {
       ipcRenderer.invoke("splits:assign-thread", { accountId, threadId, splitId }),
     clearThreadAssignment: (accountId: string, threadId: string): Promise<unknown> =>
       ipcRenderer.invoke("splits:clear-thread-assignment", { accountId, threadId }),
+    setArchiveKeep: (accountId: string, threadId: string, keep: boolean | null): Promise<unknown> =>
+      ipcRenderer.invoke("splits:set-archive-keep", { accountId, threadId, keep }),
     suggestThread: (accountId: string, threadId: string): Promise<unknown> =>
       ipcRenderer.invoke("splits:suggest-thread", { accountId, threadId }),
     discoverSuperhuman: (): Promise<unknown> => ipcRenderer.invoke("splits:discover-superhuman"),

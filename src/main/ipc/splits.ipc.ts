@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { stripJsonFences } from "../../shared/strip-json-fences";
 import { type InboxSplit, type IpcResponse, InboxSplitSchema } from "../../shared/types";
 import { getDataDir } from "../data-dir";
-import { getEmailsByThread } from "../db";
+import { getEmailsByThread, setThreadArchiveKeepOverride } from "../db";
 import { createMessage } from "../services/llm-router";
 import {
   discoverSuperhumanAccounts,
@@ -364,6 +364,25 @@ export function registerSplitsIpc(): void {
         const assignments = { ...getSplitAssignments(accountId) };
         delete assignments[threadId];
         saveSplitAssignments(accountId, assignments);
+        return { success: true, data: undefined };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    },
+  );
+
+  // Persist the tri-state Keep override used by Automated bulk archive.
+  ipcMain.handle(
+    "splits:set-archive-keep",
+    async (
+      _,
+      { accountId, threadId, keep }: { accountId: string; threadId: string; keep: boolean | null },
+    ): Promise<IpcResponse<void>> => {
+      try {
+        setThreadArchiveKeepOverride(threadId, accountId, keep);
         return { success: true, data: undefined };
       } catch (error) {
         return {

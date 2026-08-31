@@ -589,6 +589,9 @@ export type DashboardEmail = {
   attachments?: AttachmentMeta[];
   messageId?: string; // RFC 5322 Message-ID header
   inReplyTo?: string; // RFC 5322 In-Reply-To header
+  // Explicit user override for Automated bulk-archive behavior. Undefined
+  // means use the category default; true/false force keep/archive.
+  archiveKeepOverride?: boolean;
   analysis?: {
     needsReply: boolean;
     reason: string;
@@ -610,6 +613,18 @@ export type DashboardEmail = {
     agentTaskId?: string; // Links to agent_conversation_mirror for trace retrieval
   };
 };
+
+// Lightweight sender heuristics make Automated usable before the LLM runs,
+// but they are not a complete semantic category analysis. Keep the marker
+// shared so every queue/IPC path agrees about what still needs processing.
+export const HEURISTIC_ANALYSIS_REASON = "Auto-classified by sender pattern";
+
+export function needsSemanticAnalysis(email: Pick<DashboardEmail, "analysis">): boolean {
+  const analysis = email.analysis;
+  if (!analysis?.senderType) return true;
+  if (analysis.senderType !== "automated") return false;
+  return !analysis.automatedCategory || analysis.reason === HEURISTIC_ANALYSIS_REASON;
+}
 
 // Sent email for style learning
 export type SentEmail = {
@@ -855,6 +870,13 @@ export const InboxSplitSchema = z.object({
 });
 
 export type InboxSplit = z.infer<typeof InboxSplitSchema>;
+
+// Exactly one filter can be active inside Automated. This replaces the old
+// pair of currentSplitId/currentAutomatedCategory values that could disagree.
+export type AutomatedFilter =
+  | { kind: "all" }
+  | { kind: "category"; category: AutomatedCategory }
+  | { kind: "split"; splitId: string };
 
 // IPC channel types
 export type IpcChannels = {

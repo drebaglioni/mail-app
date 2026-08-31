@@ -615,6 +615,31 @@ export const NUMBERED_MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    version: 14,
+    name: "reanalyze_legacy_automated_other_categories",
+    up: (db) => {
+      const analysesExist = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='analyses'")
+        .get();
+      if (!analysesExist) return;
+
+      // Versions 9-13 used Other as a compatibility backfill for automated
+      // rows that had never received a semantic category. Those rows cannot
+      // be distinguished from a genuine semantic Other after the fact, so
+      // reanalyze the one-time legacy Other cohort. While category is NULL the
+      // renderer keeps the thread by default, so this cannot bulk-archive mail.
+      const reset = db
+        .prepare(
+          `UPDATE analyses
+           SET automated_category = NULL
+           WHERE sender_type = 'automated'
+             AND automated_category = 'other'`,
+        )
+        .run().changes;
+      log.info({ reset }, "Reset legacy automated Other categories for reanalysis");
+    },
+  },
 ];
 
 // Frozen migration-local classifier used by migration 9.

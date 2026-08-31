@@ -14,7 +14,13 @@
  * use: `npm run pack && EXO_PACKAGED_BINARY="dist/mac-arm64/Exo.app/Contents/MacOS/Exo" \
  *   npx playwright test --project=packaged`.
  */
-import { test, expect, _electron as electron, type Page, type ElectronApplication } from "@playwright/test";
+import {
+  test,
+  expect,
+  _electron as electron,
+  type Page,
+  type ElectronApplication,
+} from "@playwright/test";
 import { existsSync } from "fs";
 
 const BINARY = process.env.EXO_PACKAGED_BINARY ?? "";
@@ -24,7 +30,10 @@ test.beforeAll(() => {
     test.skip(true, "EXO_PACKAGED_BINARY not set — skipping packaged smoke");
   }
   if (!existsSync(BINARY)) {
-    test.skip(true, `EXO_PACKAGED_BINARY does not exist at ${BINARY} — did you run 'npm run pack'?`);
+    test.skip(
+      true,
+      `EXO_PACKAGED_BINARY does not exist at ${BINARY} — did you run 'npm run pack'?`,
+    );
   }
 });
 
@@ -83,11 +92,14 @@ test.describe("Packaged app smoke", () => {
     expect(proc.killed).toBe(false);
   });
 
-  test("inbox area renders (demo data shows)", async () => {
-    // Demo mode populates a few mock emails. We don't care which —
-    // just that the email-list area renders without a hard error.
-    const inboxIndicator = page.locator("text=Inbox").first();
-    await expect(inboxIndicator).toBeVisible({ timeout: 15_000 });
+  test("inbox modes and demo email rows render", async () => {
+    // The inbox no longer has a literal "Inbox" heading. Assert the active
+    // mode, its sibling switcher, and a rendered row instead.
+    await expect(page.getByRole("button", { name: /^People\s*\d+$/ })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole("button", { name: /^Automated\s*\d+$/ })).toBeVisible();
+    await expect(page.locator("[data-thread-id]").first()).toBeVisible();
   });
 
   test("settings panel opens", async () => {
